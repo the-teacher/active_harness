@@ -1,0 +1,58 @@
+module ActiveHarness
+  class Agent
+    class << self
+      # System prompt for this agent.
+      # Accepts:
+      #   - a String  → used as-is
+      #   - a Class   → instantiated and resolved via #call or #text
+      #   - a Proc    → called at request time (no arguments)
+      #
+      #   system_prompt "You are a helpful assistant."
+      #   system_prompt MyPromptClass
+      #   system_prompt -> { "Dynamic prompt built at #{Time.now}" }
+      def system_prompt(text_or_class)
+        agent_config[:system_prompt] = text_or_class
+      end
+      alias prompt system_prompt
+    end
+
+    private
+
+    attr_reader :system_prompt
+    public :system_prompt
+
+    def resolve_system_prompt
+      run_hook(:before_system_prompt)
+
+      sp = @config[:system_prompt]
+
+      prompt = case sp
+      when String   then sp
+      when NilClass then nil
+      when Proc     then instance_exec(&sp)
+      when Class
+        instance = sp.new
+        inject_agent_state(instance)
+        if    instance.respond_to?(:call) then instance.call
+        elsif instance.respond_to?(:text) then instance.text
+        else  instance.to_s
+        end
+      else
+        inject_agent_state(sp)
+        if    sp.respond_to?(:call) then sp.call
+        elsif sp.respond_to?(:text) then sp.text
+        else  sp.to_s
+        end
+      end
+
+      run_hook(:after_system_prompt, prompt)
+      prompt
+    end
+
+    def inject_agent_state(obj)
+      obj.instance_variable_set(:@input,   @input)
+      obj.instance_variable_set(:@context, @context)
+      obj.instance_variable_set(:@config,  @config)
+    end
+  end
+end
