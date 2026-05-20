@@ -1,5 +1,9 @@
 # ActiveHarness
 
+<p align="center">
+  <img src="docs/top-logo.png" alt="ActiveHarness" width="600">
+</p>
+
 [![Gem Version](https://badge.fury.io/rb/active_harness.svg)](https://rubygems.org/gems/active_harness)
 
 > **⚠️ Work in progress.** The API is under active development and may change between versions without notice.
