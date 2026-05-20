@@ -1,5 +1,7 @@
 # ActiveHarness
 
+[![Gem Version](https://badge.fury.io/rb/active_harness.svg)](https://rubygems.org/gems/active_harness)
+
 > **⚠️ Work in progress.** The API is under active development and may change between versions without notice.
 
 **ActiveHarness** is a Ruby framework for building AI agents with multiple LLM providers, lifecycle hooks, and a simple DSL. Made for Rails but works in plain Ruby too.
