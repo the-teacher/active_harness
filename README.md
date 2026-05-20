@@ -14,7 +14,33 @@
 
 A **harness** in software is scaffolding that keeps a component under control — directing its inputs, observing its outputs, and enforcing rules around it. **ActiveHarness** does exactly that for AI agents.
 
+## Why Did I Build This?
+
+I build relately complex AI piplines for my Ruby and Ruby on Rails projects and I needed a way to:
+
+- Organize prompts, agents, and pipelines in a clean, reusable way.
+- Automatically fallback to another model if one fails, without writing extra code for retries and error handling.
+- Have a way to validate results by running multiple agents in parallel and comparing their outputs. (See "Tribunals" below.)
+- Have a way to catch events in the agent lifecycle — for logging, debugging, or modifying the flow.
+
+So this solution was born out.
+
+### Table of Contents
+
+- [File Structure](#file-structure)
+- [Prompts](#prompts)
+- [Agents](#agents)
+- [Tribunals](#tribunals)
+- [Pipelines](#pipelines)
+- [Memory](#memory)
+- [Rails](#rails)
+- [Streaming](#streaming)
+- [Execution Time](#execution-time)
+- [Token Usage Statistic](#token-usage-info)
+
 ## File Structure
+
+File structure for Ruby and Ruby on Rails applications:
 
 ```
 app/
@@ -64,7 +90,8 @@ class SupportAgent < ActiveHarness::Agent
   # Models are tried in order.
   # If one fails, the next fallback is used automatically.
   model do
-    use      provider: :openrouter,  model: "mistralai/mistral-nemo",              temperature: 0.5
+    use      provider: :openrouter,  model: "mistralai/mistral-nemo", temperature: 0.5
+
     fallback provider: :openai,      model: "gpt-4o-mini"
     fallback provider: :anthropic,   model: "claude-3-haiku-20240307"
     fallback provider: :groq,        model: "llama-3.1-8b-instant"
@@ -457,6 +484,58 @@ es.onmessage = ({ data }) => {
 ```
 
 Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame signals end of stream: `data: {"done":true}`.
+
+## Execution Time
+
+Every object that makes an LLM call exposes `#execution_time` (seconds, rounded to 3 decimal places).
+
+```ruby
+# Agent
+result = agent.call("What is your return policy?")
+puts result.execution_time          # => 1.352
+
+# or via the agent itself after call
+agent.call("...")
+puts agent.result.execution_time    # => 1.352
+
+# Tribunal — wall time for all agents running in parallel
+tribunal.call
+puts tribunal.execution_time        # => 0.94
+
+# Pipeline — total wall time across all steps that ran
+pipeline.call
+puts pipeline.execution_time        # => 3.12
+
+# Per step
+pipeline.step_results.each do |step_name, result|
+  puts "#{step_name}: #{result.execution_time}s"
+end
+```
+
+## Token Usage Info
+
+When a provider returns token counts, they are available on the `Result` object under `#usage`.  
+Not all providers return usage — the value is `nil` for streaming calls and some free-tier models.
+
+```ruby
+result = agent.call("What is your return policy?")
+
+if result.usage
+  puts result.usage[:input_tokens]   # => 41
+  puts result.usage[:output_tokens]  # => 78
+  puts result.usage[:total_tokens]   # => 119
+end
+```
+
+For a tribunal, inspect each agent's result individually:
+
+```ruby
+tribunal.call
+
+tribunal.results.each do |result|
+  puts "#{result.model}: #{result.usage&.dig(:total_tokens)} tokens"
+end
+```
 
 ## License
 
