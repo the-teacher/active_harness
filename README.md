@@ -1,0 +1,457 @@
+# ActiveHarness
+
+> **⚠️ Work in progress.** The API is under active development and may change between versions without notice.
+
+**ActiveHarness** is a Ruby framework for building AI agents with multiple LLM providers, lifecycle hooks, and a simple DSL. Made for Rails but works in plain Ruby too.
+
+## What is a "Harness"?
+
+A **harness** in software is scaffolding that keeps a component under control — directing its inputs, observing its outputs, and enforcing rules around it. **ActiveHarness** does exactly that for AI agents.
+
+## File Structure
+
+```
+app/
+├── models/
+├── controllers/
+├── views/
+└── ai/
+    ├── prompts/      # system prompt classes
+    ├── agents/       # agent classes
+    ├── tribunals/    # parallel verdict panels
+    ├── pipelines/    # multi-step pipelines
+    └── memory/       # custom memory classes
+```
+
+# Components of the ActiveHarness ecosystem:
+
+## Prompts
+
+A **prompt** is a plain Ruby class with a `call` method that returns the system prompt string.
+
+Before `call` is invoked, the agent automatically injects `@input`, `@context`, and `@config` —
+so you can build dynamic prompts without any extra wiring.
+
+```ruby
+class SupportPrompt
+  def call
+    base = "You are a concise and friendly customer support assistant. " \
+           "Answer briefly, in 2-3 sentences max."
+
+    return base unless @context[:language]
+
+    "#{base} Always respond in #{@context[:language]}."
+  end
+end
+```
+
+## Agents
+
+An **agent** is a single LLM call wrapped in a class. It declares a system prompt, a model chain with automatic fallbacks, and lifecycle hooks for observing or modifying every stage of the call.
+
+→ [Agent hooks reference](docs/agent_hooks.md)
+
+```ruby
+class SupportAgent < ActiveHarness::Agent
+  system_prompt SupportPrompt
+
+  # Models are tried in order.
+  # If one fails, the next fallback is used automatically.
+  model do
+    use      provider: :openrouter,  model: "mistralai/mistral-nemo",              temperature: 0.5
+    fallback provider: :openai,      model: "gpt-4o-mini"
+    fallback provider: :anthropic,   model: "claude-3-haiku-20240307"
+    fallback provider: :groq,        model: "llama-3.1-8b-instant"
+    fallback provider: :gemini,      model: "gemini-2.0-flash"
+  end
+
+  callback :setup do
+    @input = @input&.strip&.gsub(/\s+/, " ")
+  end
+
+  before :call do
+    if @context[:language]
+      suffix = " (reply in #{@context[:language]})"
+      @input += suffix unless @input.end_with?(suffix)
+    end
+  end
+
+  callback :retry   do |entry, error|
+    puts "[retry] #{entry[:model]} — #{error.message}"
+  end
+
+  callback :failure do |attempts|
+    puts "[failure] all #{attempts.size} models failed"
+  end
+end
+```
+
+**Usage:**
+
+```ruby
+agent = SupportAgent.new(context: { language: "English" })
+
+agent.input = "What is your return policy?"
+agent.call
+
+puts result.output                      # => "Our return policy is..."
+puts result.model                       # => "mistralai/mistral-nemo"
+
+puts result.execution_time             # => 1.352  (seconds)
+
+# If providers return token usage info, it's all here:
+puts result.usage[:input_tokens]       # => 41
+puts result.usage[:output_tokens]      # => 78
+puts result.usage[:total_tokens]       # => 119
+```
+
+## Tribunals
+
+![AI Tribunal](docs/tribunals.png)
+
+A **tribunal** runs several agents on the same input **in parallel** and produces a single consensus **VERDICT** (final decision).
+
+This improves reliability — a single model can be wrong or biased, but two (or more) independent models rarely agree on the same mistake.
+
+→ [Tribunal hooks reference](docs/tribunal_hooks.md)
+
+**Prompt** — each agent returns structured JSON:
+
+```ruby
+class PolitenessPrompt
+  def call
+    <<~PROMPT.strip
+      You are a politeness evaluator.
+      Analyze the message and decide whether it is polite.
+      Reply ONLY with valid JSON, no markdown:
+      {"result": true, "reason": "..."}
+    PROMPT
+  end
+end
+```
+
+**Agent** — uses the prompt and parses JSON output automatically:
+
+```ruby
+class PolitenessAgent < ActiveHarness::Agent
+  system_prompt PolitenessPrompt
+
+  format :json
+
+  # default model chain with fallbacks
+  model do
+    use      provider: :openrouter, model: "mistralai/mistral-nemo"
+    fallback provider: :openrouter, model: "meta-llama/llama-3.1-8b-instruct"
+  end
+end
+```
+
+**Tribunal** — runs two instances of the agent on different models, verdict is `true` only if both agree:
+
+```ruby
+class PolitenessTribunal < ActiveHarness::Tribunal
+  def initialize(input:)
+    # Two independent agents with different models, running in parallel.
+    agent_1 = PolitenessAgent.new
+    agent_1.models.prepend([{ provider: :openai, model: "gpt-4o-mini" }])
+
+    agent_2 = PolitenessAgent.new
+    agent_2.models.prepend([{ provider: :anthropic, model: "claude-3-haiku-20240307" }])
+
+    super(
+        input: input,
+        agents: [agent_1, agent_2]
+    )
+  end
+
+  # Define how the tribunal makes a VERDICT based on all agents' results.
+  process do |results|
+    results.all? { |r| r.parsed["result"] == true }
+  end
+end
+```
+
+**Usage:**
+
+```ruby
+aggressive_input = "I hate this product! It is the worst thing I've ever bought!!!"
+
+politeness_tribunal = PolitenessTribunal.new
+
+politeness_tribunal.input = aggressive_input
+politeness_tribunal.call
+
+puts politeness_tribunal.verdict          # => false
+puts politeness_tribunal.execution_time   # => 0.94  (both agents ran in parallel)
+
+# Inspect each agent's reasoning:
+politeness_tribunal.results.each do |result|
+  puts result.model                        # => "gpt-4o-mini"
+  puts result.parsed["result"]             # => false
+  puts result.parsed["reason"]             # => "The message contains aggressive language..."
+end
+```
+
+## Pipelines
+
+A **pipeline** chains agents and tribunals into a sequential, multi-step flow. Each step receives the output of the previous step as its input. Any step can stop the pipeline early — the remaining steps are skipped.
+
+→ [Pipeline hooks reference](docs/pipeline_hooks.md)
+
+```ruby
+class SupportPipeline < ActiveHarness::Pipeline
+  # Step 1 — Guard: detect prompt injection before wasting tokens.
+  # stop_if receives the result and halts the pipeline if true.
+  step :injection_guard do
+    use InjectionGuardAgent
+    stop_if ->(result) { result.parsed["detected"] == true }
+  end
+
+  # Step 2 — Shorthand: no stop_if, always continues.
+  step :translate, TranslationAgent
+
+  # Step 3 — Tribunal as a step: parallel safety check.
+  step :safety_tribunal do
+    use PolitenessTribunal
+    stop_if ->(result) { result.verdict == false }
+  end
+
+  # Step 4 — Final answer on a clean, safe, on-topic request.
+  step :respond, SupportAgent
+
+  # ~~~ Global hooks — fire on every step ~~~
+
+  before :step do |step_name, payload|
+    puts "[pipeline] → :#{step_name}"
+  end
+
+  after :step do |step_name, result|
+    puts "[pipeline] ✓ :#{step_name} (#{result.execution_time}s)"
+  end
+
+  # ~~~ Per-step hook — fires only for :injection_guard ~~~
+
+  after :step, :injection_guard do |result|
+    status = result.parsed["detected"] ? "INJECTION DETECTED" : "clean"
+    puts "[injection_guard] #{status}: #{result.parsed["reason"]}"
+  end
+
+  # ~~~ Terminal hooks ~~~
+
+  callback :stopped do |step_name, result|
+    puts "[pipeline] STOPPED at :#{step_name}"
+  end
+
+  callback :complete do |last_result|
+    puts "[pipeline] complete"
+  end
+end
+```
+
+**Call:**
+
+```ruby
+pipeline = SupportPipeline.new(input: "What is your return policy?")
+pipeline.call
+
+if pipeline.stopped?
+  puts pipeline.stopped_at    # => :injection_guard  (name of the step that stopped it)
+else
+  puts pipeline.output        # => "Our return policy is..."
+end
+
+puts pipeline.execution_time  # => 3.12  (total wall time for all steps)
+
+# Individual step results:
+pipeline.step_results.each do |step_name, result|
+  puts "#{step_name}: #{result.execution_time}s"
+end
+```
+
+## Memory
+
+**Memory** records the conversation history (request + response turns) for an agent session.
+Recording is automatic — you only need to pass a `memory:` object when constructing an agent.
+**Injection is always manual** — you decide when and how past turns are included in the prompt.
+
+**Custom memory class** — wrap `ActiveHarness::Memory` once with your application defaults:
+
+```ruby
+class AppMemory < ActiveHarness::Memory
+  STORAGE_PATH = Rails.root.join("storage/ai/memory").freeze
+
+  def initialize(session_id:)
+    super(
+      session_id:   session_id,
+      depth:        10,          # how many turns to keep in memory
+      adapter:      :file,
+      path:         STORAGE_PATH,
+      storage_size: 200,         # max chars per stored message
+      pretty:       true
+    )
+  end
+end
+```
+
+**Wire memory to an agent** — pass it at construction time:
+
+```ruby
+memory = AppMemory.new(session_id: "user_42")
+
+agent = SupportAgent.new(
+  context: { language: "English" },
+  memory:  memory
+)
+
+agent.call("What is your return policy?")
+agent.call("Does that apply to digital products too?")
+agent.call("How long does a refund take?")
+
+puts memory.size          # => 3  (one turn per call)
+```
+
+To **inject history into the prompt**, read `@memory` inside the prompt class:
+
+```ruby
+class SupportPrompt
+  def call
+    base = "You are a concise and friendly customer support assistant."
+
+    return base unless @memory&.size&.positive?
+
+    history = @memory.to_messages
+                     .map { |m| "#{m[:role]}: #{m[:content]}" }
+                     .join("\n")
+
+    "#{base}\n\nConversation so far:\n#{history}"
+  end
+end
+```
+
+`@memory`, `@input`, and `@context` are all injected into the prompt automatically before `call` is invoked.
+
+## Rails
+
+### Installation
+
+Add to your `Gemfile`:
+
+```ruby
+gem "active_harness"
+```
+
+Run the install generator to create the `app/ai/` directory structure, example classes, and test support routes:
+
+```
+rails generate active_harness:install
+```
+
+This creates:
+
+```
+app/
+└── ai/
+    ├── agents/
+    │   ├── test_support_agent.rb
+    │   └── test_support_guard_agent.rb
+    ├── prompts/
+    │   ├── test_support_prompt.rb
+    │   └── test_support_guard_prompt.rb
+    ├── tribunals/
+    │   └── test_support_guard_tribunal.rb
+    ├── pipelines/
+    │   └── test_support_pipeline.rb
+    └── memory/
+        └── test_support_memory.rb
+app/controllers/
+    └── ai_test_support_controller.rb
+```
+
+And injects into `config/routes.rb`:
+
+```ruby
+post "ai/agent",        to: "ai_test_support#agent"
+post "ai/agent_memory", to: "ai_test_support#agent_memory"
+post "ai/tribunal",     to: "ai_test_support#tribunal"
+post "ai/pipeline",     to: "ai_test_support#pipeline"
+get  "ai/agent_stream", to: "ai_test_support#agent_stream"
+```
+
+### Generators
+
+Generate individual components by name:
+
+```
+rails generate active_harness:prompt  Support
+rails generate active_harness:agent   Support
+rails generate active_harness:tribunal Politeness
+rails generate active_harness:pipeline Support
+rails generate active_harness:memory  App
+```
+
+Each command creates one file in the corresponding `app/ai/` subdirectory:
+
+| Command                        | File created                        |
+| ------------------------------ | ----------------------------------- |
+| `active_harness:prompt Name`   | `app/ai/prompts/name_prompt.rb`     |
+| `active_harness:agent Name`    | `app/ai/agents/name_agent.rb`       |
+| `active_harness:tribunal Name` | `app/ai/tribunals/name_tribunal.rb` |
+| `active_harness:pipeline Name` | `app/ai/pipelines/name_pipeline.rb` |
+| `active_harness:memory Name`   | `app/ai/memory/name_memory.rb`      |
+
+### Autoloading
+
+All files under `app/ai/` are autoloaded automatically when ActiveHarness is used inside a Rails application — no `require` calls needed.
+
+### Streaming (SSE)
+
+To stream responses token by token, include `ActionController::Live` and pass a `stream:` lambda to the agent:
+
+```ruby
+class AiController < ApplicationController
+  include ActionController::Live
+
+  # GET /ai/stream?input=What+is+your+return+policy%3F
+  def stream
+    input = params.require(:input)
+
+    response.headers["Content-Type"]      = "text/event-stream"
+    response.headers["Cache-Control"]     = "no-cache"
+    response.headers["X-Accel-Buffering"] = "no"  # disable nginx buffering
+
+    sse = ActionController::Live::SSE.new(response.stream, event: "message")
+
+    SupportAgent.call(
+      input:  input,
+      stream: ->(token) { sse.write({ token: token }.to_json) }
+    )
+
+    sse.write({ done: true }.to_json)
+  rescue ActionController::Live::ClientDisconnected
+    # client closed the connection — nothing to do
+  ensure
+    sse.close
+  end
+end
+```
+
+**JavaScript client:**
+
+```js
+const es = new EventSource("/ai/stream?input=Hello");
+
+es.onmessage = ({ data }) => {
+  const { token, done } = JSON.parse(data);
+  if (done) {
+    es.close();
+    return;
+  }
+  document.querySelector("#output").insertAdjacentText("beforeend", token);
+};
+```
+
+Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame signals end of stream: `data: {"done":true}`.
+
+## License
+
+MIT © [the-teacher](https://github.com/the-teacher)

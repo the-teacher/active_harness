@@ -1,0 +1,8 @@
+class <%= class_name %>Agent < ActiveHarness::Agent
+  system_prompt <%= class_name %>Prompt
+
+  model do
+    use      provider: :openrouter, model: "mistralai/mistral-nemo"
+    fallback provider: :openrouter, model: "meta-llama/llama-3.1-8b-instruct"
+  end
+end

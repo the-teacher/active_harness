@@ -94,6 +94,7 @@ module ActiveHarness
       end
     end
 
+    attr_accessor :input
     attr_reader :results, :errors, :verdict, :execution_time, :agent_execution_times
 
     def initialize(input: nil, context: {}, agents: nil, timeout: 7)

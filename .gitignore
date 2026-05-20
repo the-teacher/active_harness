@@ -1,7 +1,15 @@
 .DS_Store
 
+# Bundler
 .bundle/
 vendor/
+Gemfile.lock
+
+# Built gem artifacts
+*.gem
+pkg/
+
+# Rails-style runtime dirs (if ever added)
 storage/
 log/
 tmp/

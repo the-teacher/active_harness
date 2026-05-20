@@ -1,0 +1,19 @@
+class <%= class_name %>Pipeline < ActiveHarness::Pipeline
+  step :respond, <%= class_name %>Agent
+
+  before :step do |step_name, _payload|
+    puts "[pipeline] → :#{step_name}"
+  end
+
+  after :step do |step_name, _result|
+    puts "[pipeline] ✓ :#{step_name}"
+  end
+
+  callback :stopped do |step_name, _result|
+    puts "[pipeline] ✗ STOPPED at :#{step_name}"
+  end
+
+  callback :complete do |_last_result|
+    puts "[pipeline] ✓ complete"
+  end
+end

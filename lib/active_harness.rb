@@ -13,6 +13,8 @@ require_relative "active_harness/agent"
 require_relative "active_harness/tribunal"
 require_relative "active_harness/pipeline"
 
+require_relative "active_harness/railtie" if defined?(Rails::Railtie)
+
 module ActiveHarness
   VERSION = "0.2.0"
 end
