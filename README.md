@@ -98,7 +98,7 @@ end
 agent = SupportAgent.new(context: { language: "English" })
 
 agent.input = "What is your return policy?"
-agent.call
+result = agent.call
 
 puts result.output                      # => "Our return policy is..."
 puts result.model                       # => "mistralai/mistral-nemo"

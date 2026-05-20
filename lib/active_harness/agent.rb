@@ -29,7 +29,7 @@ module ActiveHarness
     # Instance API
     # -------------------------------------------------------------------------
     attr_accessor :input
-    attr_reader :context
+    attr_reader :context, :result
 
     def initialize(input: nil, context: {}, models: nil, memory: nil, stream: nil)
       @input           = input
@@ -63,6 +63,7 @@ module ActiveHarness
         result   = build_result(response, entry, attempts, elapsed)
         save_to_memory(result)
         run_hook(:after_call, result)
+        @result = result
         return result
       rescue *RETRYABLE_ERRORS => e
         elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(3)
