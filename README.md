@@ -89,12 +89,16 @@ so you can build dynamic prompts without any extra wiring.
 ```ruby
 class SupportPrompt
   def call
-    base = "You are a concise and friendly customer support assistant. " \
-           "Answer briefly, in 2-3 sentences max."
+    "You are a concise and friendly customer support assistant. " \
+    "Answer briefly, in 2-3 sentences max." \
+    + reply_in_language
+  end
 
-    return base unless @context[:language]
+  private
 
-    "#{base} Always respond in #{@context[:language]}."
+  def reply_in_language
+    return "" unless @context[:language]
+    " (reply in #{@context[:language]})"
   end
 end
 ```
@@ -112,14 +116,18 @@ class SupportAgent < ActiveHarness::Agent
   # Models are tried in order.
   # If one fails, the next fallback is used automatically.
   model do
-    use      provider: :openrouter,  model: "mistralai/mistral-nemo", temperature: 0.5
+    use  provider: :openrouter,
+         model: "mistralai/mistral-nemo",
+         temperature: 0.5
 
-    fallback provider: :openai,      model: "gpt-4o-mini"
-    fallback provider: :anthropic,   model: "claude-3-haiku-20240307"
-    fallback provider: :groq,        model: "llama-3.1-8b-instant"
-    fallback provider: :gemini,      model: "gemini-2.0-flash"
+    fallback provider: :openai,    model: "gpt-4o-mini"
+    fallback provider: :anthropic, model: "claude-3-haiku-20240307"
+    fallback provider: :groq,      model: "llama-3.1-8b-instant"
+    fallback provider: :gemini,    model: "gemini-2.0-flash"
   end
 
+  # Save tokens
+  # Trim user input whitespace and normalize spaces before the call.
   callback :setup do
     @input = @input&.strip&.gsub(/\s+/, " ")
   end
@@ -131,7 +139,7 @@ class SupportAgent < ActiveHarness::Agent
     end
   end
 
-  callback :retry   do |entry, error|
+  callback :retry do |entry, error|
     puts "[retry] #{entry[:model]} — #{error.message}"
   end
 
@@ -191,6 +199,8 @@ end
 class PolitenessAgent < ActiveHarness::Agent
   system_prompt PolitenessPrompt
 
+  # Parse the raw string output into a JSON object
+  # Parsed results are available on result.parsed
   format :json
 
   # default model chain with fallbacks
@@ -214,14 +224,16 @@ class PolitenessTribunal < ActiveHarness::Tribunal
     agent_2.models.prepend([{ provider: :anthropic, model: "claude-3-haiku-20240307" }])
 
     super(
-        input: input,
-        agents: [agent_1, agent_2]
+      input: input,
+      agents: [agent_1, agent_2]
     )
   end
 
   # Define how the tribunal makes a VERDICT based on all agents' results.
   process do |results|
-    results.all? { |r| r.parsed["result"] == true }
+    results.all? do |result|
+      result.parsed["result"] == true
+    end
   end
 end
 ```

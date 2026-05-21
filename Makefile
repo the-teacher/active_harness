@@ -27,6 +27,10 @@ stats:
 	@curl -s https://rubygems.org/api/v1/gems/$(GEM_NAME).json | \
 	  ruby -rjson -e 'd=JSON.parse(ARGF.read); puts "version:    " + d["version"]; puts "downloads:  " + d["version_downloads"].to_s + " (this version)"; puts "total:      " + d["downloads"].to_s + " (all versions)"'
 
+# Commit and push README changes
+readme:
+	git add -A && git commit -m "Readme" && git push origin master
+
 # Commit all changes, create a version tag, push branch + tag, then publish
 release:
 	@V=$$(ruby -e "load 'active_harness.gemspec'; puts Gem::Specification.load('active_harness.gemspec').version"); \
