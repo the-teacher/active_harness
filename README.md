@@ -159,8 +159,8 @@ agent.call
 
 result = agent.result
 
-puts result.output                      # => "Our return policy is..."
-puts result.model                       # => "mistralai/mistral-nemo"
+puts result.output                     # => "Our return policy is..."
+puts result.model                      # => "mistralai/mistral-nemo"
 puts result.execution_time             # => 1.352  (seconds)
 
 # If providers return token usage info, it's all here:
