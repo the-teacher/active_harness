@@ -34,7 +34,7 @@ So this solution was born out.
 - [Tribunals. How to Create](#tribunals)
 - [Pipelines. How to Create](#pipelines)
 - [Memory. How to Create](#memory)
-- [Using with Rails](#rails)
+- [Using with Ruby on Rails](#using-with-ruby-on-rails)
 - [Streaming (SSE)](#streaming-sse)
 - [Execution Time](#execution-time)
 - [Token Usage Info](#token-usage-info)
@@ -405,7 +405,7 @@ end
 
 `@memory`, `@input`, and `@context` are all injected into the prompt automatically before `call` is invoked.
 
-## Rails
+## Using with Ruby on Rails
 
 <details>
 <summary><strong>How to install and use with Rails</strong></summary>
@@ -522,7 +522,9 @@ rails generate active_harness:memory   App
 
 All files under `app/ai/` are autoloaded automatically — no `require` calls needed.
 
-### Streaming (SSE)
+</details>
+
+## Streaming (SSE)
 
 ![Streaming](docs/streaming.gif)
 
@@ -572,8 +574,6 @@ es.onmessage = ({ data }) => {
 ```
 
 Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame: `data: {"done":true}`.
-
-</details>
 
 ## Execution Time
 
