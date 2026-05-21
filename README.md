@@ -407,21 +407,57 @@ end
 
 ## Rails
 
-### Installation
+<details>
+<summary><strong>How to install and use with Rails</strong></summary>
 
-Add to your `Gemfile`:
+### 1. Add the gem
 
 ```ruby
+# Gemfile
 gem "active_harness"
 ```
 
-Run the install generator to create the `app/ai/` directory structure with example classes and routes. Files are only created if they don't already exist — running the generator on an existing project is safe:
-
+```bash
+bundle install
 ```
+
+### 2. Set API keys
+
+Add `dotenv-rails` to your Gemfile:
+
+```ruby
+gem "dotenv-rails"
+```
+
+```bash
+bundle install
+```
+
+Create `.env` in Rails root and add it to `.gitignore`:
+
+```bash
+# .env
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=...
+GROQ_API_KEY=...
+OPENROUTER_API_KEY=sk-or-v1-...
+```
+
+```bash
+echo ".env" >> .gitignore
+```
+
+Set only the keys for the providers you use.
+
+### 3. Run the install generator
+
+```bash
 rails generate active_harness:install
 ```
 
-This creates:
+This creates the `app/ai/` directory structure with example classes, a controller, and routes.  
+Files are only created if they don't already exist — running the generator on an existing project is safe.
 
 ```
 app/
@@ -442,14 +478,24 @@ app/controllers/
     └── ai_support_controller.rb
 ```
 
-And injects into `config/routes.rb`:
+Routes injected into `config/routes.rb`:
 
-```ruby
-post "ai/agent",        to: "ai_support#agent"
-post "ai/agent_memory", to: "ai_support#agent_memory"
-post "ai/tribunal",     to: "ai_support#tribunal"
-post "ai/pipeline",     to: "ai_support#pipeline"
-get  "ai/agent_stream", to: "ai_support#agent_stream"
+```
+POST /ai/agent          — single agent call
+POST /ai/agent_memory   — agent call with session memory
+POST /ai/tribunal       — content moderation check
+POST /ai/pipeline       — full pipeline run
+GET  /ai/agent_stream   — streaming response (SSE)
+```
+
+### 4. Try it
+
+```bash
+curl -s -X POST http://localhost:3000/ai/agent \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Hello!"}'
+
+# {"output":"Hi, how can I assist you today?","model":"mistralai/mistral-nemo","time":2.862}
 ```
 
 ### Generators
@@ -457,14 +503,12 @@ get  "ai/agent_stream", to: "ai_support#agent_stream"
 Generate individual components by name:
 
 ```
-rails generate active_harness:prompt  Support
-rails generate active_harness:agent   Support
+rails generate active_harness:prompt   Support
+rails generate active_harness:agent    Support
 rails generate active_harness:tribunal Politeness
 rails generate active_harness:pipeline Support
-rails generate active_harness:memory  App
+rails generate active_harness:memory   App
 ```
-
-Each command creates one file in the corresponding `app/ai/` subdirectory:
 
 | Command                        | File created                        |
 | ------------------------------ | ----------------------------------- |
@@ -476,7 +520,7 @@ Each command creates one file in the corresponding `app/ai/` subdirectory:
 
 ### Autoloading
 
-All files under `app/ai/` are autoloaded automatically when ActiveHarness is used inside a Rails application — no `require` calls needed.
+All files under `app/ai/` are autoloaded automatically — no `require` calls needed.
 
 ### Streaming (SSE)
 
@@ -527,7 +571,9 @@ es.onmessage = ({ data }) => {
 };
 ```
 
-Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame signals end of stream: `data: {"done":true}`.
+Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame: `data: {"done":true}`.
+
+</details>
 
 ## Execution Time
 
