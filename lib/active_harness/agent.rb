@@ -12,7 +12,7 @@ module ActiveHarness
       #   SupportAgent.call(input: "Hi", context: { user_id: 42 })
       #   SupportAgent.call(input: "Hi", memory: memory)
       def call(input: nil, context: {}, models: nil, memory: nil, stream: nil)
-        new(input: input, context: context, models: models, memory: memory, stream: stream).call
+        new(input: input, context: context, models: models, memory: memory, stream: stream).call.result
       end
 
       # Each subclass gets its own isolated config hash.

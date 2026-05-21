@@ -480,6 +480,8 @@ All files under `app/ai/` are autoloaded automatically when ActiveHarness is use
 
 ### Streaming (SSE)
 
+![Streaming](docs/streaming.gif)
+
 To stream responses token by token, include `ActionController::Live` and pass a `stream:` lambda to the agent:
 
 ```ruby
