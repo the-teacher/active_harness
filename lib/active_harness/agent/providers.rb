@@ -1,16 +1,21 @@
 module ActiveHarness
   class Agent
-    # Errors that allow retrying the next model in the chain
+    # Errors that allow retrying the next model in the chain.
+    # InvalidRequestError is included here so that a bad model name (or any
+    # per-model request failure) does not abort the entire chain — the next
+    # fallback model will be attempted instead.
     RETRYABLE_ERRORS = [
       Errors::TimeoutError,
       Errors::RateLimitError,
       Errors::ServerError,
-      Errors::ProviderUnavailableError
+      Errors::ProviderUnavailableError,
+      Errors::InvalidRequestError
     ].freeze
 
-    # Errors that abort the entire chain immediately
+    # Errors that abort the entire chain immediately.
+    # InvalidApiKeyError  — the key is wrong for every model, retrying is pointless.
+    # SafetyBlockedError  — the input itself is blocked; a different model won't help.
     STOP_ERRORS = [
-      Errors::InvalidRequestError,
       Errors::InvalidApiKeyError,
       Errors::SafetyBlockedError
     ].freeze
