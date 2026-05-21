@@ -1,7 +1,7 @@
-require_relative "../prompts/test_support_prompt"
+require_relative "../prompts/support_prompt"
 
-class TestSupportAgent < ActiveHarness::Agent
-  system_prompt TestSupportPrompt
+class SupportAgent < ActiveHarness::Agent
+  system_prompt SupportPrompt
 
   model do
     use      provider: :openrouter, model: "mistralai/mistral-nemo"

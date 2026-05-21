@@ -17,21 +17,21 @@ module ActiveHarness
       end
 
       def copy_controller
-        target = File.join(destination_root, "app", "controllers", "ai_test_support_controller.rb")
+        target = File.join(destination_root, "app", "controllers", "ai_support_controller.rb")
         return if File.exist?(target)
 
         copy_file "controllers/ai_controller.rb",
-                  "app/controllers/ai_test_support_controller.rb"
+                  "app/controllers/ai_support_controller.rb"
       end
 
       def inject_routes
         route <<~ROUTES.strip
-          # ActiveHarness — AI test support endpoints
-          post "ai/agent",        to: "ai_test_support#agent"
-          post "ai/agent_memory", to: "ai_test_support#agent_memory"
-          post "ai/tribunal",     to: "ai_test_support#tribunal"
-          post "ai/pipeline",     to: "ai_test_support#pipeline"
-          get  "ai/agent_stream", to: "ai_test_support#agent_stream"
+          # ActiveHarness — AI support endpoints
+          post "ai/agent",        to: "ai_support#agent"
+          post "ai/agent_memory", to: "ai_support#agent_memory"
+          post "ai/tribunal",     to: "ai_support#tribunal"
+          post "ai/pipeline",     to: "ai_support#pipeline"
+          get  "ai/agent_stream", to: "ai_support#agent_stream"
         ROUTES
       end
 

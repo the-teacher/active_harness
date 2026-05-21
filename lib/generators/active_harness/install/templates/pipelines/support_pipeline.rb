@@ -1,17 +1,17 @@
-require_relative "../tribunals/test_support_guard_tribunal"
-require_relative "../agents/test_support_agent"
+require_relative "../tribunals/support_guard_tribunal"
+require_relative "../agents/support_agent"
 
 # Two-step pipeline: spam guard → answer.
 # Add more steps between them as needed.
-class TestSupportPipeline < ActiveHarness::Pipeline
+class SupportPipeline < ActiveHarness::Pipeline
   # Step 1 — GUARD: reject spam before spending tokens on an answer
   step :spam_guard do
-    use TestSupportGuardTribunal
+    use SupportGuardTribunal
     stop_if ->(result) { result.verdict == false }
   end
 
   # Step 2 — RESPOND: generate the actual answer
-  step :respond, TestSupportAgent
+  step :respond, SupportAgent
 
   before :step do |step_name, _payload|
     puts "[pipeline] → :#{step_name}"

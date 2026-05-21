@@ -1,7 +1,7 @@
-require_relative "../prompts/test_support_guard_prompt"
+require_relative "../prompts/support_guard_prompt"
 
-class TestSupportGuardAgent < ActiveHarness::Agent
-  system_prompt TestSupportGuardPrompt
+class SupportGuardAgent < ActiveHarness::Agent
+  system_prompt SupportGuardPrompt
   format :json
 
   model do

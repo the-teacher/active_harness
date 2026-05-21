@@ -395,7 +395,7 @@ Add to your `Gemfile`:
 gem "active_harness"
 ```
 
-Run the install generator to create the `app/ai/` directory structure, example classes, and test support routes:
+Run the install generator to create the `app/ai/` directory structure with example classes and routes. Files are only created if they don't already exist — running the generator on an existing project is safe:
 
 ```
 rails generate active_harness:install
@@ -407,29 +407,29 @@ This creates:
 app/
 └── ai/
     ├── agents/
-    │   ├── test_support_agent.rb
-    │   └── test_support_guard_agent.rb
+    │   ├── support_agent.rb
+    │   └── support_guard_agent.rb
     ├── prompts/
-    │   ├── test_support_prompt.rb
-    │   └── test_support_guard_prompt.rb
+    │   ├── support_prompt.rb
+    │   └── support_guard_prompt.rb
     ├── tribunals/
-    │   └── test_support_guard_tribunal.rb
+    │   └── support_guard_tribunal.rb
     ├── pipelines/
-    │   └── test_support_pipeline.rb
+    │   └── support_pipeline.rb
     └── memory/
-        └── test_support_memory.rb
+        └── app_memory.rb
 app/controllers/
-    └── ai_test_support_controller.rb
+    └── ai_support_controller.rb
 ```
 
 And injects into `config/routes.rb`:
 
 ```ruby
-post "ai/agent",        to: "ai_test_support#agent"
-post "ai/agent_memory", to: "ai_test_support#agent_memory"
-post "ai/tribunal",     to: "ai_test_support#tribunal"
-post "ai/pipeline",     to: "ai_test_support#pipeline"
-get  "ai/agent_stream", to: "ai_test_support#agent_stream"
+post "ai/agent",        to: "ai_support#agent"
+post "ai/agent_memory", to: "ai_support#agent_memory"
+post "ai/tribunal",     to: "ai_support#tribunal"
+post "ai/pipeline",     to: "ai_support#pipeline"
+get  "ai/agent_stream", to: "ai_support#agent_stream"
 ```
 
 ### Generators

@@ -1,4 +1,4 @@
-class TestSupportGuardPrompt
+class SupportGuardPrompt
   def call
     <<~PROMPT.strip
       You are a spam detection filter.

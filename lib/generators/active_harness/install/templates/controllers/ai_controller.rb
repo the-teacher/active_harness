@@ -1,4 +1,4 @@
-class AiTestSupportController < ApplicationController
+class AiSupportController < ApplicationController
   include ActionController::Live
 
   # ---------------------------------------------------------------------------
@@ -6,7 +6,7 @@ class AiTestSupportController < ApplicationController
   # body: { input: "What is your return policy?" }
   # ---------------------------------------------------------------------------
   def agent
-    result = TestSupportAgent.call(input: params.require(:input))
+    result = SupportAgent.call(input: params.require(:input))
 
     render json: {
       output: result.output,
@@ -23,8 +23,8 @@ class AiTestSupportController < ApplicationController
   # across multiple requests.
   # ---------------------------------------------------------------------------
   def agent_memory
-    memory = TestSupportMemory.new(session_id: params.require(:session_id))
-    result = TestSupportAgent.call(input: params.require(:input), memory: memory)
+    memory = AppMemory.new(session_id: params.require(:session_id))
+    result = SupportAgent.call(input: params.require(:input), memory: memory)
 
     render json: {
       output: result.output,
@@ -41,7 +41,7 @@ class AiTestSupportController < ApplicationController
   # Returns verdict: true (safe) or false (rejected).
   # ---------------------------------------------------------------------------
   def tribunal
-    result = TestSupportGuardTribunal.call(input: params.require(:input))
+    result = SupportGuardTribunal.call(input: params.require(:input))
 
     render json: {
       verdict: result.verdict,
@@ -57,7 +57,7 @@ class AiTestSupportController < ApplicationController
   # If a guard step stops the pipeline early, stopped: true is returned.
   # ---------------------------------------------------------------------------
   def pipeline
-    pipe = TestSupportPipeline.new(input: params.require(:input))
+    pipe = SupportPipeline.new(input: params.require(:input))
     pipe.call
 
     if pipe.stopped?
@@ -91,7 +91,7 @@ class AiTestSupportController < ApplicationController
 
     sse = ActionController::Live::SSE.new(response.stream, event: "message")
 
-    TestSupportAgent.call(
+    SupportAgent.call(
       input:  input,
       stream: ->(token) { sse.write({ token: token }.to_json) }
     )

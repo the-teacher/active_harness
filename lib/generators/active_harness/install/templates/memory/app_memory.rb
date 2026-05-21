@@ -1,5 +1,5 @@
-class TestSupportMemory < ActiveHarness::Memory
-  # Usage: TestSupportMemory.new(session_id: "user_42")
+class AppMemory < ActiveHarness::Memory
+  # Usage: AppMemory.new(session_id: "user_42")
   #
   # Wraps ActiveHarness::Memory with project defaults so callers
   # only need to pass a session_id.
