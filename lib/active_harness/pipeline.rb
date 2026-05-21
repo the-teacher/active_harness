@@ -195,7 +195,13 @@ module ActiveHarness
     private
 
     def execute_step(step)
-      step.agent_class.new(input: @payload, context: @context.dup).call
+      agent = step.agent_class.new(input: @payload, context: @context.dup)
+      if agent.is_a?(ActiveHarness::Agent)
+        agent.call.result
+      else
+        # Tribunal — call returns self, expose via .itself
+        agent.call
+      end
     end
 
     # Global hook: receives (step_name, data)

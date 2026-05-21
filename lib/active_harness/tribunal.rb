@@ -159,8 +159,10 @@ module ActiveHarness
         @agent_execution_times << { agent: agents[index].class.name, time: elapsed }
 
         if future.fulfilled?
-          @results << future.value
-          run_hook(:after_agent, future.value)
+          value = future.value
+          result = value.is_a?(ActiveHarness::Agent) ? value.result : value
+          @results << result
+          run_hook(:after_agent, result)
         elsif future.incomplete?
           error = Errors::TimeoutError.new(
             "Agent #{agents[index].class.name} timed out after #{@timeout}s"
