@@ -28,8 +28,13 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     # Instance API
     # -------------------------------------------------------------------------
-    attr_accessor :input
-    attr_reader :context, :result
+    attr_accessor :input, :context
+    attr_reader :result
+
+    def models=(list)
+      @models_override = Array(list)
+      @model_list_proxy = nil
+    end
 
     def initialize(input: nil, context: {}, models: nil, memory: nil, stream: nil)
       @input           = input
@@ -64,7 +69,7 @@ module ActiveHarness
         save_to_memory(result)
         run_hook(:after_call, result)
         @result = result
-        return result
+        return self
       rescue *RETRYABLE_ERRORS => e
         elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(3)
         attempts << attempt_entry(entry, e, elapsed)

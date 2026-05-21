@@ -152,20 +152,27 @@ end
 **Usage:**
 
 ```ruby
-agent = SupportAgent.new(context: { language: "English" })
+agent = SupportAgent.new
+agent.input   = "What is your return policy?"
+agent.context = { language: "English" }
+agent.call
 
-agent.input = "What is your return policy?"
-result = agent.call
+result = agent.result
 
 puts result.output                      # => "Our return policy is..."
 puts result.model                       # => "mistralai/mistral-nemo"
-
 puts result.execution_time             # => 1.352  (seconds)
 
 # If providers return token usage info, it's all here:
 puts result.usage[:input_tokens]       # => 41
 puts result.usage[:output_tokens]      # => 78
 puts result.usage[:total_tokens]       # => 119
+```
+
+`call` returns `self`, so calls can be chained:
+
+```ruby
+result = SupportAgent.new.tap { |a| a.input = "Hi" }.call.result
 ```
 
 ## Tribunals
@@ -241,11 +248,11 @@ end
 **Usage:**
 
 ```ruby
-aggressive_input = "I hate this product! It is the worst thing I've ever bought!!!"
+aggressive_message = "I hate this product! It is the worst thing I've ever bought!!!"
 
 politeness_tribunal = PolitenessTribunal.new
 
-politeness_tribunal.input = aggressive_input
+politeness_tribunal.input = aggressive_message
 politeness_tribunal.call
 
 puts politeness_tribunal.verdict          # => false
@@ -318,7 +325,8 @@ end
 **Call:**
 
 ```ruby
-pipeline = SupportPipeline.new(input: "What is your return policy?")
+pipeline = SupportPipeline.new
+pipeline.input = "What is your return policy?"
 pipeline.call
 
 if pipeline.stopped?
@@ -524,12 +532,8 @@ Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame sig
 Every object that makes an LLM call exposes `#execution_time` (seconds, rounded to 3 decimal places).
 
 ```ruby
-# Agent
-result = agent.call("What is your return policy?")
-puts result.execution_time          # => 1.352
-
-# or via the agent itself after call
-agent.call("...")
+# Agent — execution_time is on the result
+agent.call
 puts agent.result.execution_time    # => 1.352
 
 # Tribunal — wall time for all agents running in parallel
@@ -552,7 +556,8 @@ When a provider returns token counts, they are available on the `Result` object 
 Not all providers return usage — the value is `nil` for streaming calls and some free-tier models.
 
 ```ruby
-result = agent.call("What is your return policy?")
+agent.call
+result = agent.result
 
 if result.usage
   puts result.usage[:input_tokens]   # => 41

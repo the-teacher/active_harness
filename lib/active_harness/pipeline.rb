@@ -122,6 +122,12 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     attr_reader :original_input, :output, :stopped_at, :stop_reason,
                 :execution_time, :step_results, :context
+    attr_writer :context
+
+    def input=(value)
+      @original_input = value
+      @payload        = value
+    end
 
     def initialize(input:, context: {}, memory: nil)
       @original_input = input
