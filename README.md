@@ -27,6 +27,7 @@ So this solution was born out.
 
 ### Table of Contents
 
+- [API Keys](#api-keys)
 - [File Structure](#file-structure)
 - [Prompts](#prompts)
 - [Agents](#agents)
@@ -34,9 +35,30 @@ So this solution was born out.
 - [Pipelines](#pipelines)
 - [Memory](#memory)
 - [Rails](#rails)
-- [Streaming](#streaming)
+- [Streaming (SSE)](#streaming-sse)
 - [Execution Time](#execution-time)
-- [Token Usage Statistic](#token-usage-info)
+- [Token Usage Info](#token-usage-info)
+
+## API Keys
+
+Each provider reads its key from an environment variable. Set only the keys for the providers you intend to use.
+
+| Provider      | Environment variable |
+| ------------- | -------------------- |
+| OpenAI        | `OPENAI_API_KEY`     |
+| Anthropic     | `ANTHROPIC_API_KEY`  |
+| Google Gemini | `GEMINI_API_KEY`     |
+| Groq          | `GROQ_API_KEY`       |
+| OpenRouter    | `OPENROUTER_API_KEY` |
+
+For a plain Ruby project, export variables in your shell or load them from a `.env` file with `dotenv`:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+For Rails, store keys in `config/credentials.yml.enc` or use a `.env` file with the `dotenv-rails` gem.
 
 ## File Structure
 
