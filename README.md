@@ -27,14 +27,14 @@ So this solution was born out.
 
 ### Table of Contents
 
-- [API Keys](#api-keys)
-- [File Structure](#file-structure)
-- [Prompts](#prompts)
-- [Agents](#agents)
-- [Tribunals](#tribunals)
-- [Pipelines](#pipelines)
-- [Memory](#memory)
-- [Rails](#rails)
+- [Setup API Keys](#api-keys)
+- [Ruby on Rails File Structure](#file-structure)
+- [Prompts. How to Create](#prompts)
+- [Agents. How to Create](#agents)
+- [Tribunals. How to Create](#tribunals)
+- [Pipelines. How to Create](#pipelines)
+- [Memory. How to Create](#memory)
+- [Using with Rails](#rails)
 - [Streaming (SSE)](#streaming-sse)
 - [Execution Time](#execution-time)
 - [Token Usage Info](#token-usage-info)
