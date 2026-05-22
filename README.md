@@ -48,36 +48,7 @@ Each provider reads its key from an environment variable — see the [full API k
 
 ## Configuration
 
-ActiveHarness supports a Rails-style `configure` block for setting API keys and provider URLs in one place. ENV variables are used as defaults if `configure` is not called — so existing setups keep working without changes.
-
-- [Configuration in plain Ruby →](docs/ruby_configuration.md)
-- [Configuration in Ruby on Rails →](docs/rails_configuration.md)
-
-```ruby
-# Quick example
-ActiveHarness.configure do |config|
-  config.openai_api_key    = ENV["OPENAI_API_KEY"]
-  config.anthropic_api_key = ENV["ANTHROPIC_API_KEY"]
-  config.openrouter_http_referer = "https://my-app.com"
-
-  # Retry policy (global defaults)
-  config.retry_default_attempts = 3    # total attempts per model
-  config.retry_default_delay    = 1.0  # seconds before 1st retry; doubles each round
-
-  # Register any OpenAI-compatible endpoint under a custom name
-  config.custom["MyLocal"]["url"]     = "http://localhost:8080/v1/chat/completions"
-  config.custom["MyLocal"]["api_key"] = ENV["MYLOCAL_API_KEY"]  # omit if no auth
-end
-```
-
-Use a custom provider in an agent:
-
-```ruby
-model do
-  use      provider: :custom, name: "MyLocal",     model: "llama3.2"
-  fallback provider: :openai,                       model: "gpt-4o-mini"
-end
-```
+Configure API keys, provider URLs, retry policy, and custom providers — see the [full Configuration reference →](docs/configuration.md).
 
 ## Retry Policy
 
