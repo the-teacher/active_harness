@@ -40,6 +40,7 @@ So this solution was born out.
 - [Streaming (SSE)](#streaming-sse)
 - [Execution Time](#execution-time)
 - [Token Usage Info](#token-usage-info)
+- [RubyLLM Integration](#rubyllm-integration)
 
 ## API Keys
 
@@ -709,6 +710,45 @@ tribunal.results.each do |result|
   puts "#{result.model}: #{result.usage&.dig(:total_tokens)} tokens"
 end
 ```
+
+## RubyLLM Integration
+
+ActiveHarness can delegate HTTP calls to the [`ruby_llm`](https://github.com/crmne/ruby_llm) gem
+instead of its built-in Net::HTTP providers. This gives you access to RubyLLM's full feature set
+(tools, vision, structured output, audio) while keeping the complete ActiveHarness interface:
+fallback chains, retry policy, hooks, memory, and streaming.
+
+```ruby
+require "ruby_llm"
+
+RubyLLM.configure do |c|
+  c.openrouter_api_key = ENV["OPENROUTER_API_KEY"]
+end
+
+class SupportAgent < ActiveHarness::Agent
+  system_prompt SupportPrompt
+
+  model do
+    use      provider: :openrouter, model: "mistralai/mistral-nemo", temperature: 0.5
+    fallback provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free"
+    fallback provider: :openai,     model: "gpt-4o-mini"
+  end
+
+  ruby_llm_backend do |params|
+    RubyLLM.chat(
+      model:               params.model,
+      provider:            params.provider,
+      assume_model_exists: true
+    ).tap { |chat| chat.with_temperature(params.temperature) if params.temperature }
+  end
+end
+```
+
+`params` is a struct with `.model`, `.provider`, `.temperature` — values from the current fallback
+chain entry. The block must return a `RubyLLM::Chat`. ActiveHarness calls `chat.ask(@input)` and
+wraps the result in its standard `Result` object.
+
+→ [Full RubyLLM integration guide](docs/ruby_llm_integration.md)
 
 ## License
 

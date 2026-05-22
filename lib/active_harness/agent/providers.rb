@@ -41,6 +41,8 @@ module ActiveHarness
     private
 
     def attempt_model(entry, system_prompt)
+      return attempt_via_ruby_llm(entry, system_prompt) if @config[:ruby_llm_backend]
+
       provider = resolve_provider(entry[:provider])
       messages = build_messages(system_prompt, @input)
       opts = { model: entry[:model], messages: messages }

@@ -145,4 +145,5 @@ require_relative "agent/hooks"
 require_relative "agent/models"
 require_relative "agent/providers"
 require_relative "agent/output_parser"
+require_relative "agent/ruby_llm_backend"
 
