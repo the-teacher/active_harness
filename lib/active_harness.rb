@@ -1,3 +1,4 @@
+require_relative "active_harness/configuration"
 require_relative "active_harness/core/errors"
 require_relative "active_harness/result"
 require_relative "active_harness/http/client"
@@ -26,4 +27,27 @@ require_relative "active_harness/railtie" if defined?(Rails::Railtie)
 
 module ActiveHarness
   VERSION = "0.2.0"
+
+  class << self
+    # Configure ActiveHarness.
+    #
+    #   ActiveHarness.configure do |config|
+    #     config.openai_api_key = ENV["OPENAI_API_KEY"]
+    #     config.openai_api_url = "https://api.openai.com/v1/chat/completions"
+    #   end
+    def configure
+      yield config
+    end
+
+    # Returns the singleton Configuration instance.
+    # Lazily initialized on first access.
+    def config
+      @config ||= Configuration.new
+    end
+
+    # Reset config to defaults (useful in tests).
+    def reset_config!
+      @config = nil
+    end
+  end
 end

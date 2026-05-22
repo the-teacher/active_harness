@@ -5,10 +5,8 @@ module ActiveHarness
     # Groq — OpenAI-compatible API with fast inference.
     # https://console.groq.com/docs/openai
     class Groq < Base
-      API_URL = URI("https://api.groq.com/openai/v1/chat/completions")
-
       def call(model:, messages:, temperature: 0.7)
-        raw  = post_json(API_URL,
+        raw  = post_json(URI(config.groq_api_url),
           headers: {
             "Content-Type"  => "application/json",
             "Authorization" => "Bearer #{api_key}"
@@ -29,8 +27,8 @@ module ActiveHarness
       private
 
       def api_key
-        key = ENV["GROQ_API_KEY"].to_s
-        raise Errors::InvalidApiKeyError, "GROQ_API_KEY is not set" if key.empty?
+        key = config.groq_api_key.to_s
+        raise Errors::InvalidApiKeyError, "groq_api_key is not configured" if key.empty?
         key
       end
 

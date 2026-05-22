@@ -4,8 +4,6 @@ module ActiveHarness
   module Providers
     # OpenRouter — OpenAI-compatible API that proxies many models.
     class OpenRouter < Base
-      API_URL = URI("https://openrouter.ai/api/v1/chat/completions")
-
       # @param model    [String]
       # @param messages [Array<Hash>]  [{role:, content:}, ...]
       # @param temperature [Float]
@@ -15,17 +13,17 @@ module ActiveHarness
         headers = {
           "Content-Type"  => "application/json",
           "Authorization" => "Bearer #{api_key}",
-          "HTTP-Referer"  => "https://github.com/the-teacher/ActiveHarness"
+          "HTTP-Referer"  => config.openrouter_http_referer
         }
         body = { model: model, messages: messages, temperature: temperature }
 
         if stream
           body[:stream] = true
-          content = post_json_stream(API_URL, headers: headers, body: body, on_token: stream)
+          content = post_json_stream(URI(config.openrouter_api_url), headers: headers, body: body, on_token: stream)
           return { content: content, provider: :openrouter, model: model }
         end
 
-        raw  = post_json(API_URL, headers: headers, body: body)
+        raw  = post_json(URI(config.openrouter_api_url), headers: headers, body: body)
         data = parse!(raw)
         handle_error!(data)
 
@@ -40,8 +38,8 @@ module ActiveHarness
       private
 
       def api_key
-        key = ENV["OPENROUTER_API_KEY"].to_s
-        raise Errors::InvalidApiKeyError, "OPENROUTER_API_KEY is not set" if key.empty?
+        key = config.openrouter_api_key.to_s
+        raise Errors::InvalidApiKeyError, "openrouter_api_key is not configured" if key.empty?
         key
       end
 

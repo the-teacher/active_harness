@@ -8,25 +8,23 @@ module ActiveHarness
     # The `model:` parameter is treated as the **deployment name** you created
     # in the Azure portal (not the underlying model name).
     #
-    # Required ENV variables:
-    #   AZURE_API_BASE   — "https://my-resource.openai.azure.com"
-    #   AZURE_API_KEY    — your resource API key
-    #                      (alternatively: AZURE_AI_AUTH_TOKEN for OAuth bearer)
+    # Required config (or ENV fallback):
+    #   config.azure_api_base    — "https://my-resource.openai.azure.com"
+    #   config.azure_api_key     — your resource API key
+    #                              (alternatively: config.azure_ai_auth_token for OAuth bearer)
     #
-    # Optional ENV variables:
-    #   AZURE_API_VERSION — defaults to "2024-05-01-preview"
+    # Optional config:
+    #   config.azure_api_version — defaults to "2024-05-01-preview"
     #
     # Resulting endpoint:
-    #   POST {AZURE_API_BASE}/openai/deployments/{deployment}/chat/completions
-    #        ?api-version={AZURE_API_VERSION}
+    #   POST {azure_api_base}/openai/deployments/{deployment}/chat/completions
+    #        ?api-version={azure_api_version}
     #
     # Example agent config:
     #   model do
     #     use provider: :azure, model: "my-gpt4o-deployment", temperature: 0.7
     #   end
     class Azure < Base
-      DEFAULT_API_VERSION = "2024-05-01-preview"
-
       def call(model:, messages:, temperature: 0.7)
         url = build_url(model)
 
@@ -50,27 +48,25 @@ module ActiveHarness
       private
 
       def build_url(deployment)
-        base    = api_base
-        version = ENV.fetch("AZURE_API_VERSION", DEFAULT_API_VERSION)
-        URI("#{base}/openai/deployments/#{deployment}/chat/completions?api-version=#{version}")
+        URI("#{api_base}/openai/deployments/#{deployment}/chat/completions?api-version=#{config.azure_api_version}")
       end
 
       def api_base
-        base = ENV["AZURE_API_BASE"].to_s
-        raise Errors::InvalidRequestError, "AZURE_API_BASE is not set" if base.empty?
+        base = config.azure_api_base.to_s
+        raise Errors::InvalidRequestError, "azure_api_base is not configured" if base.empty?
         base.chomp("/")
       end
 
       # Azure accepts either a resource API key (header: api-key)
       # or an OAuth2 bearer token (header: Authorization).
       def auth_header
-        if (key = ENV["AZURE_API_KEY"].to_s) && !key.empty?
+        if (key = config.azure_api_key.to_s) && !key.empty?
           { "api-key" => key }
-        elsif (token = ENV["AZURE_AI_AUTH_TOKEN"].to_s) && !token.empty?
+        elsif (token = config.azure_ai_auth_token.to_s) && !token.empty?
           { "Authorization" => "Bearer #{token}" }
         else
           raise Errors::InvalidApiKeyError,
-            "Neither AZURE_API_KEY nor AZURE_AI_AUTH_TOKEN is set"
+            "Neither azure_api_key nor azure_ai_auth_token is configured"
         end
       end
 

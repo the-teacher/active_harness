@@ -13,8 +13,6 @@ module ActiveHarness
     #     use provider: :ollama, model: "llama3.2"
     #   end
     class Ollama < Base
-      DEFAULT_API_BASE = "http://localhost:11434"
-
       def call(model:, messages:, temperature: 0.7)
         url = URI("#{api_base}/v1/chat/completions")
 
@@ -40,12 +38,12 @@ module ActiveHarness
       private
 
       def api_base
-        ENV["OLLAMA_API_BASE"].to_s.then { |v| v.empty? ? DEFAULT_API_BASE : v.chomp("/") }
+        config.ollama_api_base.to_s.chomp("/")
       end
 
       # Ollama does not require an API key by default.
       def api_key
-        key = ENV["OLLAMA_API_KEY"].to_s
+        key = config.ollama_api_key.to_s
         key.empty? ? nil : key
       end
 

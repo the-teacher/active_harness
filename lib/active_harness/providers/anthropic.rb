@@ -5,7 +5,6 @@ module ActiveHarness
     # Anthropic Claude — native Messages API (not OpenAI-compatible).
     # https://docs.anthropic.com/en/api/messages
     class Anthropic < Base
-      API_URL         = URI("https://api.anthropic.com/v1/messages")
       ANTHROPIC_VERSION = "2023-06-01"
       DEFAULT_MAX_TOKENS = 1024
 
@@ -20,7 +19,7 @@ module ActiveHarness
         }
         body[:system] = system_msg if system_msg
 
-        raw  = post_json(API_URL,
+        raw  = post_json(URI(config.anthropic_api_url),
           headers: {
             "Content-Type"      => "application/json",
             "x-api-key"         => api_key,
@@ -52,8 +51,8 @@ module ActiveHarness
       end
 
       def api_key
-        key = ENV["ANTHROPIC_API_KEY"].to_s
-        raise Errors::InvalidApiKeyError, "ANTHROPIC_API_KEY is not set" if key.empty?
+        key = config.anthropic_api_key.to_s
+        raise Errors::InvalidApiKeyError, "anthropic_api_key is not configured" if key.empty?
         key
       end
 

@@ -5,10 +5,8 @@ module ActiveHarness
     # xAI (Grok) — OpenAI-compatible API.
     # https://docs.x.ai/api
     class XAI < Base
-      API_URL = URI("https://api.x.ai/v1/chat/completions")
-
       def call(model:, messages:, temperature: 0.7)
-        raw  = post_json(API_URL,
+        raw  = post_json(URI(config.xai_api_url),
           headers: {
             "Content-Type"  => "application/json",
             "Authorization" => "Bearer #{api_key}"
@@ -29,8 +27,8 @@ module ActiveHarness
       private
 
       def api_key
-        key = ENV["XAI_API_KEY"].to_s
-        raise Errors::InvalidApiKeyError, "XAI_API_KEY is not set" if key.empty?
+        key = config.xai_api_key.to_s
+        raise Errors::InvalidApiKeyError, "xai_api_key is not configured" if key.empty?
         key
       end
 

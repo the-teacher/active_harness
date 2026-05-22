@@ -8,6 +8,10 @@ module ActiveHarness
 
       private
 
+      def config
+        ActiveHarness.config
+      end
+
       def post_json(url, headers:, body:, timeout: 30)
         HTTP.post(url, headers: headers, body: body.to_json, timeout: timeout)
       end

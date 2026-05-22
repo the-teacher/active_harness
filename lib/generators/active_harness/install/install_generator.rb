@@ -16,6 +16,22 @@ module ActiveHarness
         end
       end
 
+      def create_initializer
+        target = File.join(destination_root, "config", "initializers", "active_harness.rb")
+        return if File.exist?(target)
+
+        copy_file "initializers/active_harness.rb",
+                  "config/initializers/active_harness.rb"
+      end
+
+      def create_initializer
+        target = File.join(destination_root, "config", "initializers", "active_harness.rb")
+        return if File.exist?(target)
+
+        copy_file "initializers/active_harness.rb",
+                  "config/initializers/active_harness.rb"
+      end
+
       def copy_controller
         target = File.join(destination_root, "app", "controllers", "ai_support_controller.rb")
         return if File.exist?(target)

@@ -5,10 +5,8 @@ module ActiveHarness
     # Perplexity — OpenAI-compatible API with web-search-augmented models.
     # https://docs.perplexity.ai/api-reference/chat-completions
     class Perplexity < Base
-      API_URL = URI("https://api.perplexity.ai/chat/completions")
-
       def call(model:, messages:, temperature: 0.7)
-        raw  = post_json(API_URL,
+        raw  = post_json(URI(config.perplexity_api_url),
           headers: {
             "Content-Type"  => "application/json",
             "Authorization" => "Bearer #{api_key}"
@@ -29,8 +27,8 @@ module ActiveHarness
       private
 
       def api_key
-        key = ENV["PERPLEXITY_API_KEY"].to_s
-        raise Errors::InvalidApiKeyError, "PERPLEXITY_API_KEY is not set" if key.empty?
+        key = config.perplexity_api_key.to_s
+        raise Errors::InvalidApiKeyError, "perplexity_api_key is not configured" if key.empty?
         key
       end
 

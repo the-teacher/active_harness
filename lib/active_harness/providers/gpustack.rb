@@ -38,13 +38,13 @@ module ActiveHarness
       private
 
       def api_base
-        base = ENV["GPUSTACK_API_BASE"].to_s
-        raise Errors::InvalidRequestError, "GPUSTACK_API_BASE is not set" if base.empty?
+        base = config.gpustack_api_base.to_s
+        raise Errors::InvalidRequestError, "gpustack_api_base is not configured" if base.empty?
         base.chomp("/")
       end
 
       def api_key
-        key = ENV["GPUSTACK_API_KEY"].to_s
+        key = config.gpustack_api_key.to_s
         key.empty? ? nil : key
       end
 
