@@ -44,32 +44,7 @@ So this solution was born out.
 
 ## API Keys
 
-Each provider reads its key from an environment variable. Set only the keys for the providers you intend to use.
-
-| Provider       | Environment variable                                                          |
-| -------------- | ----------------------------------------------------------------------------- |
-| OpenAI         | `OPENAI_API_KEY`                                                              |
-| Anthropic      | `ANTHROPIC_API_KEY`                                                           |
-| Google Gemini  | `GEMINI_API_KEY`                                                              |
-| Groq           | `GROQ_API_KEY`                                                                |
-| OpenRouter     | `OPENROUTER_API_KEY`                                                          |
-| xAI (Grok)     | `XAI_API_KEY`                                                                 |
-| DeepSeek       | `DEEPSEEK_API_KEY`                                                            |
-| Mistral        | `MISTRAL_API_KEY`                                                             |
-| Ollama (local) | `OLLAMA_API_BASE` (optional, default: localhost)                              |
-| Perplexity     | `PERPLEXITY_API_KEY`                                                          |
-| GPUStack       | `GPUSTACK_API_BASE`, `GPUSTACK_API_KEY` (optional)                            |
-| Azure OpenAI   | `AZURE_API_BASE`, `AZURE_API_KEY` (or `AZURE_AI_AUTH_TOKEN`)                  |
-| Custom         | `config.custom["Name"]["url"]`, `config.custom["Name"]["api_key"]` (optional) |
-
-For a plain Ruby project, export variables in your shell or load them from a `.env` file with `dotenv`:
-
-```bash
-export OPENAI_API_KEY="sk-..."
-export OPENROUTER_API_KEY="sk-or-..."
-```
-
-For Rails, store keys in `config/credentials.yml.enc` or use a `.env` file with the `dotenv-rails` gem.
+Each provider reads its key from an environment variable — see the [full API keys reference →](docs/api_keys.md).
 
 ## Configuration
 
@@ -106,45 +81,7 @@ end
 
 ## Retry Policy
 
-When a model returns a transient error (`TimeoutError`, `RateLimitError`, `ServerError`, `ProviderUnavailableError`), ActiveHarness automatically retries the **same model** with exponential backoff before moving to the next fallback.
-
-```
-model A → retry 1 (1s) → retry 2 (2s) → FAIL → model B (fallback) → SUCCESS
-```
-
-**Global defaults** (apply to all models unless overridden):
-
-```ruby
-ActiveHarness.configure do |config|
-  config.retry_default_attempts = 3    # total attempts per model (default: 3)
-  config.retry_default_delay    = 1.0  # seconds before 1st retry; doubles each round (default: 1.0)
-end
-```
-
-Disable retries entirely:
-
-```ruby
-config.retry_default_attempts = 1  # one attempt — fail immediately to next fallback
-```
-
-**Per-model override** — set `retry_attempts:` and `retry_delay:` in the model DSL:
-
-```ruby
-model do
-  use      provider: :openai, model: "gpt-4.1",
-           retry_attempts: 5, retry_delay: 2.0   # up to 5 attempts, 2s → 4s → 8s…
-
-  fallback provider: :groq,   model: "llama3-8b-8192",
-           retry_attempts: 2, retry_delay: 0.5   # fast fallback
-
-  fallback provider: :ollama, model: "llama3.2"
-  # ↑ uses global retry_default_attempts / retry_default_delay
-end
-```
-
-Backoff formula: `delay × 2^(attempt − 1)` — with `retry_delay: 1.0` and 3 attempts: **1s → 2s → fail → next fallback**.
-
-Errors that are **never** retried (stop the chain immediately): `InvalidApiKeyError`, `SafetyBlockedError`.
+ActiveHarness automatically retries a model on transient errors with exponential backoff, then moves to the next fallback — see the [full Retry Policy reference →](docs/retry_policy.md).
 
 ## File Structure
 
