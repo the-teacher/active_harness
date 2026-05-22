@@ -50,6 +50,7 @@ So this solution was born out.
 - [Execution Time](#execution-time)
 - [Token Usage Info](#token-usage-info)
 - [RubyLLM Integration](#rubyllm-integration)
+- [ActiveHarness and RubyLLM](#activeharness-and-rubyllm)
 
 ## File Structure
 
@@ -486,6 +487,10 @@ When a provider returns token counts, they are available on the `Result` object 
 ## RubyLLM Integration
 
 ActiveHarness can delegate HTTP calls to the `ruby_llm` gem instead of its built-in providers, giving you access to tools, vision, structured output, and audio while keeping the full ActiveHarness interface — see the [full RubyLLM Integration guide →](docs/ruby_llm_integration.md).
+
+## ActiveHarness and RubyLLM
+
+RubyLLM is a transport layer — a unified API for any LLM provider. ActiveHarness is an architectural framework for organizing complex AI flows. They live at different levels of the stack and work great together — see [ActiveHarness and RubyLLM →](docs/activeharness_and_rubyllm.md).
 
 ## License
 
