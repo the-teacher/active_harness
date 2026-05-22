@@ -21,11 +21,20 @@ module ActiveHarness
     ].freeze
 
     PROVIDERS = {
-      openai:     -> { Providers::OpenAI.new },
-      openrouter: -> { Providers::OpenRouter.new },
-      groq:       -> { Providers::Groq.new },
-      gemini:     -> { Providers::Gemini.new },
-      anthropic:  -> { Providers::Anthropic.new }
+      openai:      -> { Providers::OpenAI.new },
+      openrouter:  -> { Providers::OpenRouter.new },
+      groq:        -> { Providers::Groq.new },
+      gemini:      -> { Providers::Gemini.new },
+      anthropic:   -> { Providers::Anthropic.new },
+      xai:         -> { Providers::XAI.new },
+      deepseek:    -> { Providers::DeepSeek.new },
+      mistral:     -> { Providers::Mistral.new },
+      ollama:      -> { Providers::Ollama.new },
+      perplexity:  -> { Providers::Perplexity.new },
+      gpustack:    -> { Providers::GPUStack.new },
+      azure:       -> { Providers::Azure.new },
+      bedrock:     -> { Providers::Bedrock.new },
+      vertexai:    -> { Providers::VertexAI.new }
     }.freeze
 
     private

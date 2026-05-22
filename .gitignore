@@ -13,3 +13,4 @@ pkg/
 storage/
 log/
 tmp/
+.work
