@@ -376,25 +376,28 @@ agent.call("How long does a refund take?")
 puts memory.size          # => 3  (one turn per call)
 ```
 
-To **inject history into the prompt**, read `@memory` inside the prompt class:
+Before `call` is invoked, the agent automatically injects `@memory`, `@input`, and `@context` — so you can include conversation history without any extra wiring.
 
 ```ruby
 class SupportPrompt
   def call
-    base = "You are a concise and friendly customer support assistant."
+    "You are a concise and friendly customer support assistant." \
+    + history_context
+  end
 
-    return base unless @memory&.size&.positive?
+  private
+
+  def history_context
+    return "" unless @memory&.size&.positive?
 
     history = @memory.to_messages
                      .map { |m| "#{m[:role]}: #{m[:content]}" }
                      .join("\n")
 
-    "#{base}\n\nConversation so far:\n#{history}"
+    "\n\nConversation so far:\n#{history}"
   end
 end
 ```
-
-`@memory`, `@input`, and `@context` are all injected into the prompt automatically before `call` is invoked.
 
 ## Streaming (SSE)
 
@@ -465,19 +468,19 @@ ActiveHarness automatically retries a model on transient errors with exponential
 
 ## Using with Ruby on Rails
 
-See the [full Rails Integration guide →](docs/rails_integration.md).
+ActiveHarness ships with a Rails generator that creates the full `app/ai/` structure, example classes, a controller, and routes — see the [full Rails Integration guide →](docs/rails_integration.md).
 
 ## Execution Time
 
-See the [full Execution Time reference →](docs/execution_time.md).
+Every object that makes an LLM call (`Agent`, `Tribunal`, `Pipeline`) exposes `#execution_time` in seconds — see the [full Execution Time reference →](docs/execution_time.md).
 
 ## Token Usage Info
 
-See the [full Token Usage reference →](docs/token_usage.md).
+When a provider returns token counts, they are available on the `Result` object under `#usage` — see the [full Token Usage reference →](docs/token_usage.md).
 
 ## RubyLLM Integration
 
-See the [full RubyLLM Integration guide →](docs/ruby_llm_integration.md).
+ActiveHarness can delegate HTTP calls to the `ruby_llm` gem instead of its built-in providers, giving you access to tools, vision, structured output, and audio while keeping the full ActiveHarness interface — see the [full RubyLLM Integration guide →](docs/ruby_llm_integration.md).
 
 ## License
 
