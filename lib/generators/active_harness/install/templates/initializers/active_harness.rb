@@ -80,4 +80,22 @@ ActiveHarness.configure do |config|
   # config.azure_api_key       = ENV["AZURE_API_KEY"]     # resource API key (preferred)
   # config.azure_ai_auth_token = ENV["AZURE_AI_AUTH_TOKEN"]  # OAuth bearer (alternative)
   # config.azure_api_version   = "2024-05-01-preview"
+
+  # ---------------------------------------------------------------------------
+  # Custom providers — any OpenAI-compatible endpoint
+  # Register as many as you need under arbitrary names.
+  # `api_key` is optional — omit for local servers without auth.
+  # ---------------------------------------------------------------------------
+  # config.custom["MyLocal"]["url"]        = "http://localhost:8080/v1/chat/completions"
+  # config.custom["MyLocal"]["api_key"]    = ENV["MYLOCAL_API_KEY"]
+  #
+  # config.custom["VLLMServer"]["url"]     = "http://gpu-server:8000/v1/chat/completions"
+  # config.custom["VLLMServer"]["api_key"] = ENV["VLLM_API_KEY"]
+  #
+  # Use in an agent:
+  #   model do
+  #     use      provider: :custom, name: "MyLocal",    model: "llama3.2"
+  #     fallback provider: :custom, name: "VLLMServer", model: "mixtral"
+  #     fallback provider: :openai,                     model: "gpt-4o-mini"
+  #   end
 end

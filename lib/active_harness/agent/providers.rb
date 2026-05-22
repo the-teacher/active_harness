@@ -34,7 +34,8 @@ module ActiveHarness
       gpustack:    -> { Providers::GPUStack.new },
       azure:       -> { Providers::Azure.new },
       bedrock:     -> { Providers::Bedrock.new },
-      vertexai:    -> { Providers::VertexAI.new }
+      vertexai:    -> { Providers::VertexAI.new },
+      custom:      -> { Providers::Custom.new }
     }.freeze
 
     private
@@ -45,6 +46,7 @@ module ActiveHarness
       opts = { model: entry[:model], messages: messages }
       opts[:temperature] = entry[:temperature] if entry[:temperature]
       opts[:stream]      = @stream             if @stream
+      opts[:name]        = entry[:name]        if entry[:name]
       provider.call(**opts)
     end
 

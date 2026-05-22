@@ -134,8 +134,8 @@ module ActiveHarness
       @models = []
     end
 
-    def use(provider:, model:, temperature: nil)
-      @models << { provider: provider, model: model, temperature: temperature }.compact
+    def use(provider:, model:, temperature: nil, name: nil)
+      @models << { provider: provider, model: model, temperature: temperature, name: name }.compact
     end
 
     alias fallback use

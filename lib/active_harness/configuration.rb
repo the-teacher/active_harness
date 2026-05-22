@@ -93,6 +93,29 @@ module ActiveHarness
     attr_accessor :azure_api_version    # e.g. "2024-05-01-preview"
 
     # -------------------------------------------------------------------------
+    # Custom providers
+    #
+    # Register any OpenAI-compatible endpoint under an arbitrary name:
+    #
+    #   ActiveHarness.configure do |config|
+    #     config.custom["MyLocal"]["url"]     = "http://localhost:8080/v1/chat/completions"
+    #     config.custom["MyLocal"]["api_key"] = ENV["MYLOCAL_API_KEY"]  # omit if no auth
+    #
+    #     config.custom["SecondProvider"]["url"]     = "https://second.example.com/v1/chat/completions"
+    #     config.custom["SecondProvider"]["api_key"] = ENV["SECOND_API_KEY"]
+    #   end
+    #
+    # Use in an agent:
+    #   model do
+    #     use      provider: :custom, name: "MyLocal",       model: "llama3.2"
+    #     fallback provider: :custom, name: "SecondProvider", model: "mixtral"
+    #   end
+    # -------------------------------------------------------------------------
+    def custom
+      @custom ||= Hash.new { |h, k| h[k] = {} }
+    end
+
+    # -------------------------------------------------------------------------
     # Defaults — all keys fall back to the corresponding ENV variable so that
     # existing ENV-based setups keep working without any changes.
     # -------------------------------------------------------------------------

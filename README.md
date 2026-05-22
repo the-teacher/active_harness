@@ -44,20 +44,21 @@ So this solution was born out.
 
 Each provider reads its key from an environment variable. Set only the keys for the providers you intend to use.
 
-| Provider       | Environment variable                                         |
-| -------------- | ------------------------------------------------------------ |
-| OpenAI         | `OPENAI_API_KEY`                                             |
-| Anthropic      | `ANTHROPIC_API_KEY`                                          |
-| Google Gemini  | `GEMINI_API_KEY`                                             |
-| Groq           | `GROQ_API_KEY`                                               |
-| OpenRouter     | `OPENROUTER_API_KEY`                                         |
-| xAI (Grok)     | `XAI_API_KEY`                                                |
-| DeepSeek       | `DEEPSEEK_API_KEY`                                           |
-| Mistral        | `MISTRAL_API_KEY`                                            |
-| Ollama (local) | `OLLAMA_API_BASE` (optional, default: localhost)             |
-| Perplexity     | `PERPLEXITY_API_KEY`                                         |
-| GPUStack       | `GPUSTACK_API_BASE`, `GPUSTACK_API_KEY` (optional)           |
-| Azure OpenAI   | `AZURE_API_BASE`, `AZURE_API_KEY` (or `AZURE_AI_AUTH_TOKEN`) |
+| Provider       | Environment variable                                                          |
+| -------------- | ----------------------------------------------------------------------------- |
+| OpenAI         | `OPENAI_API_KEY`                                                              |
+| Anthropic      | `ANTHROPIC_API_KEY`                                                           |
+| Google Gemini  | `GEMINI_API_KEY`                                                              |
+| Groq           | `GROQ_API_KEY`                                                                |
+| OpenRouter     | `OPENROUTER_API_KEY`                                                          |
+| xAI (Grok)     | `XAI_API_KEY`                                                                 |
+| DeepSeek       | `DEEPSEEK_API_KEY`                                                            |
+| Mistral        | `MISTRAL_API_KEY`                                                             |
+| Ollama (local) | `OLLAMA_API_BASE` (optional, default: localhost)                              |
+| Perplexity     | `PERPLEXITY_API_KEY`                                                          |
+| GPUStack       | `GPUSTACK_API_BASE`, `GPUSTACK_API_KEY` (optional)                            |
+| Azure OpenAI   | `AZURE_API_BASE`, `AZURE_API_KEY` (or `AZURE_AI_AUTH_TOKEN`)                  |
+| Custom         | `config.custom["Name"]["url"]`, `config.custom["Name"]["api_key"]` (optional) |
 
 For a plain Ruby project, export variables in your shell or load them from a `.env` file with `dotenv`:
 
@@ -81,6 +82,19 @@ ActiveHarness.configure do |config|
   config.openai_api_key    = ENV["OPENAI_API_KEY"]
   config.anthropic_api_key = ENV["ANTHROPIC_API_KEY"]
   config.openrouter_http_referer = "https://my-app.com"
+
+  # Register any OpenAI-compatible endpoint under a custom name
+  config.custom["MyLocal"]["url"]     = "http://localhost:8080/v1/chat/completions"
+  config.custom["MyLocal"]["api_key"] = ENV["MYLOCAL_API_KEY"]  # omit if no auth
+end
+```
+
+Use a custom provider in an agent:
+
+```ruby
+model do
+  use      provider: :custom, name: "MyLocal",     model: "llama3.2"
+  fallback provider: :openai,                       model: "gpt-4o-mini"
 end
 ```
 

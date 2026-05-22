@@ -135,6 +135,26 @@ ActiveHarness.configure do |config|
   # config.azure_api_key       = Rails.application.credentials.azure_api_key
   # config.azure_ai_auth_token = Rails.application.credentials.azure_ai_auth_token
   # config.azure_api_version   = "2024-05-01-preview"
+
+  # Custom providers — any OpenAI-compatible endpoint
+  # Register as many as you need under arbitrary names.
+  # `api_key` is optional — omit for local servers without auth.
+  #
+  # config.custom["MyLocal"]["url"]        = "http://localhost:8080/v1/chat/completions"
+  # config.custom["MyLocal"]["api_key"]    = Rails.application.credentials.mylocal_api_key
+  #
+  # config.custom["VLLMServer"]["url"]     = "http://gpu-server:8000/v1/chat/completions"
+  # config.custom["VLLMServer"]["api_key"] = Rails.application.credentials.vllm_api_key
+end
+```
+
+**Use in an agent:**
+
+```ruby
+model do
+  use      provider: :custom, name: "MyLocal",    model: "llama3.2"
+  fallback provider: :custom, name: "VLLMServer", model: "mixtral"
+  fallback provider: :openai,                      model: "gpt-4o-mini"
 end
 ```
 
