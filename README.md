@@ -43,6 +43,7 @@ So this solution was born out.
 
 **Other Topics:**
 
+- [Providers](#providers)
 - [Setup API Keys](#api-keys)
 - [Configuration](#configuration)
 - [Retry Policy](#retry-policy)
@@ -453,6 +454,10 @@ Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame: `d
 ---
 
 ## Reference Documentation
+
+## Providers
+
+ActiveHarness has built-in support for OpenAI, Anthropic, Gemini, Groq, OpenRouter, xAI, DeepSeek, Mistral, Perplexity, Ollama, GPUStack, and Azure OpenAI — see the [full Providers reference →](docs/providers.md).
 
 ## API Keys
 
