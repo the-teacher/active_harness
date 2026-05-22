@@ -572,91 +572,15 @@ Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame: `d
 
 ## Execution Time
 
-Every object that makes an LLM call exposes `#execution_time` (seconds, rounded to 3 decimal places).
-
-```ruby
-# Agent — execution_time is on the result
-agent.call
-puts agent.result.execution_time    # => 1.352
-
-# Tribunal — wall time for all agents running in parallel
-tribunal.call
-puts tribunal.execution_time        # => 0.94
-
-# Pipeline — total wall time across all steps that ran
-pipeline.call
-puts pipeline.execution_time        # => 3.12
-
-# Per step
-pipeline.step_results.each do |step_name, result|
-  puts "#{step_name}: #{result.execution_time}s"
-end
-```
+See the [full Execution Time reference →](docs/execution_time.md).
 
 ## Token Usage Info
 
-When a provider returns token counts, they are available on the `Result` object under `#usage`.  
-Not all providers return usage — the value is `nil` for streaming calls and some free-tier models.
-
-```ruby
-agent.call
-result = agent.result
-
-if result.usage
-  puts result.usage[:input_tokens]   # => 41
-  puts result.usage[:output_tokens]  # => 78
-  puts result.usage[:total_tokens]   # => 119
-end
-```
-
-For a tribunal, inspect each agent's result individually:
-
-```ruby
-tribunal.call
-
-tribunal.results.each do |result|
-  puts "#{result.model}: #{result.usage&.dig(:total_tokens)} tokens"
-end
-```
+See the [full Token Usage reference →](docs/token_usage.md).
 
 ## RubyLLM Integration
 
-ActiveHarness can delegate HTTP calls to the [`ruby_llm`](https://github.com/crmne/ruby_llm) gem
-instead of its built-in Net::HTTP providers. This gives you access to RubyLLM's full feature set
-(tools, vision, structured output, audio) while keeping the complete ActiveHarness interface:
-fallback chains, retry policy, hooks, memory, and streaming.
-
-```ruby
-require "ruby_llm"
-
-RubyLLM.configure do |c|
-  c.openrouter_api_key = ENV["OPENROUTER_API_KEY"]
-end
-
-class SupportAgent < ActiveHarness::Agent
-  system_prompt SupportPrompt
-
-  model do
-    use      provider: :openrouter, model: "mistralai/mistral-nemo", temperature: 0.5
-    fallback provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free"
-    fallback provider: :openai,     model: "gpt-4o-mini"
-  end
-
-  ruby_llm_backend do |params|
-    RubyLLM.chat(
-      model:               params.model,
-      provider:            params.provider,
-      assume_model_exists: true
-    ).tap { |chat| chat.with_temperature(params.temperature) if params.temperature }
-  end
-end
-```
-
-`params` is a struct with `.model`, `.provider`, `.temperature` — values from the current fallback
-chain entry. The block must return a `RubyLLM::Chat`. ActiveHarness calls `chat.ask(@input)` and
-wraps the result in its standard `Result` object.
-
-→ [Full RubyLLM integration guide](docs/ruby_llm_integration.md)
+See the [full RubyLLM Integration guide →](docs/ruby_llm_integration.md).
 
 ## License
 
