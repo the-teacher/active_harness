@@ -27,20 +27,25 @@ So this solution was born out.
 
 ### Table of Contents
 
-- [Ruby on Rails File Structure](#file-structure)
-- [Prompts. How to Create](#prompts)
-- [Agents. How to Create](#agents)
-- [Tribunals. How to Create](#tribunals)
-- [Pipelines. How to Create](#pipelines)
-- [Memory. How to Create](#memory)
+**Core Concepts:**
+
+- [Prompts](#prompts)
+- [Agents](#agents)
+- [Tribunals](#tribunals)
+- [Pipelines](#pipelines)
+- [Memory](#memory)
 - [Streaming (SSE)](#streaming-sse)
 
-**Reference docs:**
+**Using with Ruby on Rails:**
+
+- [Ruby on Rails File Structure](#file-structure)
+- [Using with Ruby on Rails](#using-with-ruby-on-rails)
+
+**Other Topics:**
 
 - [Setup API Keys](#api-keys)
 - [Configuration](#configuration)
 - [Retry Policy](#retry-policy)
-- [Using with Ruby on Rails](#using-with-ruby-on-rails)
 - [Execution Time](#execution-time)
 - [Token Usage Info](#token-usage-info)
 - [RubyLLM Integration](#rubyllm-integration)
