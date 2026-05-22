@@ -61,9 +61,15 @@ module ActiveHarness
       run_hook(:before_call)
       attempts = []
 
+      cfg = ActiveHarness.config
+
       model_list.each do |entry|
+        retry_policy = Http::RetryPolicy.new(
+          max_attempts: entry[:retry_attempts] || cfg.retry_default_attempts,
+          base_delay:   entry[:retry_delay]    || cfg.retry_default_delay
+        )
         t0       = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        response = attempt_model(entry, @system_prompt)
+        response = retry_policy.run { attempt_model(entry, @system_prompt) }
         elapsed  = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(3)
         result   = build_result(response, entry, attempts, elapsed)
         save_to_memory(result)

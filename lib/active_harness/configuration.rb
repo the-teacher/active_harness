@@ -17,6 +17,12 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     attr_accessor :request_timeout
 
+    # Retry policy for a single model (exponential backoff).
+    # Set retry_default_attempts to 1 to disable retries entirely.
+    # Per-model values can be set via retry_attempts: / retry_delay: in the DSL.
+    attr_accessor :retry_default_attempts
+    attr_accessor :retry_default_delay
+
     # -------------------------------------------------------------------------
     # OpenAI
     # -------------------------------------------------------------------------
@@ -120,7 +126,9 @@ module ActiveHarness
     # existing ENV-based setups keep working without any changes.
     # -------------------------------------------------------------------------
     def initialize
-      @request_timeout = 10
+      @request_timeout    = 10
+      @retry_default_attempts = 3
+      @retry_default_delay   = 1.0
 
       @openai_api_key  = ENV["OPENAI_API_KEY"]
       @openai_api_url  = "https://api.openai.com/v1/chat/completions"
