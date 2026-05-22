@@ -120,7 +120,7 @@ module ActiveHarness
     # existing ENV-based setups keep working without any changes.
     # -------------------------------------------------------------------------
     def initialize
-      @request_timeout = 30
+      @request_timeout = 10
 
       @openai_api_key  = ENV["OPENAI_API_KEY"]
       @openai_api_url  = "https://api.openai.com/v1/chat/completions"
