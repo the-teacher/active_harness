@@ -16,8 +16,8 @@ module ActiveHarness
         HTTP.post(url, headers: headers, body: body.to_json, timeout: timeout)
       end
 
-      def post_json_stream(url, headers:, body:, timeout: 60, on_token:)
-        STREAMING_HTTP.post(url, headers: headers, body: body.to_json, timeout: timeout, on_token: on_token)
+      def post_json_stream(url, headers:, body:, timeout: 60, on_token:, parse_chunk: nil)
+        STREAMING_HTTP.post(url, headers: headers, body: body.to_json, timeout: timeout, on_token: on_token, parse_chunk: parse_chunk)
       end
 
       # Normalize OpenAI-compatible usage object to a consistent hash.
@@ -46,18 +46,29 @@ module ActiveHarness
       end
 
       # Streaming call for OpenAI-compatible providers.
-      # Adds stream: true and stream_options to body, calls StreamingClient,
-      # and returns the same { content:, provider:, model:, usage: } shape
-      # as non-streaming calls so callers need no special handling.
+      # Subclasses may override +prepare_streaming_body+ and +build_streaming_chunk+
+      # to support non-OpenAI SSE formats (e.g. Anthropic).
       def call_streaming(url:, headers:, body:, stream:, provider:, model:)
-        body = body.merge(stream: true, stream_options: { include_usage: true })
-        result = post_json_stream(URI(url), headers: headers, body: body, on_token: stream)
-        {
-          content:  result[:content],
-          provider: provider,
-          model:    model,
-          usage:    extract_usage_openai({ "usage" => result[:raw_usage] })
-        }
+        body   = prepare_streaming_body(body)
+        result = post_json_stream(URI(url), headers: headers, body: body, on_token: stream, parse_chunk: method(:build_streaming_chunk))
+        u      = result[:usage] || {}
+        usage  = u.any? ? { input_tokens: u[:input_tokens].to_i, output_tokens: u[:output_tokens].to_i, total_tokens: u[:input_tokens].to_i + u[:output_tokens].to_i } : nil
+        { content: result[:content], provider: provider, model: model, usage: usage }
+      end
+
+      # Override in subclass to change streaming request body options.
+      def prepare_streaming_body(body)
+        body.merge(stream: true, stream_options: { include_usage: true })
+      end
+
+      # Override in subclass to parse provider-specific SSE chunks.
+      # Must return { token: String|nil, usage: Hash|nil } where usage keys
+      # are :input_tokens and :output_tokens.
+      def build_streaming_chunk(parsed)
+        token = parsed.dig("choices", 0, "delta", "content")
+        raw_u = parsed["usage"]
+        usage = raw_u ? { input_tokens: raw_u["prompt_tokens"].to_i, output_tokens: raw_u["completion_tokens"].to_i } : nil
+        { token: token, usage: usage }
       end
 
       def parse!(raw)

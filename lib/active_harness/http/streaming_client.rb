@@ -7,13 +7,16 @@ module ActiveHarness
     # Calls +on_token+ for each content token as it arrives via SSE.
     # Accumulates and returns the full content string when the stream ends.
     class StreamingClient
-      # @param url      [URI]
-      # @param headers  [Hash{String => String}]
-      # @param body     [String]  JSON-serialized body
-      # @param timeout  [Integer] seconds (open + read)
-      # @param on_token [Proc]    called with each partial token string
-      # @return         [String]  full accumulated content
-      def post(url, headers:, body:, timeout: 60, on_token:)
+      # @param url         [URI]
+      # @param headers     [Hash{String => String}]
+      # @param body        [String]  JSON-serialized body
+      # @param timeout     [Integer] seconds (open + read)
+      # @param on_token    [Proc]    called with each partial token string
+      # @param parse_chunk [Proc, nil] receives each parsed SSE JSON hash;
+      #                    must return { token: String|nil, usage: Hash|nil }.
+      #                    Defaults to OpenAI-compatible format.
+      # @return [Hash]  { content: String, usage: Hash|nil }
+      def post(url, headers:, body:, timeout: 60, on_token:, parse_chunk: nil)
         http              = Net::HTTP.new(url.host, url.port)
         http.use_ssl      = true
         http.open_timeout = timeout
@@ -25,7 +28,7 @@ module ActiveHarness
 
         buffer  = ""
         content = ""
-        usage   = nil
+        usage   = {}
 
         http.request(req) do |response|
           response.read_body do |chunk|
@@ -37,25 +40,32 @@ module ActiveHarness
               data = line.delete_prefix("data: ")
               next if data == "[DONE]"
 
-              parsed = JSON.parse(data)
-              token  = parsed.dig("choices", 0, "delta", "content")
+              parsed = JSON.parse(data) rescue next
+              info   = parse_chunk ? parse_chunk.call(parsed) : default_chunk(parsed)
+              token  = info[:token]
               if token && !token.empty?
                 on_token.call(token)
                 content += token
               end
-              usage ||= parsed["usage"] if parsed.key?("usage")
+              usage = usage.merge(info[:usage]) if info[:usage]
             end
           end
         end
 
-        { content: content, raw_usage: usage }
+        { content: content, usage: usage.empty? ? nil : usage }
       rescue Net::OpenTimeout, Net::ReadTimeout
         raise Errors::TimeoutError, "Request to #{url.host} timed out"
-      rescue JSON::ParserError
-        # ignore malformed SSE chunks
-        content
       rescue => e
         raise Errors::ProviderUnavailableError, "#{url.host} unreachable: #{e.message}"
+      end
+
+      private
+
+      def default_chunk(parsed)
+        token = parsed.dig("choices", 0, "delta", "content")
+        raw_u = parsed["usage"]
+        usage = raw_u ? { input_tokens: raw_u["prompt_tokens"].to_i, output_tokens: raw_u["completion_tokens"].to_i } : nil
+        { token: token, usage: usage }
       end
     end
   end

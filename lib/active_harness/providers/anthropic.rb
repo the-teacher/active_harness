@@ -8,25 +8,26 @@ module ActiveHarness
       ANTHROPIC_VERSION = "2023-06-01"
       DEFAULT_MAX_TOKENS = 1024
 
-      def call(model:, messages:, temperature: 0.7)
+      def call(model:, messages:, temperature: 0.7, stream: nil)
         system_msg, chat_messages = extract_system(messages)
 
         body = {
-          model:      model,
-          max_tokens: DEFAULT_MAX_TOKENS,
+          model:       model,
+          max_tokens:  DEFAULT_MAX_TOKENS,
           temperature: temperature,
-          messages:   chat_messages
+          messages:    chat_messages
         }
         body[:system] = system_msg if system_msg
 
-        raw  = post_json(URI(config.anthropic_api_url),
-          headers: {
-            "Content-Type"      => "application/json",
-            "x-api-key"         => api_key,
-            "anthropic-version" => ANTHROPIC_VERSION
-          },
-          body: body
-        )
+        headers = {
+          "Content-Type"      => "application/json",
+          "x-api-key"         => api_key,
+          "anthropic-version" => ANTHROPIC_VERSION
+        }
+
+        return call_streaming(url: config.anthropic_api_url, headers: headers, body: body, stream: stream, provider: :anthropic, model: model) if stream
+
+        raw  = post_json(URI(config.anthropic_api_url), headers: headers, body: body)
         data = parse!(raw)
         handle_error!(data)
 
@@ -76,6 +77,30 @@ module ActiveHarness
         else
           raise Errors::InvalidRequestError.new(msg,      error_code: type, metadata: metadata)
         end
+      end
+
+      # Anthropic streaming uses plain stream: true — no stream_options.
+      def prepare_streaming_body(body)
+        body.merge(stream: true)
+      end
+
+      # Anthropic SSE events:
+      #   message_start       → input token count
+      #   content_block_delta → text token
+      #   message_delta       → output token count
+      def build_streaming_chunk(parsed)
+        token = if parsed["type"] == "content_block_delta" && parsed.dig("delta", "type") == "text_delta"
+                  parsed.dig("delta", "text")
+                end
+
+        usage = case parsed["type"]
+                when "message_start"
+                  { input_tokens: parsed.dig("message", "usage", "input_tokens").to_i }
+                when "message_delta"
+                  { output_tokens: parsed.dig("usage", "output_tokens").to_i }
+                end
+
+        { token: token, usage: usage }
       end
     end
   end
