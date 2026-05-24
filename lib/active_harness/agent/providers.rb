@@ -47,7 +47,7 @@ module ActiveHarness
       messages = build_messages(system_prompt, @input)
       opts = { model: entry[:model], messages: messages }
       opts[:temperature] = entry[:temperature] if entry[:temperature]
-      opts[:stream]      = @stream             if @stream
+      opts[:stream]      = @token_stream       if @token_stream
       opts[:name]        = entry[:name]        if entry[:name]
       provider.call(**opts)
     end

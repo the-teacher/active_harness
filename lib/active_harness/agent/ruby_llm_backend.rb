@@ -54,8 +54,8 @@ module ActiveHarness
       chat = backend.call(params)
       chat.with_instructions(system_prompt) if system_prompt
 
-      if @stream
-        response = chat.ask(@input) { |chunk| @stream.call(chunk.content) if chunk.content }
+      if @token_stream
+        response = chat.ask(@input) { |chunk| @token_stream.call(chunk.content) if chunk.content }
       else
         response = chat.ask(@input)
       end

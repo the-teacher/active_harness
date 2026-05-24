@@ -11,8 +11,8 @@ module ActiveHarness
       #   SupportAgent.call(input: "Hi")
       #   SupportAgent.call(input: "Hi", context: { user_id: 42 })
       #   SupportAgent.call(input: "Hi", memory: memory)
-      def call(input: nil, context: {}, models: nil, memory: nil, stream: nil)
-        new(input: input, context: context, models: models, memory: memory, stream: stream).call.result
+      def call(input: nil, context: {}, models: nil, memory: nil, stream: nil, token_stream: nil, event_stream: nil)
+        new(input: input, context: context, models: models, memory: memory, stream: stream, token_stream: token_stream, event_stream: event_stream).call
       end
 
       # Each subclass gets its own isolated config hash.
@@ -28,7 +28,7 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     # Instance API
     # -------------------------------------------------------------------------
-    attr_accessor :input, :context
+    attr_accessor :input, :context, :stream, :token_stream, :event_stream
     attr_reader :result
 
     def models=(list)
@@ -36,12 +36,18 @@ module ActiveHarness
       @model_list_proxy = nil
     end
 
-    def initialize(input: nil, context: {}, models: nil, memory: nil, stream: nil)
+    def memory=(obj)
+      @memory = obj
+    end
+
+    def initialize(input: nil, context: {}, models: nil, memory: nil, stream: nil, token_stream: nil, event_stream: nil)
       @input           = input
       @context         = context
       @config          = self.class.agent_config
       @models_override = Array(models) if models
       @stream          = stream
+      @token_stream    = token_stream
+      @event_stream    = event_stream
       # memory: can be passed directly or via context[:memory]
       @memory = memory || @context[:memory]
       run_hook(:setup)
@@ -53,9 +59,9 @@ module ActiveHarness
     # Optionally accepts input and stream callback inline:
     #   agent.call("What is the capital of Japan?")
     #   agent.call("...", stream: ->(token) { print token })
-    def call(input = nil, stream: nil)
-      @input  = input  if input
-      @stream = stream if stream
+    def call(input = nil, token_stream: nil)
+      @input        = input        if input
+      @token_stream = token_stream if token_stream
       @memory&.load
       @system_prompt = resolve_system_prompt
       run_hook(:before_call)

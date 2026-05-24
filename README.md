@@ -452,6 +452,8 @@ es.onmessage = ({ data }) => {
 
 Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame: `data: {"done":true}`.
 
+For a complete step-by-step guide covering token streaming, lifecycle events sidebar, two SSE channels on one connection, and vanilla JS client — see the [Rails Streaming guide →](docs/rails_streaming.md).
+
 ---
 
 ## Reference Documentation
@@ -475,6 +477,10 @@ ActiveHarness automatically retries a model on transient errors with exponential
 ## Using with Ruby on Rails
 
 ActiveHarness ships with a Rails generator that creates the full `app/ai/` structure, example classes, a controller, and routes — see the [full Rails Integration guide →](docs/rails_integration.md).
+
+## Rails Streaming (SSE)
+
+Step-by-step guide: token streaming, lifecycle events sidebar, two SSE channels on one connection, vanilla JS client — see the [Rails Streaming guide →](docs/rails_streaming.md).
 
 ## Execution Time
 
