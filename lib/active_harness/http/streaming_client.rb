@@ -25,6 +25,7 @@ module ActiveHarness
 
         buffer  = ""
         content = ""
+        usage   = nil
 
         http.request(req) do |response|
           response.read_body do |chunk|
@@ -42,11 +43,12 @@ module ActiveHarness
                 on_token.call(token)
                 content += token
               end
+              usage ||= parsed["usage"] if parsed.key?("usage")
             end
           end
         end
 
-        content
+        { content: content, raw_usage: usage }
       rescue Net::OpenTimeout, Net::ReadTimeout
         raise Errors::TimeoutError, "Request to #{url.host} timed out"
       rescue JSON::ParserError

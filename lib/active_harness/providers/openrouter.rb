@@ -17,11 +17,7 @@ module ActiveHarness
         }
         body = { model: model, messages: messages, temperature: temperature }
 
-        if stream
-          body[:stream] = true
-          content = post_json_stream(URI(config.openrouter_api_url), headers: headers, body: body, on_token: stream)
-          return { content: content, provider: :openrouter, model: model }
-        end
+        return call_streaming(url: config.openrouter_api_url, headers: headers, body: body, stream: stream, provider: :openrouter, model: model) if stream
 
         raw  = post_json(URI(config.openrouter_api_url), headers: headers, body: body)
         data = parse!(raw)

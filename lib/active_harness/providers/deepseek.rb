@@ -5,14 +5,13 @@ module ActiveHarness
     # DeepSeek — OpenAI-compatible API.
     # https://platform.deepseek.com/api-docs
     class DeepSeek < Base
-      def call(model:, messages:, temperature: 0.7)
-        raw  = post_json(URI(config.deepseek_api_url),
-          headers: {
-            "Content-Type"  => "application/json",
-            "Authorization" => "Bearer #{api_key}"
-          },
-          body: { model: model, messages: messages, temperature: temperature }
-        )
+      def call(model:, messages:, temperature: 0.7, stream: nil)
+        headers = { "Content-Type" => "application/json", "Authorization" => "Bearer #{api_key}" }
+        body    = { model: model, messages: messages, temperature: temperature }
+
+        return call_streaming(url: config.deepseek_api_url, headers: headers, body: body, stream: stream, provider: :deepseek, model: model) if stream
+
+        raw  = post_json(URI(config.deepseek_api_url), headers: headers, body: body)
         data = parse!(raw)
         handle_error!(data)
 

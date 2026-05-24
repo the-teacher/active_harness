@@ -5,14 +5,13 @@ module ActiveHarness
     # Perplexity — OpenAI-compatible API with web-search-augmented models.
     # https://docs.perplexity.ai/api-reference/chat-completions
     class Perplexity < Base
-      def call(model:, messages:, temperature: 0.7)
-        raw  = post_json(URI(config.perplexity_api_url),
-          headers: {
-            "Content-Type"  => "application/json",
-            "Authorization" => "Bearer #{api_key}"
-          },
-          body: { model: model, messages: messages, temperature: temperature }
-        )
+      def call(model:, messages:, temperature: 0.7, stream: nil)
+        headers = { "Content-Type" => "application/json", "Authorization" => "Bearer #{api_key}" }
+        body    = { model: model, messages: messages, temperature: temperature }
+
+        return call_streaming(url: config.perplexity_api_url, headers: headers, body: body, stream: stream, provider: :perplexity, model: model) if stream
+
+        raw  = post_json(URI(config.perplexity_api_url), headers: headers, body: body)
         data = parse!(raw)
         handle_error!(data)
 

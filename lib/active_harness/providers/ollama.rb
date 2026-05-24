@@ -13,26 +13,20 @@ module ActiveHarness
     #     use provider: :ollama, model: "llama3.2"
     #   end
     class Ollama < Base
-      def call(model:, messages:, temperature: 0.7)
-        url = URI("#{api_base}/v1/chat/completions")
-
+      def call(model:, messages:, temperature: 0.7, stream: nil)
+        url     = "#{api_base}/v1/chat/completions"
         headers = { "Content-Type" => "application/json" }
         key     = api_key
         headers["Authorization"] = "Bearer #{key}" if key
+        body    = { model: model, messages: messages, temperature: temperature }
 
-        raw  = post_json(url,
-          headers: headers,
-          body:    { model: model, messages: messages, temperature: temperature }
-        )
+        return call_streaming(url: url, headers: headers, body: body, stream: stream, provider: :ollama, model: model) if stream
+
+        raw  = post_json(URI(url), headers: headers, body: body)
         data = parse!(raw)
         handle_error!(data)
 
-        {
-          content:  data.dig("choices", 0, "message", "content").to_s.strip,
-          provider: :ollama,
-          model:    data["model"] || model,
-          usage:    extract_usage_openai(data)
-        }
+        { content: data.dig("choices", 0, "message", "content").to_s.strip, provider: :ollama, model: data["model"] || model, usage: extract_usage_openai(data) }
       end
 
       private

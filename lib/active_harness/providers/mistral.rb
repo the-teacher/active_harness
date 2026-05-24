@@ -5,14 +5,13 @@ module ActiveHarness
     # Mistral AI — OpenAI-compatible API.
     # https://docs.mistral.ai/api
     class Mistral < Base
-      def call(model:, messages:, temperature: 0.7)
-        raw  = post_json(URI(config.mistral_api_url),
-          headers: {
-            "Content-Type"  => "application/json",
-            "Authorization" => "Bearer #{api_key}"
-          },
-          body: { model: model, messages: messages, temperature: temperature }
-        )
+      def call(model:, messages:, temperature: 0.7, stream: nil)
+        headers = { "Content-Type" => "application/json", "Authorization" => "Bearer #{api_key}" }
+        body    = { model: model, messages: messages, temperature: temperature }
+
+        return call_streaming(url: config.mistral_api_url, headers: headers, body: body, stream: stream, provider: :mistral, model: model) if stream
+
+        raw  = post_json(URI(config.mistral_api_url), headers: headers, body: body)
         data = parse!(raw)
         handle_error!(data)
 

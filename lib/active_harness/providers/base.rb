@@ -45,6 +45,21 @@ module ActiveHarness
         }
       end
 
+      # Streaming call for OpenAI-compatible providers.
+      # Adds stream: true and stream_options to body, calls StreamingClient,
+      # and returns the same { content:, provider:, model:, usage: } shape
+      # as non-streaming calls so callers need no special handling.
+      def call_streaming(url:, headers:, body:, stream:, provider:, model:)
+        body = body.merge(stream: true, stream_options: { include_usage: true })
+        result = post_json_stream(URI(url), headers: headers, body: body, on_token: stream)
+        {
+          content:  result[:content],
+          provider: provider,
+          model:    model,
+          usage:    extract_usage_openai({ "usage" => result[:raw_usage] })
+        }
+      end
+
       def parse!(raw)
         JSON.parse(raw)
       rescue JSON::ParserError => e

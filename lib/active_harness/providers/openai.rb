@@ -7,23 +7,17 @@ module ActiveHarness
       # @param messages [Array<Hash>]  [{role:, content:}, ...]
       # @param temperature [Float]
       # @return [Hash]  { content:, provider:, model: }
-      def call(model:, messages:, temperature: 0.7)
-        raw  = post_json(URI(config.openai_api_url),
-          headers: {
-            "Content-Type"  => "application/json",
-            "Authorization" => "Bearer #{api_key}"
-          },
-          body: { model: model, messages: messages, temperature: temperature }
-        )
+      def call(model:, messages:, temperature: 0.7, stream: nil)
+        headers = { "Content-Type" => "application/json", "Authorization" => "Bearer #{api_key}" }
+        body    = { model: model, messages: messages, temperature: temperature }
+
+        return call_streaming(url: config.openai_api_url, headers: headers, body: body, stream: stream, provider: :openai, model: model) if stream
+
+        raw  = post_json(URI(config.openai_api_url), headers: headers, body: body)
         data = parse!(raw)
         handle_error!(data)
 
-        {
-          content:  data.dig("choices", 0, "message", "content").to_s.strip,
-          provider: :openai,
-          model:    data["model"] || model,
-          usage:    extract_usage_openai(data)
-        }
+        { content: data.dig("choices", 0, "message", "content").to_s.strip, provider: :openai, model: data["model"] || model, usage: extract_usage_openai(data) }
       end
 
       private
