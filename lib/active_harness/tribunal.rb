@@ -46,22 +46,25 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     # Instance API
     # -------------------------------------------------------------------------
-    attr_accessor :input, :context, :event_stream
+    attr_accessor :input, :context, :stream, :agent_event_stream, :tribunal_event_stream
     attr_reader :results, :errors, :verdict, :execution_time, :agent_execution_times
 
-    def initialize(input: nil, context: {}, agents: nil, timeout: 7, event_stream: nil)
+    def initialize(input: nil, context: {}, agents: nil, timeout: 7,
+                   stream: nil, agent_event_stream: nil, tribunal_event_stream: nil)
       config = self.class.tribunal_config
 
-      @input         = input
-      @context       = context
-      @agents        = agents || config[:agents]
-      @timeout       = timeout
-      @process_block = config[:process]
-      @hooks         = config[:hooks].dup
-      @event_stream  = event_stream
-      @results       = []
-      @errors        = []
-      @verdict       = nil
+      @input                 = input
+      @context               = context
+      @agents                = agents || config[:agents]
+      @timeout               = timeout
+      @process_block         = config[:process]
+      @hooks                 = config[:hooks].dup
+      @stream                = stream
+      @agent_event_stream    = agent_event_stream
+      @tribunal_event_stream = tribunal_event_stream
+      @results               = []
+      @errors                = []
+      @verdict               = nil
       @execution_time        = nil
       @agent_execution_times = []
     end
@@ -139,9 +142,16 @@ module ActiveHarness
     def resolve_agents
       @agents.map do |agent|
         if agent.is_a?(Class)
-          agent.new(input: @input, context: @context.dup)
+          agent.new(
+            input:        @input,
+            context:      @context.dup,
+            stream:       @stream,
+            event_stream: @agent_event_stream
+          )
         else
-          agent.input = @input if @input
+          agent.input        = @input if @input
+          agent.stream       = @stream if @stream
+          agent.event_stream = @agent_event_stream if @agent_event_stream
           agent
         end
       end

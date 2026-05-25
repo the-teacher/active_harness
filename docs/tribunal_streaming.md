@@ -1,14 +1,20 @@
 # Tribunal Streaming — Live Events via SSE
 
 Tribunals run agents in parallel and produce a final verdict.
-By passing an `event_stream:` lambda, you can push each tribunal lifecycle event
+By passing a `tribunal_event_stream:` lambda, you can push each tribunal lifecycle event
 to the browser in real time over a single SSE connection — without polling.
+Pass `stream:` and/or `agent_event_stream:` to forward streaming callbacks to every agent the tribunal launches.
 
 ---
 
 ## How It Works
 
-The tribunal accepts an `event_stream:` lambda in its constructor.
+The tribunal accepts three optional streaming parameters:
+
+- `tribunal_event_stream:` — lambda called on each tribunal lifecycle event (start, agent done, verdict, …)
+- `agent_event_stream:` — forwarded to every agent as their `event_stream:` (per-agent hook events)
+- `stream:` — forwarded to every agent as their `stream:` (raw token stream)
+
 This lambda is called from inside lifecycle hooks as each event occurs:
 agent launched, agent completed, agent failed, verdict computed.
 
@@ -17,19 +23,19 @@ open and push events as `text/event-stream` (SSE).
 
 ---
 
-## Step 1 — Add event_stream to the Tribunal
+## Step 1 — Add tribunal_event_stream to the Tribunal
 
 ```ruby
 class PolitenessLifecycleTribunal < ActiveHarness::Tribunal
-  on(:before_agent) { |agent, index| @event_stream&.call(:agent_start, index) }
-  on(:after_agent)  { |result, index| @event_stream&.call(:agent_done, result, index) }
-  on(:agent_error)  { |name, err, index| @event_stream&.call(:agent_error, name, err, index) }
-  on(:after_call)   { |results, _errors| @event_stream&.call(:all_done) }
-  on(:after_verdict){ |verdict| @event_stream&.call(:verdict, verdict) }
+  on(:before_agent) { |agent, index| @tribunal_event_stream&.call(:agent_start, index) }
+  on(:after_agent)  { |result, index| @tribunal_event_stream&.call(:agent_done, result, index) }
+  on(:agent_error)  { |name, err, index| @tribunal_event_stream&.call(:agent_error, name, err, index) }
+  on(:after_call)   { |results, _errors| @tribunal_event_stream&.call(:all_done) }
+  on(:after_verdict){ |verdict| @tribunal_event_stream&.call(:verdict, verdict) }
 
-  def initialize(input:, event_stream: nil)
+  def initialize(input:, tribunal_event_stream: nil)
     # build agents...
-    super(input: input, agents: agents, event_stream: event_stream)
+    super(input: input, agents: agents, tribunal_event_stream: tribunal_event_stream)
   end
 
   process do |results|
@@ -38,7 +44,7 @@ class PolitenessLifecycleTribunal < ActiveHarness::Tribunal
 end
 ```
 
-The `&.` guard means the hooks are completely silent when `event_stream` is `nil` —
+The `&.` guard means the hooks are completely silent when `tribunal_event_stream` is `nil` —
 the same tribunal class works for both the plain and the live-sidebar versions.
 
 ---
@@ -88,7 +94,7 @@ def politeness_lifecycle_stream
   rescue IOError, ActionController::Live::ClientDisconnected
   end
 
-  tribunal = PolitenessLifecycleTribunal.new(input: input, event_stream: event_stream)
+  tribunal = PolitenessLifecycleTribunal.new(input: input, tribunal_event_stream: event_stream)
   event_stream.call(:tribunal_start, tribunal_agent_count)
   tribunal.call
 
