@@ -29,62 +29,11 @@ module ActiveHarness
   #   ContentQualityTribunal.new(input: "...").call
   #
   class Tribunal
-    VALID_HOOKS = %i[
-      before_call
-      after_agent
-      agent_error
-      after_call
-      before_verdict
-      after_verdict
-    ].freeze
-
     # -------------------------------------------------------------------------
-    # Class-level DSL — used when subclassing ActiveHarness::Tribunal
+    # Class-level DSL — core
     # -------------------------------------------------------------------------
     class << self
-      # Declare agents at the class level.
-      #   agents PolitenessAgent, ConstructivenessAgent
-      def agents(*list)
-        tribunal_config[:agents] = list.flatten
-      end
-
-      # Class-level hook registration.
-      #   on(:after_agent) { |result| puts result.model }
-      def on(event, &block)
-        unless VALID_HOOKS.include?(event)
-          raise ArgumentError, "Unknown Tribunal hook :#{event}. Valid hooks: #{VALID_HOOKS.join(", ")}"
-        end
-
-        tribunal_config[:hooks][event] = block
-      end
-
-      # Rails-style aliases for +on+:
-      #
-      #   before :call                     do ... end   # → on :before_call
-      #   before :agent                    do ... end   # → on :before_agent (not used yet)
-      #   before :verdict                  do |r| end   # → on :before_verdict
-      #   after  :call                     do ... end   # → on :after_call
-      #   after  :agent                    do |r| end   # → on :after_agent
-      #   after  :verdict                  do |v| end   # → on :after_verdict
-      #   callback :agent_error            do |n,e| end # → on :agent_error
-      def before(event, &block)
-        on(:"before_#{event}", &block)
-      end
-
-      def after(event, &block)
-        on(:"after_#{event}", &block)
-      end
-
-      def callback(event, &block)
-        on(event, &block)
-      end
-
-      # Class-level process block.
-      #   process { |results| results.all? { |r| r.parsed["result"] == true } }
-      def process(&block)
-        tribunal_config[:process] = block
-      end
-
+      # Each subclass gets its own isolated config hash.
       def tribunal_config
         @tribunal_config ||= { agents: [], hooks: {} }
       end
@@ -94,10 +43,13 @@ module ActiveHarness
       end
     end
 
-    attr_accessor :input, :context
+    # -------------------------------------------------------------------------
+    # Instance API
+    # -------------------------------------------------------------------------
+    attr_accessor :input, :context, :event_stream
     attr_reader :results, :errors, :verdict, :execution_time, :agent_execution_times
 
-    def initialize(input: nil, context: {}, agents: nil, timeout: 7)
+    def initialize(input: nil, context: {}, agents: nil, timeout: 7, event_stream: nil)
       config = self.class.tribunal_config
 
       @input         = input
@@ -106,22 +58,12 @@ module ActiveHarness
       @timeout       = timeout
       @process_block = config[:process]
       @hooks         = config[:hooks].dup
+      @event_stream  = event_stream
       @results       = []
       @errors        = []
       @verdict       = nil
-      @execution_time       = nil
+      @execution_time        = nil
       @agent_execution_times = []
-    end
-
-    # Instance-level hook registration — overrides class-level hooks.
-    # :before_verdict is a transform hook: its return value replaces the results array.
-    def on(event, &block)
-      unless VALID_HOOKS.include?(event)
-        raise ArgumentError, "Unknown Tribunal hook :#{event}. Valid hooks: #{VALID_HOOKS.join(", ")}"
-      end
-
-      @hooks[event] = block
-      self
     end
 
     # Instance-level process block — overrides class-level block.
@@ -143,14 +85,15 @@ module ActiveHarness
 
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
-      futures = agents.map do |agent|
+      futures = agents.each_with_index.map do |agent, index|
+        run_hook(:before_agent, agent, index)
         t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         future = Concurrent::Future.execute { agent.call }
         [future, t0]
       end
 
-      @results              = []
-      @errors               = []
+      @results               = []
+      @errors                = []
       @agent_execution_times = []
 
       futures.each_with_index do |(future, t0), index|
@@ -159,19 +102,19 @@ module ActiveHarness
         @agent_execution_times << { agent: agents[index].class.name, time: elapsed }
 
         if future.fulfilled?
-          value = future.value
+          value  = future.value
           result = value.is_a?(ActiveHarness::Agent) ? value.result : value
           @results << result
-          run_hook(:after_agent, result)
+          run_hook(:after_agent, result, index)
         elsif future.incomplete?
           error = Errors::TimeoutError.new(
             "Agent #{agents[index].class.name} timed out after #{@timeout}s"
           )
           @errors << { agent: agents[index].class.name, error: error }
-          run_hook(:agent_error, agents[index].class.name, error)
+          run_hook(:agent_error, agents[index].class.name, error, index)
         else
           @errors << { agent: agents[index].class.name, error: future.reason }
-          run_hook(:agent_error, agents[index].class.name, future.reason)
+          run_hook(:agent_error, agents[index].class.name, future.reason, index)
         end
       end
 
@@ -193,17 +136,6 @@ module ActiveHarness
 
     private
 
-    def run_hook(event, *args)
-      @hooks[event]&.call(*args)
-    end
-
-    # Like run_hook but uses the return value to replace the passed value.
-    def transform_hook(event, value)
-      return value unless @hooks[event]
-
-      @hooks[event].call(value)
-    end
-
     def resolve_agents
       @agents.map do |agent|
         if agent.is_a?(Class)
@@ -216,3 +148,6 @@ module ActiveHarness
     end
   end
 end
+
+require_relative "tribunal/hooks"
+require_relative "tribunal/dsl"
