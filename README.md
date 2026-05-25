@@ -100,7 +100,7 @@ end
 
 An **agent** is a single LLM call wrapped in a class. It declares a system prompt, a model chain with automatic fallbacks, and lifecycle hooks for observing or modifying every stage of the call.
 
-→ [Agent hooks reference](docs/agent_hooks.md)
+→ [Agent hooks reference](docs/agents/agent_hooks.md)
 
 ```ruby
 class SupportAgent < ActiveHarness::Agent
@@ -177,7 +177,7 @@ A **tribunal** runs several agents on the same input **in parallel** and produce
 
 This improves reliability — a single model can be wrong or biased, but two (or more) independent models rarely agree on the same mistake.
 
-→ [Tribunal hooks reference](docs/tribunal_hooks.md)
+→ [Tribunal hooks reference](docs/tribunals/tribunal_hooks.md)
 
 **Prompt** — each agent returns structured JSON:
 
@@ -264,7 +264,7 @@ end
 
 A **pipeline** chains agents and tribunals into a sequential, multi-step flow. Each step receives the output of the previous step as its input. Any step can stop the pipeline early — the remaining steps are skipped.
 
-→ [Pipeline hooks reference](docs/pipeline_hooks.md)
+→ [Pipeline hooks reference](docs/pipelines/pipeline_hooks.md)
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
@@ -453,7 +453,7 @@ es.onmessage = ({ data }) => {
 
 Each SSE frame carries one token: `data: {"token":"Hello"}`. The final frame: `data: {"done":true}`.
 
-For a complete step-by-step guide covering token streaming, lifecycle events sidebar, two SSE channels on one connection, and vanilla JS client — see the [Rails Streaming guide →](docs/rails_streaming.md).
+For a complete step-by-step guide covering token streaming, lifecycle events sidebar, two SSE channels on one connection, and vanilla JS client — see the [Rails Streaming guide →](docs/rails/rails_streaming.md).
 
 ---
 
@@ -461,59 +461,49 @@ For a complete step-by-step guide covering token streaming, lifecycle events sid
 
 ## Providers
 
-ActiveHarness has built-in support for OpenAI, Anthropic, Gemini, Groq, OpenRouter, xAI, DeepSeek, Mistral, Perplexity, Ollama, GPUStack, and Azure OpenAI — see the [full Providers reference →](docs/providers.md).
+ActiveHarness has built-in support for OpenAI, Anthropic, Gemini, Groq, OpenRouter, xAI, DeepSeek, Mistral, Perplexity, Ollama, GPUStack, and Azure OpenAI — see the [full Providers reference →](docs/common/providers.md).
 
 ## API Keys
 
-Each provider reads its key from an environment variable — see the [full API keys reference →](docs/api_keys.md).
+Each provider reads its key from an environment variable — see the [full API keys reference →](docs/common/api_keys.md).
 
 ## Configuration
 
-Configure API keys, provider URLs, retry policy, and custom providers — see the [full Configuration reference →](docs/configuration.md).
+Configure API keys, provider URLs, retry policy, and custom providers — see the [full Configuration reference →](docs/common/configuration.md).
 
 ## Retry Policy
 
-ActiveHarness automatically retries a model on transient errors with exponential backoff, then moves to the next fallback — see the [full Retry Policy reference →](docs/retry_policy.md).
+ActiveHarness automatically retries a model on transient errors with exponential backoff, then moves to the next fallback — see the [full Retry Policy reference →](docs/agents/retry_policy.md).
 
 ## Using with Ruby on Rails
 
-ActiveHarness ships with a Rails generator that creates the full `app/ai/` structure, example classes, a controller, and routes — see the [full Rails Integration guide →](docs/rails_integration.md).
+ActiveHarness ships with a Rails generator that creates the full `app/ai/` structure, example classes, a controller, and routes — see the [full Rails Integration guide →](docs/rails/rails_integration.md).
 
 ## Rails Streaming (SSE)
 
-Step-by-step guide: token streaming, lifecycle events sidebar, two SSE channels on one connection, vanilla JS client — see the [Rails Streaming guide →](docs/rails_streaming.md).
+Step-by-step guide: token streaming, lifecycle events sidebar, two SSE channels on one connection, vanilla JS client — see the [Rails Streaming guide →](docs/rails/rails_streaming.md).
 
 ## Execution Time
 
-Every object that makes an LLM call (`Agent`, `Tribunal`, `Pipeline`) exposes `#execution_time` in seconds — see the [full Execution Time reference →](docs/execution_time.md).
+Every object that makes an LLM call (`Agent`, `Tribunal`, `Pipeline`) exposes `#execution_time` in seconds — see the [full Execution Time reference →](docs/agents/execution_time.md).
 
 ## Token Usage Info
 
-When a provider returns token counts, they are available on the `Result` object under `#usage` — see the [full Token Usage reference →](docs/token_usage.md).
+When a provider returns token counts, they are available on the `Result` object under `#usage` — see the [full Token Usage reference →](docs/agents/token_usage.md).
 
 ## Cost Calculation
 
 ActiveHarness automatically calculates the monetary cost of every LLM call and attaches it to the `Result` object as `result.cost`:
 
-```ruby
-result = SupportAgent.call(input: "Hello").result
-
-if result.cost
-  puts result.cost[:input_cost]   # => 0.00003
-  puts result.cost[:output_cost]  # => 0.00024
-  puts result.cost[:total_cost]   # => 0.00027
-end
-```
-
-Pricing data is bundled with the gem and refreshed automatically once per day from [models.dev](https://models.dev) — see the [full Cost Calculation reference →](docs/costs.md).
+Pricing data is bundled with the gem and refreshed automatically once per day from [models.dev](https://models.dev) — see the [full Cost Calculation reference →](docs/agents/costs.md).
 
 ## RubyLLM Integration
 
-ActiveHarness can delegate HTTP calls to the `ruby_llm` gem instead of its built-in providers, giving you access to tools, vision, structured output, and audio while keeping the full ActiveHarness interface — see the [full RubyLLM Integration guide →](docs/ruby_llm_integration.md).
+ActiveHarness can delegate HTTP calls to the `ruby_llm` gem instead of its built-in providers, giving you access to tools, vision, structured output, and audio while keeping the full ActiveHarness interface — see the [full RubyLLM Integration guide →](docs/common/ruby_llm_integration.md).
 
 ## ActiveHarness and RubyLLM
 
-RubyLLM is a transport layer — a unified API for any LLM provider. ActiveHarness is an architectural framework for organizing complex AI flows. They live at different levels of the stack and work great together — see [ActiveHarness and RubyLLM →](docs/activeharness_and_rubyllm.md).
+RubyLLM is a transport layer — a unified API for any LLM provider. ActiveHarness is an architectural framework for organizing complex AI flows. They live at different levels of the stack and work great together — see [ActiveHarness and RubyLLM →](docs/common/activeharness_and_rubyllm.md).
 
 ## License
 
