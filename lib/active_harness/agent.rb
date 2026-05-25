@@ -113,6 +113,7 @@ module ActiveHarness
     def build_result(response, entry, attempts, elapsed)
       raw    = response[:content]
       parsed = parse_output(raw)
+      usage  = response[:usage]
 
       Result.new(
         input:          @input,
@@ -125,7 +126,8 @@ module ActiveHarness
         model_list:     model_list,
         attempts:       attempts,
         execution_time: elapsed,
-        usage:          response[:usage]
+        usage:          usage,
+        cost:           calculate_cost(entry[:model], usage)
       )
     end
 
@@ -152,4 +154,5 @@ require_relative "agent/models"
 require_relative "agent/providers"
 require_relative "agent/output_parser"
 require_relative "agent/ruby_llm_backend"
+require_relative "agent/cost"
 

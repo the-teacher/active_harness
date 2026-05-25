@@ -183,10 +183,21 @@ module ActiveHarness
       end
 
       def registry
-        @registry ||= begin
-          source = File.exist?(cache_file) ? cache_file : BUNDLED_DATA_FILE
-          JSON.parse(File.read(source), symbolize_names: true)
+        @registry ||= load_registry
+      end
+
+      def load_registry
+        if File.exist?(cache_file)
+          begin
+            data = JSON.parse(File.read(cache_file), symbolize_names: true)
+            return data if data.is_a?(Array)
+          rescue JSON::ParserError
+            # Cache file corrupted — fall through to bundled data
+          end
         end
+        JSON.parse(File.read(BUNDLED_DATA_FILE), symbolize_names: true)
+      rescue JSON::ParserError, Errno::ENOENT
+        []
       end
 
       def fetch_models_dev
