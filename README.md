@@ -49,6 +49,7 @@ So this solution was born out.
 - [Retry Policy](#retry-policy)
 - [Execution Time](#execution-time)
 - [Token Usage Info](#token-usage-info)
+- [Cost Calculation](#cost-calculation)
 - [RubyLLM Integration](#rubyllm-integration)
 - [ActiveHarness and RubyLLM](#activeharness-and-rubyllm)
 
@@ -489,6 +490,22 @@ Every object that makes an LLM call (`Agent`, `Tribunal`, `Pipeline`) exposes `#
 ## Token Usage Info
 
 When a provider returns token counts, they are available on the `Result` object under `#usage` — see the [full Token Usage reference →](docs/token_usage.md).
+
+## Cost Calculation
+
+ActiveHarness automatically calculates the monetary cost of every LLM call and attaches it to the `Result` object as `result.cost`:
+
+```ruby
+result = SupportAgent.call(input: "Hello").result
+
+if result.cost
+  puts result.cost[:input_cost]   # => 0.00003
+  puts result.cost[:output_cost]  # => 0.00024
+  puts result.cost[:total_cost]   # => 0.00027
+end
+```
+
+Pricing data is bundled with the gem and refreshed automatically once per day from [models.dev](https://models.dev) — see the [full Cost Calculation reference →](docs/costs.md).
 
 ## RubyLLM Integration
 
