@@ -179,7 +179,7 @@ This improves reliability — a single model can be wrong or biased, but two (or
 
 → [Tribunal hooks reference](docs/tribunals/tribunal_hooks.md)
 
-![Tribunal Lifecycle](docs/tribunals/tribunal_lifecycle.png)
+![Tribunal Lifecycle](docs/tribunals/tribunal_lifecircle.png)
 
 **Prompt** — each agent returns structured JSON:
 
