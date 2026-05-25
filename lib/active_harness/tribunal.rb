@@ -50,7 +50,8 @@ module ActiveHarness
     attr_reader :results, :errors, :verdict, :execution_time, :agent_execution_times
 
     def initialize(input: nil, context: {}, agents: nil, timeout: 7,
-                   stream: nil, agent_event_stream: nil, tribunal_event_stream: nil)
+                   stream: nil, agent_event_stream: nil, tribunal_event_stream: nil,
+                   may_fail: :_unset)
       config = self.class.tribunal_config
 
       @input                 = input
@@ -58,6 +59,9 @@ module ActiveHarness
       @agents                = agents || config[:agents]
       @timeout               = timeout
       @process_block         = config[:process]
+      @strategy              = config[:strategy]
+      @evaluate_block        = config[:evaluate_block]
+      @may_fail              = may_fail == :_unset ? config[:may_fail] : may_fail
       @hooks                 = config[:hooks].dup
       @stream                = stream
       @agent_event_stream    = agent_event_stream
@@ -67,12 +71,6 @@ module ActiveHarness
       @verdict               = nil
       @execution_time        = nil
       @agent_execution_times = []
-    end
-
-    # Instance-level process block — overrides class-level block.
-    def process(&block)
-      @process_block = block
-      self
     end
 
     # Run all agents in parallel, then compute the verdict.
@@ -125,19 +123,32 @@ module ActiveHarness
 
       run_hook(:after_call, @results, @errors)
 
-      if @results.empty?
-        messages = @errors.map { |e| "#{e[:agent]}: #{e[:error].message}" }.join("; ")
-        raise Errors::AllAgentsFailed, "All agents failed — #{messages}"
-      end
+      # If all agents failed, raise an exception.
+      # Otherwise, compute the verdict based on successful results.
+      check_failure_threshold!
 
       verdict_input = transform_hook(:before_verdict, @results)
-      @verdict = @process_block ? @process_block.call(verdict_input) : nil
+      @verdict      = compute_verdict(verdict_input)
+      
       run_hook(:after_verdict, @verdict)
 
       self
     end
 
     private
+
+    def check_failure_threshold!
+      if !@may_fail.nil? && @errors.size > @may_fail
+        raise Errors::AllAgentsFailed,
+          "Too many agents failed (#{@errors.size} > may_fail: #{@may_fail}) — #{error_summary}"
+      elsif @results.empty?
+        raise Errors::AllAgentsFailed, "All agents failed — #{error_summary}"
+      end
+    end
+
+    def error_summary
+      @errors.map { |e| "#{e[:agent]}: #{e[:error].message}" }.join("; ")
+    end
 
     def resolve_agents
       @agents.map do |agent|
@@ -161,3 +172,4 @@ end
 
 require_relative "tribunal/hooks"
 require_relative "tribunal/dsl"
+require_relative "tribunal/processing"
