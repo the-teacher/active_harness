@@ -1,24 +1,47 @@
 # Changelog
 
-## Unreleased
+## v0.2.16 — 2026-05-25
 
-- Verdict strategies: `verdict :unanimous` / `verdict :majority, may_fail: N` DSL
-- Tribunal split into `tribunal/hooks.rb`, `tribunal/dsl.rb`, `tribunal/processing.rb`
-- Tribunal `stream:`, `agent_event_stream:`, `tribunal_event_stream:` — separate streams for agents and tribunal lifecycle
-- Agent `before_call` / `after_call` / `retry` hooks fire into `event_stream`
-- `check_failure_threshold!` / `compute_verdict` extracted as named private methods
+- **`normalize_input`** — automatic strip + whitespace collapse on `@input` before every call; enabled by default, disable with `normalize_input false`
+- Docs: `docs/agents/normalize_input.md`
 
 ---
 
 ## v0.2.15 — 2026-05-25
 
-- **Cost tracking** — `result.cost` with `input_cost`, `output_cost`, `total_cost`
-- **`ActiveHarness::Costs`** module with pricing data for 100+ models (`data/models.json`)
-- **Agent error docs** — `docs/agent_error_processing.md`
-- **Tribunal error docs** — `docs/tribunal_errors_processing.md`
-- **Tribunal streaming docs** — `docs/tribunal_streaming.md`
-- **Tribunal verdict strategies docs** — `docs/tribunal_verdict_strategies.md`
-- Tribunal hooks docs updated: `before_agent`, index args
+- **Verdict strategies** — `verdict :unanimous` / `verdict :majority, may_fail: N` DSL
+- **`tribunal/dsl.rb`** — `agents`, `verdict`, `process` moved to dedicated module
+- **`tribunal/processing.rb`** — `compute_verdict`, `apply_strategy`, `check_failure_threshold!` extracted as named private methods
+- **`may_fail: N`** — tolerate up to N agent errors before raising `AllAgentsFailed`
+- Docs: `docs/tribunals/tribunal_verdict_strategies.md`
+
+---
+
+## v0.2.14 — 2026-05-25
+
+- **Tribunal stream separation** — `stream:` (passed to agents), `agent_event_stream:` (agents' lifecycle), `tribunal_event_stream:` (tribunal's own lifecycle)
+- **Tribunal refactor** — `tribunal/hooks.rb`: hooks DSL (`on`, `before`, `after`, `callback`) extracted from main class
+- `before_agent` / `after_agent` / `agent_error` hooks now receive agent index as extra argument
+- `resolve_agents` propagates `stream:` and `event_stream:` to each instantiated agent
+- Docs: `docs/tribunals/tribunal_streaming.md`, `docs/tribunals/tribunal_errors_processing.md`
+
+---
+
+## v0.2.13 — 2026-05-25
+
+- **`result.cost`** — `{ input_cost:, output_cost:, total_cost: }` in USD per request
+- **`agent/cost.rb`** — `calculate_cost` private method; `nil` when model or usage is missing
+- **`Costs.load_registry`** — robust loading: falls back to bundled `data/models.json` when cache is absent or corrupted (`JSON::ParserError`)
+
+---
+
+## v0.2.12 — 2026-05-25
+
+- **`ActiveHarness::Costs`** module — pricing registry for 100+ models
+- **`data/models.json`** — bundled pricing data (`input_per_million` / `output_per_million` in USD)
+- Docs: `docs/agents/costs.md`
+
+---
 
 ---
 
