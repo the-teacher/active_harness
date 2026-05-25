@@ -23,6 +23,14 @@ module ActiveHarness
       def inherited(subclass)
         subclass.instance_variable_set(:@agent_config, {})
       end
+
+      # Automatically strip and collapse whitespace in @input before each call.
+      # Enabled by default. Disable with:
+      #
+      #   normalize_input false
+      def normalize_input(value = true)
+        agent_config[:normalize_input] = value
+      end
     end
 
     # -------------------------------------------------------------------------
@@ -42,8 +50,9 @@ module ActiveHarness
 
     def initialize(input: nil, context: {}, models: nil, memory: nil, stream: nil, token_stream: nil, event_stream: nil)
       @input           = input
-      @context         = context
       @config          = self.class.agent_config
+      normalize_input!
+      @context         = context
       @models_override = Array(models) if models
       @stream          = stream
       @token_stream    = token_stream
@@ -60,7 +69,10 @@ module ActiveHarness
     #   agent.call("What is the capital of Japan?")
     #   agent.call("...", stream: ->(token) { print token })
     def call(input = nil, token_stream: nil)
-      @input        = input        if input
+      if input
+        @input = input
+        normalize_input!
+      end
       @token_stream = token_stream if token_stream
       @memory&.load
       @system_prompt = resolve_system_prompt
@@ -144,6 +156,11 @@ module ActiveHarness
         agent:    self.class.name,
         model:    result.model
       )
+    end
+
+    def normalize_input!
+      return if @config.fetch(:normalize_input, true) == false
+      @input = @input&.strip&.gsub(/\s+/, " ")
     end
   end
 end
