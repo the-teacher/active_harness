@@ -268,6 +268,8 @@ A **pipeline** chains agents and tribunals into a sequential, multi-step flow. E
 
 → [Pipeline hooks reference](docs/pipelines/pipeline_hooks.md)
 
+![Pipeline Flow](docs/pipeline.png)
+
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
   # Step 1 — Guard: detect prompt injection before wasting tokens.
