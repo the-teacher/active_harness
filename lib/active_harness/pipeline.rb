@@ -129,17 +129,23 @@ module ActiveHarness
       @payload        = value
     end
 
-    def initialize(input:, context: {}, memory: nil)
-      @original_input = input
-      @payload        = input
-      @context        = context.dup
-      @memory         = memory
-      @step_results   = {}
-      @stopped        = false
-      @stopped_at     = nil
-      @stop_reason    = nil
-      @execution_time = nil
-      @output         = nil
+    def initialize(input:, context: {}, memory: nil,
+                   stream: nil, agent_event_stream: nil,
+                   tribunal_event_stream: nil, pipeline_event_stream: nil)
+      @original_input           = input
+      @payload                  = input
+      @context                  = context.dup
+      @memory                   = memory
+      @stream                   = stream
+      @agent_event_stream       = agent_event_stream
+      @tribunal_event_stream    = tribunal_event_stream
+      @pipeline_event_stream    = pipeline_event_stream
+      @step_results             = {}
+      @stopped                  = false
+      @stopped_at               = nil
+      @stop_reason              = nil
+      @execution_time           = nil
+      @output                   = nil
     end
 
     def stopped?
@@ -170,7 +176,8 @@ module ActiveHarness
           @stopped     = true
           @stopped_at  = step.name
           @stop_reason = result
-          config[:hooks][:stopped]&.call(step.name, result)
+          blk = config[:hooks][:stopped]
+          instance_exec(step.name, result, &blk) if blk
           break
         end
       end
@@ -186,7 +193,8 @@ module ActiveHarness
         )
 
         last_result = @step_results[@step_results.keys.last]
-        config[:hooks][:complete]&.call(last_result)
+        blk = config[:hooks][:complete]
+        instance_exec(last_result, &blk) if blk
       end
 
       self
@@ -195,23 +203,36 @@ module ActiveHarness
     private
 
     def execute_step(step)
-      agent = step.agent_class.new(input: @payload, context: @context.dup)
-      if agent.is_a?(ActiveHarness::Agent)
-        agent.call.result
-      else
-        # Tribunal — call returns self, expose via .itself
+      if step.tribunal?
+        agent = step.agent_class.new(
+          input:                 @payload,
+          context:               @context.dup,
+          stream:                @stream,
+          agent_event_stream:    @agent_event_stream,
+          tribunal_event_stream: @tribunal_event_stream
+        )
         agent.call
+      else
+        agent = step.agent_class.new(
+          input:        @payload,
+          context:      @context.dup,
+          stream:       @stream,
+          event_stream: @agent_event_stream
+        )
+        agent.call.result
       end
     end
 
     # Global hook: receives (step_name, data)
     def fire_global(event, step_name, data, config)
-      config[:hooks][event]&.call(step_name, data)
+      blk = config[:hooks][event]
+      instance_exec(step_name, data, &blk) if blk
     end
 
     # Per-step hook: receives (data) only
     def fire_step(event, step_name, data, config)
-      config[:step_hooks][step_name]&.dig(event)&.call(data)
+      blk = config[:step_hooks][step_name]&.dig(event)
+      instance_exec(data, &blk) if blk
     end
   end
 end

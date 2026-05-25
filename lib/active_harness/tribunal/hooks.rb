@@ -76,6 +76,14 @@ module ActiveHarness
       end
     end
 
+    # Fire the DSL-registered hook AND the external tribunal_event_stream lambda (if set).
+    def fire(event, *args)
+      run_hook(event, *args)
+      @tribunal_event_stream&.call(event, *args)
+    rescue IOError, ActionController::Live::ClientDisconnected
+      nil
+    end
+
     # Like run_hook but uses the return value to replace the passed value.
     # Used by :before_verdict to allow results transformation before verdict computation.
     def transform_hook(event, value)

@@ -82,12 +82,12 @@ module ActiveHarness
     #   - If ALL agents fail/timeout, raises Errors::AllAgentsFailed.
     def call
       agents = resolve_agents
-      run_hook(:before_call)
+      fire(:before_call)
 
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
       futures = agents.each_with_index.map do |agent, index|
-        run_hook(:before_agent, agent, index)
+        fire(:before_agent, agent, index)
         t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         future = Concurrent::Future.execute { agent.call }
         [future, t0]
@@ -106,22 +106,22 @@ module ActiveHarness
           value  = future.value
           result = value.is_a?(ActiveHarness::Agent) ? value.result : value
           @results << result
-          run_hook(:after_agent, result, index)
+          fire(:after_agent, result, index)
         elsif future.incomplete?
           error = Errors::TimeoutError.new(
             "Agent #{agents[index].class.name} timed out after #{@timeout}s"
           )
           @errors << { agent: agents[index].class.name, error: error }
-          run_hook(:agent_error, agents[index].class.name, error, index)
+          fire(:agent_error, agents[index].class.name, error, index)
         else
           @errors << { agent: agents[index].class.name, error: future.reason }
-          run_hook(:agent_error, agents[index].class.name, future.reason, index)
+          fire(:agent_error, agents[index].class.name, future.reason, index)
         end
       end
 
       @execution_time = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at).round(3)
 
-      run_hook(:after_call, @results, @errors)
+      fire(:after_call, @results, @errors)
 
       # If all agents failed, raise an exception.
       # Otherwise, compute the verdict based on successful results.
@@ -129,8 +129,8 @@ module ActiveHarness
 
       verdict_input = transform_hook(:before_verdict, @results)
       @verdict      = compute_verdict(verdict_input)
-      
-      run_hook(:after_verdict, @verdict)
+
+      fire(:after_verdict, @verdict)
 
       self
     end
