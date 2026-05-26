@@ -8,22 +8,33 @@
 
 > **⚠️ Work in progress.** The API is under active development and may change between versions without notice.
 
-**ActiveHarness** is a Ruby framework for building AI agents with multiple LLM providers, lifecycle hooks, and a simple DSL. Made for Rails but works in plain Ruby too.
+**ActiveHarness** is a Ruby framework for building production-grade LLM pipelines — with deep observability, consensus-based decisions, automatic fallbacks, and real-time cost and timing control. Made for Rails, works in plain Ruby too.
+
+![Pipeline Flow](docs/pipeline.png)
+
+## Why ActiveHarness?
+
+Running a single LLM call is easy. Running a _reliable, observable, cost-controlled AI system_ is not.
+
+ActiveHarness gives you the scaffolding to build multi-step pipelines where every agent is under full control: its inputs are directed, its outputs are observed, its errors are retried, and its cost is tracked. You define the logic; ActiveHarness handles the infrastructure.
+
+**What you get out of the box:**
+
+| Capability                  | What it means                                                                                               |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Multi-step Pipelines**    | Chain agents sequentially, with per-step stop conditions and context forwarding                             |
+| **Tribunal Consensus**      | Run multiple agents in parallel and accept the result only if they agree (unanimous, majority, or custom)   |
+| **Automatic Fallbacks**     | If a model fails, the next one in the chain takes over — zero extra code                                    |
+| **Retry Policy**            | Exponential backoff per model, globally configurable or per-agent                                           |
+| **Full Observability**      | Lifecycle hooks on every agent event: `before_call`, `after_call`, `retry`, `failure` — log, stream, or act |
+| **Real-time Streaming**     | SSE-ready token streaming from any agent into your Rails response                                           |
+| **Execution Time Tracking** | Per-agent and per-pipeline timing built in                                                                  |
+| **Token & Cost Tracking**   | Know exactly what each call cost in tokens and dollars                                                      |
+| **Rails-native DSL**        | Clean file structure, Railtie integration, generator support                                                |
 
 ## What is a "Harness"?
 
-A **harness** in software is scaffolding that keeps a component under control — directing its inputs, observing its outputs, and enforcing rules around it. **ActiveHarness** does exactly that for AI agents.
-
-## Why Did I Build This?
-
-I build relately complex AI piplines for my Ruby and Ruby on Rails projects and I needed a way to:
-
-- Organize prompts, agents, and pipelines in a clean, reusable way.
-- Automatically fallback to another model if one fails, without writing extra code for retries and error handling.
-- Have a way to validate results by running multiple agents in parallel and comparing their outputs. (See "Tribunals" below.)
-- Have a way to catch events in the agent lifecycle — for logging, debugging, or modifying the flow.
-
-So this solution was born out.
+A **harness** in software is scaffolding that keeps a component under control — directing its inputs, observing its outputs, and enforcing rules around it. **ActiveHarness** does exactly that for LLM agents.
 
 ### Table of Contents
 
@@ -267,8 +278,6 @@ end
 A **pipeline** chains agents and tribunals into a sequential, multi-step flow. Each step receives the output of the previous step as its input. Any step can stop the pipeline early — the remaining steps are skipped.
 
 → [Pipeline hooks reference](docs/pipelines/pipeline_hooks.md)
-
-![Pipeline Flow](docs/pipeline.png)
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
