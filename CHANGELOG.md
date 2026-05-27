@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.20 — 2026-05-27
+
+- **`streams:` hash API** — `Agent`, `Tribunal`, and `Pipeline` now accept a single `streams: {}` hash instead of discrete keyword arguments; keys: `:token` (token stream lambda), `:agent` (agent lifecycle events), `:tribunal` (tribunal lifecycle events), `:pipeline` (pipeline lifecycle events)
+  - `Agent.new(streams: { token: ->(t){...}, agent: ->(ev,*a){...} })`
+  - `Tribunal.new(streams: { token:, agent:, tribunal: })`
+  - `Pipeline.new(streams: { token:, agent:, tribunal:, pipeline: })`
+  - All three cascade streams automatically to inner agents/tribunals; no manual wiring needed
+  - Old params `stream:`, `token_stream:`, `event_stream:`, `agent_event_stream:`, `tribunal_event_stream:`, `pipeline_event_stream:` removed
+- **`Agent#fire`** — new unified internal method replacing `run_hook`; fires the DSL hook **and** the `@event_stream` lambda in one call; rescues `IOError` / `ActionController::Live::ClientDisconnected`
+- **`Pipeline#fire`** — replaces `fire_global`; fires the DSL hook **and** `@pipeline_event_stream`; `:stopped` and `:complete` hooks also forward to `@pipeline_event_stream` directly
+- **`attr_reader` for stream attrs** — `token_stream`, `event_stream` (Agent), `token_stream`, `agent_event_stream`, `tribunal_event_stream` (Tribunal) are now read-only from outside; `stream` attr removed
+
+---
+
 ## v0.2.19 — 2026-05-27
 
 - **`VERSION` auto-sync** — `make up` / `make up/minor` / `make up/major` now automatically update `VERSION` in `lib/active_harness.rb` to match the gemspec; new `sync-version` Make target handles this step

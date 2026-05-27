@@ -31,6 +31,10 @@ stats:
 readme:
 	git add -A && git commit -m "Readme" && git push origin master
 
+# Commit and push CHANGELOG changes
+changelog:
+	git add -A && git commit -m "CHANGELOG updated" && git push origin master
+
 # Commit all changes, create a version tag, push branch + tag, then publish
 release:
 	@V=$$(ruby -e "load 'active_harness.gemspec'; puts Gem::Specification.load('active_harness.gemspec').version"); \
