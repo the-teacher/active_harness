@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.21 — 2026-05-27
+
+- **`pipeline/hooks.rb`** — hooks DSL extracted from `pipeline.rb` into a dedicated file, consistent with `agent/hooks.rb` and `tribunal/hooks.rb`
+  - `VALID_HOOKS`, `VALID_STEP_HOOKS` constants moved to `pipeline/hooks.rb`
+  - Class-level DSL (`on`, `before`, `after`, `callback`) moved to `pipeline/hooks.rb`
+  - Private instance methods `fire` and `fire_step` moved to `pipeline/hooks.rb`
+  - `pipeline.rb` now `require_relative`s `pipeline/hooks` alongside `pipeline/step`
+
+---
+
 ## v0.2.20 — 2026-05-27
 
 - **`streams:` hash API** — `Agent`, `Tribunal`, and `Pipeline` now accept a single `streams: {}` hash instead of discrete keyword arguments; keys: `:token` (token stream lambda), `:agent` (agent lifecycle events), `:tribunal` (tribunal lifecycle events), `:pipeline` (pipeline lifecycle events)
