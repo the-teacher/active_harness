@@ -71,5 +71,15 @@ module ActiveHarness
         instance_eval(&hooks[event])
       end
     end
+
+    # Unified internal method: fires the DSL hook AND the external event_stream lambda.
+    # Consistent with Tribunal#fire and Pipeline#fire.
+    def fire(event, *args)
+      result = run_hook(event, *args)
+      @event_stream&.call(event, *args)
+      result
+    rescue IOError, ActionController::Live::ClientDisconnected
+      result
+    end
   end
 end

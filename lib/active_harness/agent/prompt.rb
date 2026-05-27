@@ -22,7 +22,7 @@ module ActiveHarness
     public :system_prompt
 
     def resolve_system_prompt
-      run_hook(:before_system_prompt)
+      fire(:before_system_prompt)
 
       sp = @config[:system_prompt]
 
@@ -45,7 +45,7 @@ module ActiveHarness
         end
       end
 
-      run_hook(:after_system_prompt, prompt)
+      fire(:after_system_prompt, prompt)
       prompt
     end
 

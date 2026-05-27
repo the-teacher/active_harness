@@ -29,7 +29,7 @@ require_relative "active_harness/pipeline"
 require_relative "active_harness/railtie" if defined?(Rails::Railtie)
 
 module ActiveHarness
-  VERSION = "0.2.19"
+  VERSION = "0.2.20"
 
   class << self
     # Configure ActiveHarness.

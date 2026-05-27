@@ -11,8 +11,8 @@ module ActiveHarness
       #   SupportAgent.call(input: "Hi")
       #   SupportAgent.call(input: "Hi", context: { user_id: 42 })
       #   SupportAgent.call(input: "Hi", memory: memory)
-      def call(input: nil, context: {}, models: nil, memory: nil, stream: nil, token_stream: nil, event_stream: nil)
-        new(input: input, context: context, models: models, memory: memory, stream: stream, token_stream: token_stream, event_stream: event_stream).call
+      def call(input: nil, context: {}, models: nil, memory: nil, streams: {})
+        new(input: input, context: context, models: models, memory: memory, streams: streams).call
       end
 
       # Each subclass gets its own isolated config hash.
@@ -36,8 +36,8 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     # Instance API
     # -------------------------------------------------------------------------
-    attr_accessor :input, :context, :stream, :token_stream, :event_stream
-    attr_reader :result
+    attr_accessor :input, :context
+    attr_reader   :result, :token_stream, :event_stream
 
     def models=(list)
       @models_override = Array(list)
@@ -48,18 +48,17 @@ module ActiveHarness
       @memory = obj
     end
 
-    def initialize(input: nil, context: {}, models: nil, memory: nil, stream: nil, token_stream: nil, event_stream: nil)
+    def initialize(input: nil, context: {}, models: nil, memory: nil, streams: {})
       @input           = input
       @config          = self.class.agent_config
       normalize_input!
       @context         = context
       @models_override = Array(models) if models
-      @stream          = stream
-      @token_stream    = token_stream
-      @event_stream    = event_stream
+      @token_stream    = streams[:token]
+      @event_stream    = streams[:agent]
       # memory: can be passed directly or via context[:memory]
       @memory = memory || @context[:memory]
-      run_hook(:setup)
+      fire(:setup)
     end
 
     # Attempts each model in order, returns the first successful Result.
@@ -68,15 +67,18 @@ module ActiveHarness
     # Optionally accepts input and stream callback inline:
     #   agent.call("What is the capital of Japan?")
     #   agent.call("...", stream: ->(token) { print token })
-    def call(input = nil, token_stream: nil)
+    def call(input = nil, streams: nil)
       if input
         @input = input
         normalize_input!
       end
-      @token_stream = token_stream if token_stream
+      if streams
+        @token_stream = streams[:token] if streams.key?(:token)
+        @event_stream = streams[:agent] if streams.key?(:agent)
+      end
       @memory&.load
       @system_prompt = resolve_system_prompt
-      run_hook(:before_call)
+      fire(:before_call)
       attempts = []
 
       cfg = ActiveHarness.config
@@ -91,22 +93,22 @@ module ActiveHarness
         elapsed  = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(3)
         result   = build_result(response, entry, attempts, elapsed)
         save_to_memory(result)
-        run_hook(:after_call, result)
+        fire(:after_call, result)
         @result = result
         return self
       rescue *RETRYABLE_ERRORS => e
         elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(3)
         attempts << attempt_entry(entry, e, elapsed)
-        run_hook(:retry, entry, e)
+        fire(:retry, entry, e)
         next
       rescue *STOP_ERRORS => e
         elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(3)
         attempts << attempt_entry(entry, e, elapsed)
-        run_hook(:retry, entry, e)
+        fire(:retry, entry, e)
         raise
       end
 
-      run_hook(:failure, attempts)
+      fire(:failure, attempts)
       raise Errors::AllModelsFailed, "All models failed. Attempts: #{attempts.inspect}"
     end
 

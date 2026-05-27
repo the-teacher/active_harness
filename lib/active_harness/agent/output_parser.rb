@@ -49,7 +49,7 @@ module ActiveHarness
         #     puts "Parse failed: #{error.message}"
         #     { "result" => nil, "reason" => "parse error" }   # fallback
         #   end
-        fallback = run_hook(:parse_error, raw, e)
+        fallback = fire(:parse_error, raw, e)
         fallback.nil? ? raise : fallback
       end
     end

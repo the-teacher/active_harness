@@ -129,23 +129,21 @@ module ActiveHarness
       @payload        = value
     end
 
-    def initialize(input:, context: {}, memory: nil,
-                   stream: nil, agent_event_stream: nil,
-                   tribunal_event_stream: nil, pipeline_event_stream: nil)
-      @original_input           = input
-      @payload                  = input
-      @context                  = context.dup
-      @memory                   = memory
-      @stream                   = stream
-      @agent_event_stream       = agent_event_stream
-      @tribunal_event_stream    = tribunal_event_stream
-      @pipeline_event_stream    = pipeline_event_stream
-      @step_results             = {}
-      @stopped                  = false
-      @stopped_at               = nil
-      @stop_reason              = nil
-      @execution_time           = nil
-      @output                   = nil
+    def initialize(input:, context: {}, memory: nil, streams: {})
+      @original_input        = input
+      @payload               = input
+      @context               = context.dup
+      @memory                = memory
+      @token_stream          = streams[:token]
+      @agent_event_stream    = streams[:agent]
+      @tribunal_event_stream = streams[:tribunal]
+      @pipeline_event_stream = streams[:pipeline]
+      @step_results          = {}
+      @stopped               = false
+      @stopped_at            = nil
+      @stop_reason           = nil
+      @execution_time        = nil
+      @output                = nil
     end
 
     def stopped?
@@ -160,7 +158,7 @@ module ActiveHarness
       @memory&.load
 
       config[:steps].each do |step|
-        fire_global(:before_step, step.name, @payload, config)
+        fire(:before_step, step.name, @payload, config)
         fire_step(:before_step, step.name, @payload, config)
 
         result = execute_step(step)
@@ -169,7 +167,7 @@ module ActiveHarness
         @context[step.name]      = result
         @payload                 = result.output if step.transform?
 
-        fire_global(:after_step, step.name, result, config)
+        fire(:after_step, step.name, result, config)
         fire_step(:after_step, step.name, result, config)
 
         if step.stop_if && step.stop_if.call(result)
@@ -178,6 +176,7 @@ module ActiveHarness
           @stop_reason = result
           blk = config[:hooks][:stopped]
           instance_exec(step.name, result, &blk) if blk
+          @pipeline_event_stream&.call(:stopped, step.name, result)
           break
         end
       end
@@ -195,6 +194,7 @@ module ActiveHarness
         last_result = @step_results[@step_results.keys.last]
         blk = config[:hooks][:complete]
         instance_exec(last_result, &blk) if blk
+        @pipeline_event_stream&.call(:complete, last_result)
       end
 
       self
@@ -204,32 +204,33 @@ module ActiveHarness
 
     def execute_step(step)
       if step.tribunal?
-        agent = step.agent_class.new(
-          input:                 @payload,
-          context:               @context.dup,
-          stream:                @stream,
-          agent_event_stream:    @agent_event_stream,
-          tribunal_event_stream: @tribunal_event_stream
-        )
-        agent.call
+        agent_streams = { token: @token_stream, agent: @agent_event_stream, tribunal: @tribunal_event_stream }.compact
+        step.agent_class.new(
+          input:    @payload,
+          context:  @context.dup,
+          streams:  agent_streams
+        ).call
       else
-        agent = step.agent_class.new(
-          input:        @payload,
-          context:      @context.dup,
-          stream:       @stream,
-          event_stream: @agent_event_stream
-        )
-        agent.call.result
+        agent_streams = { token: @token_stream, agent: @agent_event_stream }.compact
+        step.agent_class.new(
+          input:    @payload,
+          context:  @context.dup,
+          streams:  agent_streams
+        ).call.result
       end
     end
 
-    # Global hook: receives (step_name, data)
-    def fire_global(event, step_name, data, config)
+    # Fires global hook AND pipeline_event_stream. Consistent with Agent#fire and Tribunal#fire.
+    def fire(event, step_name, data, config)
       blk = config[:hooks][event]
       instance_exec(step_name, data, &blk) if blk
+      @pipeline_event_stream&.call(event, step_name, data)
+    rescue IOError, ActionController::Live::ClientDisconnected
+      nil
     end
 
-    # Per-step hook: receives (data) only
+    # Per-step hook: receives (data) only — not forwarded to pipeline_event_stream
+    # (global fire already covers the step event with step_name context).
     def fire_step(event, step_name, data, config)
       blk = config[:step_hooks][step_name]&.dig(event)
       instance_exec(data, &blk) if blk
