@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.18 — 2026-05-27
+
+- **`custom_llm_backend`** — renamed from `ruby_llm_backend`; the DSL now makes it clear that any LLM client can be plugged in, not just `ruby_llm`
+- File `agent/ruby_llm_backend.rb` → `agent/custom_llm_backend.rb`; internal methods `attempt_via_ruby_llm` / `ruby_llm_usage` renamed accordingly
+- Docs updated: `ruby_llm_integration.md`, `activeharness_and_rubyllm.md`, `providers.md`
+
+---
+
+## v0.2.17 — 2026-05-25
+
+- **Pipeline stream propagation** — `Pipeline.new` / `Pipeline.call` now accept `stream:`, `agent_event_stream:`, `tribunal_event_stream:`, `pipeline_event_stream:`; all four are forwarded automatically to every agent and tribunal step
+- **Pipeline hooks via `instance_exec`** — `:stopped`, `:complete`, per-step and global hooks are now called with `instance_exec` so hook blocks can reference pipeline instance variables (`@payload`, `@context`, `@step_results`, …)
+- **Tribunal `fire` method** — `run_hook` replaced by `fire` in the call loop; `fire` invokes the DSL hook **and** the external `tribunal_event_stream` lambda in one place; `IOError` / `ActionController::Live::ClientDisconnected` are silently rescued to survive SSE disconnects
+- Docs: `docs/pipelines/pipeline_hooks.md`
+
+---
+
 ## v0.2.16 — 2026-05-25
 
 - **`normalize_input`** — automatic strip + whitespace collapse on `@input` before every call; enabled by default, disable with `normalize_input false`

@@ -41,6 +41,12 @@ release:
 	git push origin "v$$V"
 	make pub
 
+# Sync VERSION in lib/active_harness.rb from gemspec
+sync-version:
+	@V=$$(ruby -e "load 'active_harness.gemspec'; puts Gem::Specification.load('active_harness.gemspec').version"); \
+	ruby -i -e "src=ARGF.read; src.sub!(/VERSION\s*=\s*\"[^\"]+\"/, \"VERSION = \\\"$$V\\\"\"); print src" lib/active_harness.rb
+	@echo "VERSION in lib/active_harness.rb updated"
+
 # Bump patch version:  0.2.0 → 0.2.1
 up:
 	@ruby -i -e ' \
@@ -51,6 +57,7 @@ up:
 	  print src \
 	' active_harness.gemspec
 	@echo "version → $$(ruby -e "load 'active_harness.gemspec'; puts Gem::Specification.load('active_harness.gemspec').version")"
+	make sync-version
 	make release
 
 # Bump minor version:  0.2.0 → 0.3.0
@@ -63,6 +70,7 @@ up/minor:
 	  print src \
 	' active_harness.gemspec
 	@echo "version → $$(ruby -e "load 'active_harness.gemspec'; puts Gem::Specification.load('active_harness.gemspec').version")"
+	make sync-version
 	make release
 
 # Bump major version:  0.2.0 → 1.0.0
@@ -75,4 +83,5 @@ up/major:
 	  print src \
 	' active_harness.gemspec
 	@echo "version → $$(ruby -e "load 'active_harness.gemspec'; puts Gem::Specification.load('active_harness.gemspec').version")"
+	make sync-version
 	make release
