@@ -271,6 +271,6 @@ use provider: :custom, name: "MyLocal", model: "llama3.2"
 
 ## Using RubyLLM as a Backend
 
-If you need features not covered by the built-in providers (tools, vision, structured output, audio), you can delegate HTTP calls to the `ruby_llm` gem via the `ruby_llm_backend` DSL — all fallback, retry, hooks, and memory features remain fully functional.
+If you need features not covered by the built-in providers (tools, vision, structured output, audio), you can delegate HTTP calls to the `ruby_llm` gem via the `custom_llm_backend` DSL — all fallback, retry, hooks, and memory features remain fully functional.
 
 → See [RubyLLM Integration guide](ruby_llm_integration.md).

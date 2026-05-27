@@ -1,14 +1,14 @@
 module ActiveHarness
   class Agent
     # -------------------------------------------------------------------------
-    # RubyLLM backend DSL
+    # Custom LLM backend DSL
     #
-    # Allows an agent to delegate HTTP calls to the `ruby_llm` gem instead of
-    # ActiveHarness's built-in Net::HTTP providers.
+    # Allows an agent to delegate HTTP calls to any LLM client (e.g. `ruby_llm`)
+    # instead of ActiveHarness's built-in Net::HTTP providers.
     #
     # Usage:
     #
-    #   ruby_llm_backend do |params|
+    #   custom_llm_backend do |params|
     #     RubyLLM.chat(
     #       model:               params.model,
     #       provider:            params.provider,
@@ -27,23 +27,23 @@ module ActiveHarness
     #   - streaming via stream: lambda
     # -------------------------------------------------------------------------
 
-    # Passed to the ruby_llm_backend block for each model attempt.
+    # Passed to the custom_llm_backend block for each model attempt.
     BackendParams = Struct.new(:model, :provider, :temperature, keyword_init: true)
 
     class << self
-      # Define the RubyLLM backend block for this agent class.
-      def ruby_llm_backend(&block)
-        agent_config[:ruby_llm_backend] = block
+      # Define the custom LLM backend block for this agent class.
+      def custom_llm_backend(&block)
+        agent_config[:custom_llm_backend] = block
       end
     end
 
     private
 
-    # Called from attempt_model when ruby_llm_backend is configured.
-    def attempt_via_ruby_llm(entry, system_prompt)
+    # Called from attempt_model when custom_llm_backend is configured.
+    def attempt_via_custom_llm(entry, system_prompt)
       require "ruby_llm"
 
-      backend = @config[:ruby_llm_backend]
+      backend = @config[:custom_llm_backend]
 
       params = BackendParams.new(
         model:       entry[:model],
@@ -60,7 +60,7 @@ module ActiveHarness
         response = chat.ask(@input)
       end
 
-      { content: response.content, usage: ruby_llm_usage(response) }
+      { content: response.content, usage: custom_llm_usage(response) }
     rescue ::RubyLLM::UnauthorizedError => e
       raise Errors::InvalidApiKeyError, e.message
     rescue ::RubyLLM::RateLimitError, ::RubyLLM::OverloadedError => e
@@ -76,7 +76,7 @@ module ActiveHarness
             "The `ruby_llm` gem is required. Add `gem \"ruby_llm\"` to your Gemfile."
     end
 
-    def ruby_llm_usage(response)
+    def custom_llm_usage(response)
       t = response.tokens
       return nil unless t
 

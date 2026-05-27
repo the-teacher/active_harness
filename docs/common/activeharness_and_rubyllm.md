@@ -77,7 +77,7 @@ Thinking about the two projects side by side:
 
 The natural fit: **RubyLLM as the transport, ActiveHarness as the architecture.**
 
-Use the `ruby_llm_backend` DSL to delegate HTTP calls from ActiveHarness to RubyLLM. You get all of RubyLLM's provider coverage and features — tools, vision, structured output, audio — while keeping the full ActiveHarness interface: fallback chains, retry policy, lifecycle hooks, memory, and streaming.
+Use the `custom_llm_backend` DSL to delegate HTTP calls from ActiveHarness to RubyLLM. You get all of RubyLLM's provider coverage and features — tools, vision, structured output, audio — while keeping the full ActiveHarness interface: fallback chains, retry policy, lifecycle hooks, memory, and streaming.
 
 ```ruby
 require "ruby_llm"
@@ -95,7 +95,7 @@ class SupportAgent < ActiveHarness::Agent
     fallback provider: :openai,     model: "gpt-4o-mini"
   end
 
-  ruby_llm_backend do |params|
+  custom_llm_backend do |params|
     RubyLLM.chat(
       model:               params.model,
       provider:            params.provider,
@@ -105,6 +105,6 @@ class SupportAgent < ActiveHarness::Agent
 end
 ```
 
-When `ruby_llm_backend` is defined, ActiveHarness calls the block for each fallback entry, receives a `RubyLLM::Chat`, calls `chat.ask(@input)`, and wraps the result in its standard `Result` object. Errors from RubyLLM are automatically mapped to ActiveHarness error classes, so retry and fallback logic works transparently — no extra glue code needed.
+When `custom_llm_backend` is defined, ActiveHarness calls the block for each fallback entry, receives a `RubyLLM::Chat`, calls `chat.ask(@input)`, and wraps the result in its standard `Result` object. Errors from RubyLLM are automatically mapped to ActiveHarness error classes, so retry and fallback logic works transparently — no extra glue code needed.
 
 → See the [RubyLLM Integration guide](ruby_llm_integration.md) for the full setup and error mapping reference.

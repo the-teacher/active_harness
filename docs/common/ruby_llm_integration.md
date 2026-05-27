@@ -19,14 +19,14 @@ bundle install
 
 ## How it Works
 
-Define a `ruby_llm_backend` block in your agent class. The block receives a `BackendParams` struct
+Define a `custom_llm_backend` block in your agent class. The block receives a `BackendParams` struct
 with the current model entry's values and must return a `RubyLLM::Chat` instance.
 ActiveHarness calls `chat.ask(@input)` and wraps the response in its standard `Result` object.
 
 ```
 [agent.call]
   └─► for each entry in fallback chain:
-        ├─► ruby_llm_backend block called with BackendParams
+        ├─► custom_llm_backend block called with BackendParams
         ├─► returns RubyLLM::Chat
         ├─► ActiveHarness calls chat.ask(@input)
         └─► on error → retry policy → next fallback
@@ -58,7 +58,7 @@ class SupportAgent < ActiveHarness::Agent
     fallback provider: :openai,     model: "gpt-4o-mini"
   end
 
-  ruby_llm_backend do |params|
+  custom_llm_backend do |params|
     RubyLLM.chat(
       model:               params.model,
       provider:            params.provider,
@@ -79,7 +79,7 @@ The block gives full control over how `RubyLLM::Chat` is built — useful for cu
 that require special parameters:
 
 ```ruby
-ruby_llm_backend do |params|
+custom_llm_backend do |params|
   RubyLLM.chat(
     model:               "my-gpt4-deployment",
     provider:            "azure",
@@ -146,7 +146,7 @@ on :failure do |attempts|
 end
 ```
 
-## Without ruby_llm_backend
+## Without custom_llm_backend
 
-If `ruby_llm_backend` is not defined in the agent, ActiveHarness uses its built-in Net::HTTP
+If `custom_llm_backend` is not defined in the agent, ActiveHarness uses its built-in Net::HTTP
 providers as normal. The two approaches can coexist in different agent classes within the same app.
