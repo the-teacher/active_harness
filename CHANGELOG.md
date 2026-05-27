@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.19 — 2026-05-27
+
+- **`VERSION` auto-sync** — `make up` / `make up/minor` / `make up/major` now automatically update `VERSION` in `lib/active_harness.rb` to match the gemspec; new `sync-version` Make target handles this step
+
+---
+
 ## v0.2.18 — 2026-05-27
 
 - **`custom_llm_backend`** — renamed from `ruby_llm_backend`; the DSL now makes it clear that any LLM client can be plugged in, not just `ruby_llm`
@@ -60,8 +66,6 @@
 
 ---
 
----
-
 ## v0.2.11 — 2026-05-24
 
 - **Streaming refactor** — unified `StreamingClient`, all providers share base streaming logic
@@ -81,7 +85,7 @@
 
 - **`ActiveHarness.configure` block** — global defaults for model, temperature, timeout, retry
 - **Retry policy** — exponential back-off with `max_attempts` / `base_delay`; `RETRYABLE_ERRORS` / `STOP_ERRORS` split
-- **RubyLLM backend** — `ActiveHarness::Agent::RubyLLMBackend`, use RubyLLM as the HTTP layer
+- **Custom LLM backend** — `ActiveHarness::Agent::CustomLLMBackend`, plug in any LLM client as the HTTP layer
 - **New providers** — Azure OpenAI, AWS Bedrock, Vertex AI, DeepSeek, Mistral, Ollama, GPUStack, Perplexity, xAI
 - **Custom provider** — `providers/custom.rb`, bring your own HTTP adapter
 - **Rails configuration** — `ActiveHarness::Railtie`, `config/initializers/active_harness.rb`
