@@ -26,7 +26,7 @@ module ActiveHarness
             "Unknown Tribunal hook :#{event}. Valid hooks: #{VALID_HOOKS.map { |h| ":#{h}" }.join(", ")}"
         end
 
-        tribunal_config[:hooks][event] = block
+        (tribunal_config[:hooks][event] ||= []) << block
       end
 
       # Rails-style aliases for +on+:
@@ -51,7 +51,7 @@ module ActiveHarness
       end
     end
 
-    # Instance-level hook registration — overrides class-level hooks for this instance.
+    # Instance-level hook registration — appends to class-level hooks for this event.
     # :before_verdict is a transform hook: its return value replaces the results array
     # passed to the process block.
     def on(event, &block)
@@ -60,20 +60,16 @@ module ActiveHarness
           "Unknown Tribunal hook :#{event}. Valid hooks: #{VALID_HOOKS.map { |h| ":#{h}" }.join(", ")}"
       end
 
-      @hooks[event] = block
+      (@hooks[event] ||= []) << block
       self
     end
+
+    include Core::HookRunner
 
     private
 
     def run_hook(event, *args)
-      return unless @hooks[event]
-
-      if args.any?
-        instance_exec(*args, &@hooks[event])
-      else
-        instance_eval(&@hooks[event])
-      end
+      run_hooks(@hooks, event, *args)
     end
 
     # Fire the DSL-registered hook AND the external tribunal_event_stream lambda (if set).
@@ -84,12 +80,10 @@ module ActiveHarness
       nil
     end
 
-    # Like run_hook but uses the return value to replace the passed value.
+    # Like run_hook but chains all blocks, passing each return value to the next.
     # Used by :before_verdict to allow results transformation before verdict computation.
     def transform_hook(event, value)
-      return value unless @hooks[event]
-
-      instance_exec(value, &@hooks[event])
+      Array(@hooks[event]).reduce(value) { |val, blk| instance_exec(val, &blk) }
     end
   end
 end

@@ -66,19 +66,32 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     # Instance API
     # -------------------------------------------------------------------------
-    attr_reader :original_input, :output, :stopped_at, :stop_reason,
-                :execution_time, :step_results, :context
-    attr_writer :context
+    attr_reader   :original_input,
+                  :output,
+                  :stopped_at,
+                  :stop_reason,
+                  :execution_time,
+                  :step_results,
+                  :context
+    attr_writer   :context
+    attr_accessor :params
 
     def input=(value)
       @original_input = value
       @payload        = value
     end
 
-    def initialize(input:, context: {}, memory: nil, streams: {})
+    def initialize(
+      input:,
+      context: {},
+      params:  {},
+      memory:  nil,
+      streams: {}
+    )
       @original_input        = input
       @payload               = input
       @context               = context.dup
+      @params                = params
       @memory                = memory
       @token_stream          = streams[:token]
       @agent_event_stream    = streams[:agent]
@@ -120,8 +133,7 @@ module ActiveHarness
           @stopped     = true
           @stopped_at  = step.name
           @stop_reason = result
-          blk = config[:hooks][:stopped]
-          instance_exec(step.name, result, &blk) if blk
+          run_hooks(config[:hooks], :stopped, step.name, result)
           @pipeline_event_stream&.call(:stopped, step.name, result)
           break
         end
@@ -138,8 +150,7 @@ module ActiveHarness
         )
 
         last_result = @step_results[@step_results.keys.last]
-        blk = config[:hooks][:complete]
-        instance_exec(last_result, &blk) if blk
+        run_hooks(config[:hooks], :complete, last_result)
         @pipeline_event_stream&.call(:complete, last_result)
       end
 
@@ -154,6 +165,7 @@ module ActiveHarness
         step.agent_class.new(
           input:    @payload,
           context:  @context.dup,
+          params:   @params,
           streams:  agent_streams
         ).call
       else
@@ -161,6 +173,7 @@ module ActiveHarness
         step.agent_class.new(
           input:    @payload,
           context:  @context.dup,
+          params:   @params,
           streams:  agent_streams
         ).call.result
       end

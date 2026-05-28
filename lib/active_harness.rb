@@ -1,5 +1,6 @@
 require_relative "active_harness/configuration"
 require_relative "active_harness/core/errors"
+require_relative "active_harness/core/hooks"
 require_relative "active_harness/result"
 require_relative "active_harness/http/client"
 require_relative "active_harness/http/streaming_client"
@@ -29,7 +30,7 @@ require_relative "active_harness/pipeline"
 require_relative "active_harness/railtie" if defined?(Rails::Railtie)
 
 module ActiveHarness
-  VERSION = "0.2.21"
+  VERSION = "0.2.22"
 
   class << self
     # Configure ActiveHarness.

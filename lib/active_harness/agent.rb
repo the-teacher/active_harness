@@ -11,8 +11,22 @@ module ActiveHarness
       #   SupportAgent.call(input: "Hi")
       #   SupportAgent.call(input: "Hi", context: { user_id: 42 })
       #   SupportAgent.call(input: "Hi", memory: memory)
-      def call(input: nil, context: {}, models: nil, memory: nil, streams: {})
-        new(input: input, context: context, models: models, memory: memory, streams: streams).call
+      def call(
+        input:   nil,
+        context: {},
+        params:  {},
+        models:  nil,
+        memory:  nil,
+        streams: {}
+      )
+        new(
+          input:   input,
+          context: context,
+          params:  params,
+          models:  models,
+          memory:  memory,
+          streams: streams
+        ).call
       end
 
       # Each subclass gets its own isolated config hash.
@@ -36,8 +50,12 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     # Instance API
     # -------------------------------------------------------------------------
-    attr_accessor :input, :context
-    attr_reader   :result, :token_stream, :event_stream
+    attr_accessor :input,
+                  :context,
+                  :params
+    attr_reader   :result,
+                  :token_stream,
+                  :event_stream
 
     def models=(list)
       @models_override = Array(list)
@@ -48,11 +66,19 @@ module ActiveHarness
       @memory = obj
     end
 
-    def initialize(input: nil, context: {}, models: nil, memory: nil, streams: {})
+    def initialize(
+      input:   nil,
+      context: {},
+      params:  {},
+      models:  nil,
+      memory:  nil,
+      streams: {}
+    )
       @input           = input
       @config          = self.class.agent_config
       normalize_input!
       @context         = context
+      @params          = params
       @models_override = Array(models) if models
       @token_stream    = streams[:token]
       @event_stream    = streams[:agent]

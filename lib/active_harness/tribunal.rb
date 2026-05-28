@@ -46,24 +46,39 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     # Instance API
     # -------------------------------------------------------------------------
-    attr_accessor :input, :context
-    attr_reader :results, :errors, :verdict, :execution_time, :agent_execution_times,
-                :token_stream, :agent_event_stream, :tribunal_event_stream
+    attr_accessor :input,
+                  :context,
+                  :params
+    attr_reader   :results,
+                  :errors,
+                  :verdict,
+                  :execution_time,
+                  :agent_execution_times,
+                  :token_stream,
+                  :agent_event_stream,
+                  :tribunal_event_stream
 
-    def initialize(input: nil, context: {}, agents: nil, timeout: 7,
-                   streams: {},
-                   may_fail: :_unset)
+    def initialize(
+      input:    nil,
+      context:  {},
+      params:   {},
+      agents:   nil,
+      timeout:  7,
+      streams:  {},
+      may_fail: :_unset
+    )
       config = self.class.tribunal_config
 
       @input                 = input
       @context               = context
+      @params                = params
       @agents                = agents || config[:agents]
       @timeout               = timeout
       @process_block         = config[:process]
       @strategy              = config[:strategy]
       @evaluate_block        = config[:evaluate_block]
       @may_fail              = may_fail == :_unset ? config[:may_fail] : may_fail
-      @hooks                 = config[:hooks].dup
+      @hooks                 = config[:hooks].transform_values { |v| Array(v).dup }
       @token_stream          = streams[:token]
       @agent_event_stream    = streams[:agent]
       @tribunal_event_stream = streams[:tribunal]
@@ -155,7 +170,7 @@ module ActiveHarness
       agent_streams = { token: @token_stream, agent: @agent_event_stream }.compact
       @agents.map do |agent|
         if agent.is_a?(Class)
-          agent.new(input: @input, context: @context.dup, streams: agent_streams)
+          agent.new(input: @input, context: @context.dup, params: @params, streams: agent_streams)
         else
           agent.input = @input if @input
           agent.instance_variable_set(:@token_stream, @token_stream) if @token_stream

@@ -22,13 +22,13 @@ module ActiveHarness
               "Per-step hooks support: #{VALID_STEP_HOOKS.join(", ")}. Got :#{event}"
           end
           pipeline_config[:step_hooks][step_name] ||= {}
-          pipeline_config[:step_hooks][step_name][event] = block
+          (pipeline_config[:step_hooks][step_name][event] ||= []) << block
         else
           unless VALID_HOOKS.include?(event)
             raise ArgumentError,
               "Unknown Pipeline hook :#{event}. Valid: #{VALID_HOOKS.join(", ")}"
           end
-          pipeline_config[:hooks][event] = block
+          (pipeline_config[:hooks][event] ||= []) << block
         end
       end
 
@@ -56,12 +56,13 @@ module ActiveHarness
       end
     end
 
+    include Core::HookRunner
+
     private
 
     # Fires global hook AND pipeline_event_stream. Consistent with Agent#fire and Tribunal#fire.
     def fire(event, step_name, data, config)
-      blk = config[:hooks][event]
-      instance_exec(step_name, data, &blk) if blk
+      run_hooks(config[:hooks], event, step_name, data)
       @pipeline_event_stream&.call(event, step_name, data)
     rescue IOError, ActionController::Live::ClientDisconnected
       nil
@@ -70,8 +71,7 @@ module ActiveHarness
     # Per-step hook: receives (data) only — not forwarded to pipeline_event_stream
     # (global fire already covers the step event with step_name context).
     def fire_step(event, step_name, data, config)
-      blk = config[:step_hooks][step_name]&.dig(event)
-      instance_exec(data, &blk) if blk
+      run_hooks(config[:step_hooks][step_name] || {}, event, data)
     end
   end
 end

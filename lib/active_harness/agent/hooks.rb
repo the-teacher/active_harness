@@ -32,7 +32,7 @@ module ActiveHarness
         end
 
         agent_config[:hooks] ||= {}
-        agent_config[:hooks][event] = block
+        (agent_config[:hooks][event] ||= []) << block
       end
 
       # Rails-style aliases for +on+:
@@ -59,27 +59,20 @@ module ActiveHarness
       end
     end
 
+    include Core::HookRunner
+
     private
 
     def run_hook(event, *args)
-      hooks = @config[:hooks] || {}
-      return unless hooks[event]
-
-      if args.any?
-        instance_exec(*args, &hooks[event])
-      else
-        instance_eval(&hooks[event])
-      end
+      run_hooks(@config[:hooks] || {}, event, *args)
     end
 
     # Unified internal method: fires the DSL hook AND the external event_stream lambda.
     # Consistent with Tribunal#fire and Pipeline#fire.
     def fire(event, *args)
-      result = run_hook(event, *args)
+      run_hook(event, *args)
       @event_stream&.call(event, *args)
-      result
     rescue IOError, ActionController::Live::ClientDisconnected
-      result
     end
   end
 end
