@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.22 — 2026-05-29
+
+- **`Core::HookRunner`** — shared hook execution module extracted to `lib/active_harness/core/hooks.rb`; included by `Agent`, `Tribunal`, and `Pipeline`; replaces duplicated `run_hook` logic across all three classes
+- **Multiple hooks per event** — hooks are now stored as arrays; registering the same event multiple times (e.g. from a concern and from the class body) accumulates all blocks in order instead of overwriting; `include SomeTracingConcern` + `before(:call) { ... }` in the same class both run
+- **`params:` argument** — `Agent`, `Tribunal`, and `Pipeline` now accept `params: {}` alongside `context: {}`; forwarded to inner agents when a tribunal or pipeline resolves its agent chain; accessible as `@params` / `attr_accessor :params`
+- **`transform_hook` multi-block chaining** — `:before_verdict` now pipes the result through every registered block in sequence (`reduce`); consistent with the new array-based hook storage
+- **`Tribunal#on` instance method** — no longer overwrites class-level hooks; appends to per-instance hook array instead
+- **`@hooks` deep-dup on init** — `Tribunal#initialize` clones hooks with `transform_values { Array(v).dup }` so instance-level `on(...)` calls don't mutate the shared class config
+
+---
+
 ## v0.2.21 — 2026-05-27
 
 - **`pipeline/hooks.rb`** — hooks DSL extracted from `pipeline.rb` into a dedicated file, consistent with `agent/hooks.rb` and `tribunal/hooks.rb`
