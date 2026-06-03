@@ -41,30 +41,7 @@ ActiveHarness ships with production-ready distributed tracing to monitor AI exec
 |---|---|
 | ![Event Tracing](docs/event_tracing.png) | ![Grafana Metrics](docs/grafana.png) |
 
-### Features
-
-- **Clean Tracer API** — Fluent, expressive interface for logging events without OpenTelemetry boilerplate:
-  ```ruby
-  @tracer_span
-    .event("agent_done",
-      agent: { index: 1, name: "Reviewer" },
-      llm: { model: "gpt-4", time_s: 1.5, tokens: 284 }
-    )
-    .attrs({ "status" => "success" })
-    .finish
-  ```
-
-- **Automatic Parent Context Propagation** — Trace hierarchy follows execution flow through `@params[:tracer_ctx]`, making agent spans children of tribunals, which are children of pipelines
-
-- **Structured Event Logging** — Nested attributes are automatically flattened with dot notation for easy querying:
-  ```
-  agent.index = 1
-  llm.model = gpt-4
-  llm.time_s = 1.5
-  llm.tokens = 284
-  ```
-
-- **Backend Agnostic** — Abstracts OpenTelemetry, ready for future migration to Datadog, Honeycomb, or custom collectors
+**Backend Agnostic** — Built on OpenTelemetry, ready for any collector (Jaeger, Datadog, Honeycomb, or custom).
 
 ## What is a "Harness"?
 
