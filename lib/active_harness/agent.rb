@@ -103,8 +103,8 @@ module ActiveHarness
         @event_stream = streams[:agent] if streams.key?(:agent)
       end
       @memory&.load
-      @system_prompt = resolve_system_prompt
       fire(:before_call)
+      @system_prompt = resolve_system_prompt
       attempts = []
 
       cfg = ActiveHarness.config

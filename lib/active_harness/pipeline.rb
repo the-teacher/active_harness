@@ -51,15 +51,45 @@ module ActiveHarness
       end
 
       def pipeline_config
-        @pipeline_config ||= { steps: [], hooks: {}, step_hooks: {} }
+        @pipeline_config ||= { steps: [], hooks: {}, step_hooks: {}, streams: {} }
       end
 
       # Each subclass gets its own isolated config.
       def inherited(subclass)
         subclass.instance_variable_set(
           :@pipeline_config,
-          { steps: [], hooks: {}, step_hooks: {} }
+          { steps: [], hooks: {}, step_hooks: {}, streams: {} }
         )
+      end
+
+      # Class-level event stream handlers — fired for every matching event from
+      # any agent or tribunal executed within this pipeline (including agents
+      # running inside tribunals). Multiple blocks can be registered; all fire.
+      #
+      # The handler receives the same (event, *args) signature that the runtime
+      # streams: { agent: lambda } would receive.
+      #
+      #   on_agent_event do |event, result|
+      #     Rails.logger.info "[Agent #{event}] #{result.model}" if event == :after_call
+      #   end
+      #
+      #   on_tribunal_event do |event, verdict|
+      #     Rails.logger.info "[Tribunal #{event}] verdict=#{verdict}" if event == :after_verdict
+      #   end
+      #
+      #   on_pipeline_event do |event, step_name, _data|
+      #     Rails.logger.info "[Pipeline #{event}] step=#{step_name}"
+      #   end
+      def on_agent_event(&block)
+        (pipeline_config[:streams][:agent] ||= []) << block
+      end
+
+      def on_tribunal_event(&block)
+        (pipeline_config[:streams][:tribunal] ||= []) << block
+      end
+
+      def on_pipeline_event(&block)
+        (pipeline_config[:streams][:pipeline] ||= []) << block
       end
     end
 
@@ -94,9 +124,10 @@ module ActiveHarness
       @params                = params
       @memory                = memory
       @token_stream          = streams[:token]
-      @agent_event_stream    = streams[:agent]
-      @tribunal_event_stream = streams[:tribunal]
-      @pipeline_event_stream = streams[:pipeline]
+      class_streams          = self.class.pipeline_config[:streams] || {}
+      @agent_event_stream    = merge_stream(streams[:agent],    class_streams[:agent])
+      @tribunal_event_stream = merge_stream(streams[:tribunal], class_streams[:tribunal])
+      @pipeline_event_stream = merge_stream(streams[:pipeline], class_streams[:pipeline])
       @step_results          = {}
       @stopped               = false
       @stopped_at            = nil
@@ -158,6 +189,25 @@ module ActiveHarness
     end
 
     private
+
+    # Combines a runtime-passed stream lambda with zero or more class-level handler
+    # blocks registered via on_agent_event / on_tribunal_event / on_pipeline_event.
+    # Returns nil when there are no handlers at all, preserving the existing
+    # "no stream" fast path in agents and tribunals.
+    #
+    # Each class-level handler is evaluated via instance_exec so that blocks
+    # written in the pipeline class body can access pipeline instance variables
+    # (e.g. @otel_pipeline_span, @params) and call pipeline instance methods.
+    def merge_stream(passed_in, class_handlers)
+      class_handlers = Array(class_handlers).compact
+      return passed_in if class_handlers.empty?
+
+      pipeline_instance = self
+      ->(event, *args) {
+        class_handlers.each { |h| pipeline_instance.instance_exec(event, *args, &h) }
+        passed_in&.call(event, *args)
+      }
+    end
 
     def execute_step(step)
       if step.tribunal?
