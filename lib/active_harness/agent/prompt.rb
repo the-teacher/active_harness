@@ -49,11 +49,15 @@ module ActiveHarness
       prompt
     end
 
+    # Injects agent state into a prompt class instance before #call.
+    # Available in prompt classes: @input, @context, @params, @memory, @context_window, @config
     def inject_agent_state(obj)
-      obj.instance_variable_set(:@input,   @input)
-      obj.instance_variable_set(:@context, @context)
-      obj.instance_variable_set(:@config,  @config)
-      obj.instance_variable_set(:@memory,  @memory)
+      obj.instance_variable_set(:@input,          @input)
+      obj.instance_variable_set(:@context,        @context)
+      obj.instance_variable_set(:@params,         @params)
+      obj.instance_variable_set(:@config,         @config)
+      obj.instance_variable_set(:@memory,         @memory)
+      obj.instance_variable_set(:@context_window, @context_window)
     end
   end
 end

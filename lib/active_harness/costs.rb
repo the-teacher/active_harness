@@ -62,12 +62,15 @@ module ActiveHarness
       :output_per_million,
       :cache_read_input_per_million,
       :cache_write_input_per_million,
+      :context_window,
+      :max_output_tokens,
       keyword_init: true
     ) do
       def inspect
         parts = ["id=#{id.inspect}", "provider=#{provider.inspect}"]
         parts << "input=$#{input_per_million}/M"  if input_per_million
         parts << "output=$#{output_per_million}/M" if output_per_million
+        parts << "ctx=#{context_window}"           if context_window
         "#<ModelCost #{parts.join(' ')}>"
       end
     end
@@ -230,10 +233,12 @@ module ActiveHarness
             }.compact
 
             {
-              id:       m[:id],
-              name:     m[:name] || m[:id],
-              provider: ah_provider,
-              pricing:  standard.any? ? { text_tokens: { standard: standard } } : {}
+              id:                m[:id],
+              name:              m[:name] || m[:id],
+              provider:          ah_provider,
+              context_window:    m[:context_window] || m.dig(:limit, :context),
+              max_output_tokens: m[:max_output_tokens] || m.dig(:limit, :output),
+              pricing:           standard.any? ? { text_tokens: { standard: standard } } : {}
             }
           end
         end
@@ -248,7 +253,9 @@ module ActiveHarness
           input_per_million:             standard[:input_per_million],
           output_per_million:            standard[:output_per_million],
           cache_read_input_per_million:  standard[:cache_read_input_per_million],
-          cache_write_input_per_million: standard[:cache_write_input_per_million]
+          cache_write_input_per_million: standard[:cache_write_input_per_million],
+          context_window:                raw[:context_window],
+          max_output_tokens:             raw[:max_output_tokens]
         )
       end
 

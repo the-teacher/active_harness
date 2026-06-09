@@ -161,6 +161,78 @@ Prompt classes receive the same instance context as hooks, so `@memory` is acces
 
 ---
 
+## Context window and history budgeting
+
+Every agent automatically looks up the context window size for its primary model from `ActiveHarness::Costs` at initialization time. The value is stored as `@context_window` (an integer, or `nil` if the model is not in the registry) and is:
+
+- available in all hook blocks (`on :before_call`, etc.)
+- injected into prompt class instances alongside `@input`, `@memory`, etc.
+- stored on `result.context_window` after a successful call (reflects the model that actually ran, including fallbacks)
+
+### Trimming history to fit the context window
+
+Pass `token_budget:` to `to_messages`. The budget is measured in *tokens* using a rough estimate of `characters / 4`. Turns are dropped oldest-first until the budget is satisfied.
+
+```ruby
+class ChatPrompt
+  def call
+    budget   = @context_window ? (@context_window * 0.25).to_i : nil
+    messages = @memory&.to_messages(token_budget: budget) || []
+    history  = messages.map { |m| m[:content] }.join("\n")
+
+    return BASE_INSTRUCTION if history.empty?
+
+    <<~PROMPT
+      #{BASE_INSTRUCTION}
+
+      Conversation so far:
+      #{history}
+    PROMPT
+  end
+end
+```
+
+`0.25` reserves 25% of the context window for conversation history. Adjust the fraction to leave headroom for the system prompt, current input, and the model's output.
+
+The fraction can be overridden per-call via `params:` without changing the prompt class:
+
+```ruby
+# default — 25%
+ChatAgent.call(input: "Hello", memory: mem)
+
+# more history — 40%
+ChatAgent.call(input: "Hello", memory: mem, params: { history_fraction: 0.4 })
+
+# minimal — only the very last turn fits
+ChatAgent.call(input: "Hello", memory: mem, params: { history_fraction: 0.05 })
+```
+
+See [006 — System Prompts](006_system_prompts.md) for the full list of variables available in prompt classes (`@input`, `@context`, `@params`, `@memory`, `@context_window`).
+
+### Checking the context window in a hook
+
+```ruby
+class ChatAgent < ActiveHarness::Agent
+  include AgentMemory
+
+  on :before_call do
+    Rails.logger.info "Context window: #{@context_window || 'unknown'}"
+  end
+end
+```
+
+### Checking after the call
+
+```ruby
+result = ChatAgent.call(input: "Hello", memory: mem)
+puts result.context_window   # => 131072 (or nil)
+puts result.model            # => "mistralai/mistral-nemo"
+```
+
+If the primary model failed and a fallback took over, `result.context_window` reflects the fallback model's window — not the primary one.
+
+---
+
 ## Pattern — In-memory history without persistence
 
 When history lives in a session or database and you manage it yourself, skip `ActiveHarness::Memory` entirely and pass history through `context:`.

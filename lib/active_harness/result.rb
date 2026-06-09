@@ -11,7 +11,7 @@ module ActiveHarness
     :input,
     :output,
     :processed,
-    :system_prompt, 
+    :system_prompt,
     :provider, :model,
     :temperature,
     :model_list,
@@ -19,5 +19,6 @@ module ActiveHarness
     :execution_time,
     :usage,
     :cost,
+    :context_window,
     keyword_init: true)
 end

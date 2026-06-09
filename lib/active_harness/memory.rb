@@ -138,13 +138,15 @@ module ActiveHarness
 
     # Returns messages array for LLM consumption, respecting depth.
     # Optional filters:
-    #   filter: ->(turn) { turn[:agent] == "SupportAgent" }
-    #   since:  Time.now - 3600
-    def to_messages(filter: nil, since: nil)
+    #   filter:       ->(turn) { turn[:agent] == "SupportAgent" }
+    #   since:        Time.now - 3600
+    #   token_budget: 4000  # rough limit (chars / 4 estimate); trims oldest turns first
+    def to_messages(filter: nil, since: nil, token_budget: nil)
       turns = @turns.dup
       turns.select! { |t| filter.call(t) }   if filter
       turns.select! { |t| after?(t, since) } if since
       turns = turns.last(@depth)              if @depth
+      turns = trim_to_token_budget(turns, token_budget) if token_budget
 
       turns.flat_map do |t|
         [
@@ -209,6 +211,17 @@ module ActiveHarness
       return true unless turn[:at]
       turn_time = Time.parse(turn[:at].to_s) rescue nil
       turn_time ? turn_time >= time : true
+    end
+
+    def trim_to_token_budget(turns, budget)
+      return turns if turns.empty?
+
+      total = 0
+      turns.reverse.take_while do |t|
+        tokens = ((t[:request].to_s.length + t[:response].to_s.length) / 4.0).ceil
+        total += tokens
+        total <= budget
+      end.reverse
     end
   end
 end

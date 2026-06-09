@@ -83,6 +83,21 @@ puts "\nResponse:"
 puts result.output
 ```
 
+## Available instance variables in prompt classes
+
+When ActiveHarness resolves a system prompt class it injects the full agent state before calling `#call`. All of the following are readable in any prompt class:
+
+| Variable | Type | Description |
+|---|---|---|
+| `@input` | `String \| nil` | Current user input (normalized) |
+| `@context` | `Hash` | Arbitrary caller-supplied context |
+| `@params` | `Hash` | Technical parameters passed via `params:` |
+| `@memory` | `Memory \| nil` | Memory object if `memory:` was passed |
+| `@context_window` | `Integer \| nil` | Context window size for the primary model (from `Costs`); `nil` if unknown |
+| `@config` | `Hash` | Agent class-level DSL config (read-only) |
+
+`@context` is for domain data (user id, locale, flags). `@params` is for technical overrides that should not mix with domain context — things like `{ history_fraction: 0.4 }` or `{ max_tokens: 500 }`.
+
 ## Accessing Data in Prompts
 
 ```ruby
@@ -112,6 +127,29 @@ class ContextAwarePrompt
     @input.first(100)
   end
 end
+```
+
+Params example — overriding a tuning knob at call time without polluting `@context`:
+
+```ruby
+class SummaryPrompt
+  MAX_LENGTH_DEFAULT = 200
+
+  def call
+    max = @params[:max_length] || MAX_LENGTH_DEFAULT
+    <<~PROMPT
+      Summarize the following text in #{max} words or fewer.
+
+      Text: #{@input}
+    PROMPT
+  end
+end
+
+# default
+SummaryAgent.call(input: article)
+
+# override at call time
+SummaryAgent.call(input: article, params: { max_length: 50 })
 ```
 
 ## Example Prompts for Different Roles

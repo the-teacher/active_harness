@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.28 — 2026-06-09
+
+- **`Result#context_window`** — new field on `Result`; populated from `ActiveHarness::Costs` after each successful call using the model that actually ran (primary or fallback); `nil` if the model is not in the registry
+- **`Agent#context_window`** — new `attr_reader`; set at initialization time from the first model in the list via `Costs`; available in all hook blocks as `@context_window`; injected into prompt class instances alongside `@input`, `@memory`, etc.
+- **`Memory#to_messages(token_budget:)`** — new optional parameter; trims turns oldest-first using a `chars / 4` token estimate until the budget is satisfied; composable with existing `filter:`, `since:`, and `depth:` options
+- **`MemoryPrompt` updated** — automatically passes `token_budget: context_window * 0.25` to `to_messages` when `@context_window` is present; falls back to no limit when context window is unknown
+
+---
+
 ## v0.2.27 — 2026-06-09
 
 - **`memory:` as a first-class parameter** — `Agent.call`, `Agent.new`, and `Tribunal.new` now accept `memory: nil` alongside `input:`, `context:`, `params:`, `streams:`; stored as `@memory` / `attr_accessor :memory`; passing memory through `context: { memory: mem }` is no longer needed or recommended

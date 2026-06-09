@@ -54,6 +54,7 @@ module ActiveHarness
                   :params,
                   :memory
     attr_reader   :result,
+                  :context_window,
                   :token_stream,
                   :event_stream
 
@@ -76,9 +77,10 @@ module ActiveHarness
       @context         = context
       @params          = params
       @memory          = memory
-      @models_override = Array(models) if models
-      @token_stream    = streams[:token]
-      @event_stream    = streams[:agent]
+      @models_override  = Array(models) if models
+      @context_window   = lookup_context_window(self.models.to_a.first)
+      @token_stream     = streams[:token]
+      @event_stream     = streams[:agent]
       fire(:setup)
     end
 
@@ -144,9 +146,10 @@ module ActiveHarness
     end
 
     def build_result(response, entry, attempts, elapsed)
-      raw    = response[:content]
+      raw       = response[:content]
       processed = parse_output(raw)
-      usage  = response[:usage]
+      usage     = response[:usage]
+      cw        = lookup_context_window(entry)
 
       Result.new(
         input:          @input,
@@ -160,8 +163,16 @@ module ActiveHarness
         attempts:       attempts,
         execution_time: elapsed,
         usage:          usage,
-        cost:           calculate_cost(entry[:model], usage)
+        cost:           calculate_cost(entry[:model], usage),
+        context_window: cw
       )
+    end
+
+    def lookup_context_window(entry)
+      return nil unless entry
+      Costs.find(entry[:model])&.context_window
+    rescue StandardError
+      nil
     end
 
     def normalize_input!
