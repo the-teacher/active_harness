@@ -39,7 +39,7 @@ module ActiveHarness
       begin
         parsed = JSON.parse(clean)
 
-        # :after_parse — return value replaces parsed result stored in Result
+        # :after_parse — return value replaces processed result stored in Result
         transform_hook(:after_parse, parsed)
       rescue JSON::ParserError => e
         # :parse_error — if hook returns non-nil, it is used as fallback value

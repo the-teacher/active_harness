@@ -21,7 +21,7 @@ Verdict is `true` only when **all** successful results evaluate to `true`.
 ```ruby
 # with evaluator
 verdict :unanimous do |result|
-  result.parsed["result"] == true
+  result.processed["result"] == true
 end
 
 # without evaluator — true when all agents completed
@@ -32,7 +32,7 @@ Equivalent `process` block:
 
 ```ruby
 process do |results|
-  results.all? { |r| r.parsed["result"] == true }
+  results.all? { |r| r.processed["result"] == true }
 end
 ```
 
@@ -45,7 +45,7 @@ Verdict is `true` when **more than 50%** of successful results evaluate to `true
 ```ruby
 # with evaluator
 verdict :majority do |result|
-  result.parsed["result"] == true
+  result.processed["result"] == true
 end
 
 # without evaluator — true when >50% of agents completed
@@ -56,7 +56,7 @@ Equivalent `process` block:
 
 ```ruby
 process do |results|
-  positive = results.count { |r| r.parsed["result"] == true }
+  positive = results.count { |r| r.processed["result"] == true }
   positive > results.size / 2.0
 end
 ```
@@ -74,7 +74,7 @@ By default, the tribunal raises `AllAgentsFailed` only when every agent errors o
 ```ruby
 # with a custom evaluator block
 verdict :majority, may_fail: 1 do |result|
-  result.parsed["result"] == true
+  result.processed["result"] == true
 end
 
 # without a block — every successful result counts as a positive vote
@@ -96,7 +96,7 @@ class MyTribunal < ActiveHarness::Tribunal
   end
 
   process do |results|
-    positive = results.count { |r| r.parsed["result"] == true }
+    positive = results.count { |r| r.processed["result"] == true }
     positive > results.size / 2.0
   end
 end
@@ -106,7 +106,7 @@ Or inline when constructing a tribunal directly:
 
 ```ruby
 tribunal = ActiveHarness::Tribunal.new(input: input, agents: agents, may_fail: 1)
-tribunal.process { |results| results.count { |r| r.parsed["result"] == true } > 1 }
+tribunal.process { |results| results.count { |r| r.processed["result"] == true } > 1 }
 tribunal.call
 ```
 
@@ -118,7 +118,7 @@ When both `verdict` and `process` are declared on the same class, `process` wins
 
 ```ruby
 class MyTribunal < ActiveHarness::Tribunal
-  verdict :majority do |r| r.parsed["ok"] end   # ignored
+  verdict :majority do |r| r.processed["ok"] end   # ignored
   process { |results| results.length > 1 }       # used
 end
 ```
@@ -145,22 +145,22 @@ end
 # All 3 agents must agree — use for high-stakes decisions
 class StrictTribunal < ActiveHarness::Tribunal
   verdict :unanimous do |result|
-    result.parsed["safe"] == true
+    result.processed["safe"] == true
   end
 end
 
 # 2 of 3 is enough — 1 error is tolerated
 class LenientTribunal < ActiveHarness::Tribunal
   verdict :majority, may_fail: 1 do |result|
-    result.parsed["ok"] == true
+    result.processed["ok"] == true
   end
 end
 
 # Custom logic: at least 2 high-confidence positives
 class CustomTribunal < ActiveHarness::Tribunal
   process do |results|
-    high_confidence = results.select { |r| r.parsed["confidence"].to_i >= 80 }
-    high_confidence.count { |r| r.parsed["result"] == true } >= 2
+    high_confidence = results.select { |r| r.processed["confidence"].to_i >= 80 }
+    high_confidence.count { |r| r.processed["result"] == true } >= 2
   end
 end
 ```

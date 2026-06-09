@@ -6,7 +6,7 @@ How to use `before_parse` and `after_parse` hooks to transform JSON results from
 
 ## Why This Is Needed
 
-Parse hooks allow you to normalize, validate, and enrich structured results from the LLM before they're stored in `result.parsed`. They only run when `format :json` is set.
+Parse hooks allow you to normalize, validate, and enrich structured results from the LLM before they're stored in `result.processed`. They only run when `format :json` is set.
 
 ## Transform Hooks
 
@@ -53,8 +53,8 @@ end
 agent = AnalysisAgent.new(input: "The product is great and very fast!")
 agent.call
 
-puts agent.result.parsed["sentiment"]    # => "positive"
-puts agent.result.parsed["analyzed_at"]  # => "2025-01-01T12:00:00Z"
+puts agent.result.processed["sentiment"]    # => "positive"
+puts agent.result.processed["analyzed_at"]  # => "2025-01-01T12:00:00Z"
 ```
 
 ## Parse Error Handling
@@ -115,7 +115,7 @@ end
    ↓
 4. :after_parse   — transform the parsed Hash/Array
    ↓
-5. result.parsed  — final value
+5. result.processed  — final value
 ```
 
 > **Note:** `before_parse` and `after_parse` only run when `format :json` is declared on the agent.

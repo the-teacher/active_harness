@@ -13,7 +13,7 @@ module ActiveHarness
       # Receives the full results array; return value becomes #verdict.
       # Takes priority over +verdict+ strategy if both are declared.
       #
-      #   process { |results| results.all? { |r| r.parsed["result"] == true } }
+      #   process { |results| results.all? { |r| r.processed["result"] == true } }
       def process(&block)
         tribunal_config[:process] = block
       end
@@ -31,11 +31,11 @@ module ActiveHarness
       # The block receives a single Result and must return a truthy/falsy value.
       #
       #   verdict :unanimous do |result|
-      #     result.parsed["result"] == true
+      #     result.processed["result"] == true
       #   end
       #
       #   verdict :majority, may_fail: 1 do |result|
-      #     result.parsed["result"] == true
+      #     result.processed["result"] == true
       #   end
       VALID_STRATEGIES = %i[unanimous majority].freeze
 

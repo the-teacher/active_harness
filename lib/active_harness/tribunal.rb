@@ -17,14 +17,14 @@ module ActiveHarness
   #     timeout: 7
   #   )
   #   tribunal.on(:after_agent) { |result| puts result.model }
-  #   tribunal.process { |results| results.all? { |r| r.parsed["result"] == true } }
+  #   tribunal.process { |results| results.all? { |r| r.processed["result"] == true } }
   #   tribunal.call
   #
   # Subclass with DSL:
   #   class ContentQualityTribunal < ActiveHarness::Tribunal
   #     agents PolitenessAgent, ConstructivenessAgent
   #     on(:after_agent) { |result| puts result.model }
-  #     process { |results| results.all? { |r| r.parsed["result"] == true } }
+  #     process { |results| results.all? { |r| r.processed["result"] == true } }
   #   end
   #   ContentQualityTribunal.new(input: "...").call
   #
@@ -87,6 +87,17 @@ module ActiveHarness
       @verdict               = nil
       @execution_time        = nil
       @agent_execution_times = []
+    end
+
+    # Returns a Result with processed: { "verdict" => @verdict } so the pipeline
+    # can handle agents and tribunals through the same interface.
+    def result
+      Result.new(
+        input:          @input,
+        output:         nil,
+        processed:      { "verdict" => @verdict },
+        execution_time: @execution_time
+      )
     end
 
     # Run all agents in parallel, then compute the verdict.

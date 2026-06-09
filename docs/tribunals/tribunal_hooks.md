@@ -5,7 +5,7 @@ All hooks are registered with `on`, `before`, `after`, or `callback` at the clas
 ```ruby
 class MyTribunal < ActiveHarness::Tribunal
   on :after_agent do |result|
-    puts "#{result.model}: #{result.parsed["result"]}"
+    puts "#{result.model}: #{result.processed["result"]}"
   end
 end
 ```

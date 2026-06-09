@@ -17,7 +17,7 @@ tribunal.call
 
 # Successful results only
 tribunal.results.each do |result|
-  puts "#{result.model}: #{result.parsed["result"]}"
+  puts "#{result.model}: #{result.processed["result"]}"
 end
 
 # Failed agents
@@ -113,12 +113,12 @@ transform, if any). Design your process block defensively:
 ```ruby
 process do |results|
   # Require unanimous agreement — a missing agent counts as "not polite"
-  results.size == 3 && results.all? { |r| r.parsed["result"] == true }
+  results.size == 3 && results.all? { |r| r.processed["result"] == true }
 end
 
 # Or: majority vote regardless of how many agents responded
 process do |results|
-  positive = results.count { |r| r.parsed["result"] == true }
+  positive = results.count { |r| r.processed["result"] == true }
   positive > results.size / 2
 end
 ```
@@ -136,7 +136,7 @@ tribunal.call
 render json: {
   verdict: tribunal.verdict,
   time:    tribunal.execution_time,
-  results: tribunal.results.map { |r| { model: r.model, result: r.parsed } },
+  results: tribunal.results.map { |r| { model: r.model, result: r.processed } },
   errors:  tribunal.errors.map  { |e| { agent: e[:agent], error: e[:error].message } }
 }
 ```

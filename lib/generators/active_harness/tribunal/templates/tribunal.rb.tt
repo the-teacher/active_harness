@@ -2,6 +2,6 @@ class <%= class_name %>Tribunal < ActiveHarness::Tribunal
   agents <%= class_name %>Agent
 
   process do |results|
-    results.all? { |r| r.parsed["result"] == true }
+    results.all? { |r| r.processed["result"] == true }
   end
 end

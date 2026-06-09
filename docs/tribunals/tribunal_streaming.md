@@ -39,7 +39,7 @@ class PolitenessLifecycleTribunal < ActiveHarness::Tribunal
   end
 
   process do |results|
-    results.all? { |r| r.parsed["result"] == true }
+    results.all? { |r| r.processed["result"] == true }
   end
 end
 ```
@@ -137,7 +137,7 @@ def tribunal_event_message(event, args)
       index: index }
   when :agent_done
     result, index = args
-    polite = result.parsed&.dig("result") == true
+    polite = result.processed&.dig("result") == true
     { event: "agent_done",
       text:  "Agent #{index + 1} done: #{result.model} (#{result.execution_time}s)",
       level: polite ? "success" : "warning",
@@ -147,7 +147,7 @@ def tribunal_event_message(event, args)
       usage: result.usage,
       cost:  result.cost,
       result: polite,
-      reason: result.parsed&.dig("reason") }
+      reason: result.processed&.dig("reason") }
   when :agent_error
     name, err, index = args
     { event: "agent_error",

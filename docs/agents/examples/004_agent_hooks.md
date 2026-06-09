@@ -94,8 +94,8 @@ agent.call
 result = agent.result
 
 puts "\n=== RESULT ==="
-puts result.parsed["answer"]
-puts result.parsed["processed_at"]
+puts result.processed["answer"]
+puts result.processed["processed_at"]
 ```
 
 ## Hook Execution Order

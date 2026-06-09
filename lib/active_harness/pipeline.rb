@@ -7,7 +7,7 @@ module ActiveHarness
   #   class SupportPipeline < ActiveHarness::Pipeline
   #     step :injection_guard do
   #       use InjectionGuardAgent
-  #       stop_if ->(result) { result.parsed["detected"] == true }
+  #       stop_if ->(result) { result.processed["detected"] == true }
   #     end
   #
   #     step :translate, TranslationAgent   # shorthand — no stop_if
@@ -44,7 +44,7 @@ module ActiveHarness
       # Full block form:
       #   step :injection_guard do
       #     use InjectionGuardAgent
-      #     stop_if ->(result) { result.parsed["detected"] == true }
+      #     stop_if ->(result) { result.processed["detected"] == true }
       #   end
       def step(name, agent_class = nil, &block)
         pipeline_config[:steps] << Pipeline::Step.new(name, agent_class, &block)
@@ -210,23 +210,13 @@ module ActiveHarness
     end
 
     def execute_step(step)
-      if step.tribunal?
-        agent_streams = { token: @token_stream, agent: @agent_event_stream, tribunal: @tribunal_event_stream }.compact
-        step.agent_class.new(
-          input:    @payload,
-          context:  @context.dup,
-          params:   @params,
-          streams:  agent_streams
-        ).call
-      else
-        agent_streams = { token: @token_stream, agent: @agent_event_stream }.compact
-        step.agent_class.new(
-          input:    @payload,
-          context:  @context.dup,
-          params:   @params,
-          streams:  agent_streams
-        ).call.result
-      end
+      streams = { token: @token_stream, agent: @agent_event_stream, tribunal: @tribunal_event_stream }.compact
+      step.agent_class.new(
+        input:   @payload,
+        context: @context.dup,
+        params:  @params,
+        streams: streams
+      ).call.result
     end
   end
 end

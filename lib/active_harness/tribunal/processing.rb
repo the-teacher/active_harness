@@ -2,7 +2,7 @@ module ActiveHarness
   class Tribunal
     # Instance-level process block — overrides class-level block.
     #
-    #   tribunal.process { |results| results.count { |r| r.parsed["ok"] } >= 2 }
+    #   tribunal.process { |results| results.count { |r| r.processed["ok"] } >= 2 }
     def process(&block)
       @process_block = block
       self

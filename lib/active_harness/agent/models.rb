@@ -14,7 +14,7 @@ module ActiveHarness
       # Output format for this agent.
       #
       #   format :text   # default — output is returned as-is
-      #   format :json   # output is parsed; result.parsed is a Ruby Hash/Array
+      #   format :json   # output is parsed; result.processed is a Ruby Hash/Array
       def format(type)
         unless %i[text json].include?(type)
           raise ArgumentError, "Unknown format :#{type}. Valid values: :text, :json"

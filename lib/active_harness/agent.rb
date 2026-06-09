@@ -140,13 +140,13 @@ module ActiveHarness
 
     def build_result(response, entry, attempts, elapsed)
       raw    = response[:content]
-      parsed = parse_output(raw)
+      processed = parse_output(raw)
       usage  = response[:usage]
 
       Result.new(
         input:          @input,
         output:         raw,
-        parsed:         parsed,
+        processed:      processed,
         system_prompt:  @system_prompt,
         provider:       entry[:provider],
         model:          entry[:model],
