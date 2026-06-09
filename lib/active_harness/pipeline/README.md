@@ -16,7 +16,7 @@ class SupportPipeline < ActiveHarness::Pipeline
 
   step :safety_tribunal do
     use SafetyTribunal
-    stop_if ->(result) { result.verdict == false }
+    stop_if ->(result) { result.processed["verdict"] == false }
   end
 end
 

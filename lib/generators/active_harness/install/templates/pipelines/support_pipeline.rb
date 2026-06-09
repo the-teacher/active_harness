@@ -7,7 +7,7 @@ class SupportPipeline < ActiveHarness::Pipeline
   # Step 1 — GUARD: reject spam before spending tokens on an answer
   step :spam_guard do
     use SupportGuardTribunal
-    stop_if ->(result) { result.verdict == false }
+    stop_if ->(result) { result.processed["verdict"] == false }
   end
 
   # Step 2 — RESPOND: generate the actual answer

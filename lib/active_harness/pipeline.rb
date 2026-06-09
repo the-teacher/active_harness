@@ -14,7 +14,7 @@ module ActiveHarness
   #
   #     step :safety_tribunal do
   #       use SafetyTribunal
-  #       stop_if ->(result) { result.verdict == false }
+  #       stop_if ->(result) { result.processed["verdict"] == false }
   #     end
   #
   #     on :before_step do |step_name, payload| ... end

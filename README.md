@@ -10,7 +10,31 @@
 
 **ActiveHarness** is a Ruby framework for building production-grade LLM pipelines — with deep observability, consensus-based decisions, automatic fallbacks, and real-time cost and timing control. Made for Rails, works in plain Ruby too.
 
+## Build AI-base Pipelines!
+
+Build multi-step, trackable, cost-effective, and reliable AI flows with a clean, Rails-native DSL.
+
 ![Pipeline Flow](docs/pipeline.png)
+
+## Use Consensus-Based Decisions!
+
+Use **Tribunals** to run multiple agents in parallel and make `Verdicts` based on their agreement — improving **reliability** and reducing **biases** and **hallucinations**.
+
+![Tribunal Lifecycle](docs/tribunals/tribunal_lifecircle.png)
+
+## Provide Event Tracing & Observability
+
+Use power of event hooks to log and trace every step of your AI flows, from individual agent calls to multi-step pipelines and parallel tribunals.
+
+| Event Tracing Architecture               | Grafana Dashboard                    |
+| ---------------------------------------- | ------------------------------------ |
+| ![Event Tracing](docs/event_tracing.png) | ![Grafana Metrics](docs/grafana.png) |
+
+## Use Memory to make your agents stateful!
+
+Store conversation history in JSON, SQLite and PostgreSQL. Inject memory into prompts to make agents that remember past interactions.
+
+![Memory](docs/memory.png)
 
 ## Why ActiveHarness?
 
@@ -31,14 +55,14 @@ ActiveHarness gives you the scaffolding to build multi-step pipelines where ever
 | **Execution Time Tracking** | Per-agent and per-pipeline timing built in                                                                  |
 | **Token & Cost Tracking**   | Know exactly what each call cost in tokens and dollars                                                      |
 | **Rails-native DSL**        | Clean file structure, Railtie integration, generator support                                                |
-| **Event Tracing**           | OpenTelemetry integration for distributed tracing of agents, tribunals, and pipelines                         |
+| **Event Tracing**           | OpenTelemetry integration for distributed tracing of agents, tribunals, and pipelines                       |
 
 ## Event Tracing & Observability
 
 ActiveHarness ships with production-ready distributed tracing to monitor AI execution flows across your application.
 
-| Event Tracing Architecture | Grafana Dashboard |
-|---|---|
+| Event Tracing Architecture               | Grafana Dashboard                    |
+| ---------------------------------------- | ------------------------------------ |
 | ![Event Tracing](docs/event_tracing.png) | ![Grafana Metrics](docs/grafana.png) |
 
 **Backend Agnostic** — Built on OpenTelemetry, ready for any collector (Jaeger, Datadog, Honeycomb, or custom).
@@ -201,8 +225,6 @@ This improves reliability — a single model can be wrong or biased, but two (or
 
 → [Tribunal hooks reference](docs/tribunals/tribunal_hooks.md)
 
-![Tribunal Lifecycle](docs/tribunals/tribunal_lifecircle.png)
-
 **Prompt** — each agent returns structured JSON:
 
 ```ruby
@@ -305,7 +327,7 @@ class SupportPipeline < ActiveHarness::Pipeline
   # Step 3 — Tribunal as a step: parallel safety check.
   step :safety_tribunal do
     use PolitenessTribunal
-    stop_if ->(result) { result.verdict == false }
+    stop_if ->(result) { result.processed["verdict"] == false }
   end
 
   # Step 4 — Final answer on a clean, safe, on-topic request.
