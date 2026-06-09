@@ -10,7 +10,7 @@
 
 **ActiveHarness** is a Ruby framework for building production-grade LLM pipelines — with deep observability, consensus-based decisions, automatic fallbacks, and real-time cost and timing control. Made for Rails, works in plain Ruby too.
 
-## Build AI-base Pipelines!
+## Build AI-Based Pipelines!
 
 Build multi-step, trackable, cost-effective, and reliable AI flows with a clean, Rails-native DSL.
 
@@ -35,6 +35,12 @@ Use power of event hooks to log and trace every step of your AI flows, from indi
 Store conversation history in JSON, SQLite and PostgreSQL. Inject memory into prompts to make agents that remember past interactions.
 
 ![Memory](docs/memory.png)
+
+## Streaming (SSE)
+
+| Rails App                         | Console                          |
+| --------------------------------- | -------------------------------- |
+| ![Streaming](docs/streaming2.gif) | ![Streaming](docs/streaming.gif) |
 
 ## Why ActiveHarness?
 
