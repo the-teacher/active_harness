@@ -10,13 +10,11 @@ module ActiveHarness
       #
       #   SupportAgent.call(input: "Hi")
       #   SupportAgent.call(input: "Hi", context: { user_id: 42 })
-      #   SupportAgent.call(input: "Hi", memory: memory)
       def call(
         input:   nil,
         context: {},
         params:  {},
         models:  nil,
-        memory:  nil,
         streams: {}
       )
         new(
@@ -24,7 +22,6 @@ module ActiveHarness
           context: context,
           params:  params,
           models:  models,
-          memory:  memory,
           streams: streams
         ).call
       end
@@ -62,16 +59,11 @@ module ActiveHarness
       @model_list_proxy = nil
     end
 
-    def memory=(obj)
-      @memory = obj
-    end
-
     def initialize(
       input:   nil,
       context: {},
       params:  {},
       models:  nil,
-      memory:  nil,
       streams: {}
     )
       @input           = input
@@ -82,8 +74,6 @@ module ActiveHarness
       @models_override = Array(models) if models
       @token_stream    = streams[:token]
       @event_stream    = streams[:agent]
-      # memory: can be passed directly or via context[:memory]
-      @memory = memory || @context[:memory]
       fire(:setup)
     end
 
@@ -102,7 +92,6 @@ module ActiveHarness
         @token_stream = streams[:token] if streams.key?(:token)
         @event_stream = streams[:agent] if streams.key?(:agent)
       end
-      @memory&.load
       fire(:before_call)
       @system_prompt = resolve_system_prompt
       attempts = []
@@ -118,7 +107,6 @@ module ActiveHarness
         response = retry_policy.run { attempt_model(entry, @system_prompt) }
         elapsed  = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(3)
         result   = build_result(response, entry, attempts, elapsed)
-        save_to_memory(result)
         fire(:after_call, result)
         @result = result
         return self
@@ -168,21 +156,6 @@ module ActiveHarness
         execution_time: elapsed,
         usage:          usage,
         cost:           calculate_cost(entry[:model], usage)
-      )
-    end
-
-    # Auto-save to memory if no manual record was done in after_call hook.
-    # Hooks fire after this method — if a hook calls memory.record manually,
-    # the automatic save here is still the first save (hook overrides are additive).
-    # To suppress auto-save, set @memory_auto_saved in the hook.
-    def save_to_memory(result)
-      return unless @memory
-
-      @memory.record(
-        request:  @input,
-        response: result.output,
-        agent:    self.class.name,
-        model:    result.model
       )
     end
 
