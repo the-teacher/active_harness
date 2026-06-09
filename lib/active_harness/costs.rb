@@ -64,13 +64,31 @@ module ActiveHarness
       :cache_write_input_per_million,
       :context_window,
       :max_output_tokens,
+      :input_modalities,
+      :output_modalities,
       keyword_init: true
     ) do
+      # Returns capability tags derived from modality data and model id/name.
+      # Possible values: "vision", "pdf", "audio", "video", "imggen", "embed"
+      def categories
+        inp = input_modalities  || []
+        out = output_modalities || []
+        cats = []
+        cats << "vision" if inp.include?("image")
+        cats << "pdf"    if inp.include?("pdf")
+        cats << "audio"  if inp.include?("audio") || out.include?("audio")
+        cats << "video"  if inp.include?("video")  || out.include?("video")
+        cats << "imggen" if out.include?("image")
+        cats << "embed"  if id.to_s.match?(/embed/i) || name.to_s.match?(/embed/i)
+        cats
+      end
+
       def inspect
         parts = ["id=#{id.inspect}", "provider=#{provider.inspect}"]
         parts << "input=$#{input_per_million}/M"  if input_per_million
         parts << "output=$#{output_per_million}/M" if output_per_million
         parts << "ctx=#{context_window}"           if context_window
+        parts << "cats=#{categories.join(',')}"    if categories.any?
         "#<ModelCost #{parts.join(' ')}>"
       end
     end
@@ -232,12 +250,15 @@ module ActiveHarness
               cache_write_input_per_million: cost[:cache_write]
             }.compact
 
+            mods = m[:modalities] || {}
             {
               id:                m[:id],
               name:              m[:name] || m[:id],
               provider:          ah_provider,
               context_window:    m[:context_window] || m.dig(:limit, :context),
               max_output_tokens: m[:max_output_tokens] || m.dig(:limit, :output),
+              input_modalities:  Array(mods[:input]),
+              output_modalities: Array(mods[:output]),
               pricing:           standard.any? ? { text_tokens: { standard: standard } } : {}
             }
           end
@@ -255,7 +276,9 @@ module ActiveHarness
           cache_read_input_per_million:  standard[:cache_read_input_per_million],
           cache_write_input_per_million: standard[:cache_write_input_per_million],
           context_window:                raw[:context_window],
-          max_output_tokens:             raw[:max_output_tokens]
+          max_output_tokens:             raw[:max_output_tokens],
+          input_modalities:              Array(raw[:input_modalities]),
+          output_modalities:             Array(raw[:output_modalities])
         )
       end
 
