@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.23 — 2026-06-09
+
+- **Memory removed from `Agent`** — `memory:` parameter removed from `Agent.call` and `Agent.new`; `memory=` setter removed; automatic `save_to_memory` and `@memory&.load` on call removed; memory management is now the caller's responsibility
+- **`:before_call` fires before `resolve_system_prompt`** — hook order corrected so that `:before_call` blocks run before the system prompt is resolved; hooks can now mutate `@input` / `@context` and have those changes reflected in the system prompt
+- **Pipeline class-level event stream DSL** — three new class-level methods: `on_agent_event`, `on_tribunal_event`, `on_pipeline_event`; each accepts a block and accumulates multiple handlers; blocks run via `instance_exec` so pipeline instance variables (`@params`, `@otel_span`, etc.) are accessible
+- **`Pipeline#merge_stream`** — private helper that combines a runtime-passed `streams:` lambda with class-level handler blocks; returns `nil` when no handlers exist, preserving the existing no-stream fast path in agents and tribunals
+- **Examples** — 18 annotated example docs added under `docs/agents/examples/` (basic agent, fallback chain, hooks, streaming, memory, error handling, custom LLM backend, guards, pipelines, caching, monitoring, testing)
+
+---
+
 ## v0.2.22 — 2026-05-29
 
 - **`Core::HookRunner`** — shared hook execution module extracted to `lib/active_harness/core/hooks.rb`; included by `Agent`, `Tribunal`, and `Pipeline`; replaces duplicated `run_hook` logic across all three classes
