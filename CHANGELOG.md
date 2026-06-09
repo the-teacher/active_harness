@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.25 — 2026-06-09
+
+- **Memory adapter files consolidated** — `adapter/file.rb` removed; `Memory::JsonFile` (convenience class) and `Adapter::JsonFile` (raw adapter, renamed from `Adapter::File`) now live together in `adapter/json_file.rb`; same pattern applied to PostgreSQL and SQLite — each `adapter/*.rb` file defines both the raw adapter and the public `Memory::*` subclass; require chain in `memory.rb` simplified to three lines
+- **`ADAPTERS` registry updated** — `:file` key replaced with `:json_file`; default adapter in `Memory#initialize` changed from `:file` to `:json_file`
+- **`ActiveHarness::Memory::Postgresql`** — new PostgreSQL-backed memory; `pg` gem is NOT a dependency — install it yourself; adapter lazy-loads `pg` and raises a descriptive `LoadError` if missing; accepts `connection:` (borrow a `PG::Connection`) or `url:`/`host:`/`dbname:`/… (adapter opens and owns the connection); parameterized queries throughout; `storage_size:` + `eviction_percent:` trim oldest rows via subquery DELETE; `namespace:` uses `IS NOT DISTINCT FROM` for NULL-safe comparison
+- **`ActiveHarness::Memory::Sqlite`** — new SQLite-backed memory; `sqlite3` gem is NOT a dependency — install it yourself; adapter lazy-loads `sqlite3`; accepts `connection:` (borrow a `SQLite3::Database`) or `database:` path (adapter opens, enables WAL, and owns the connection); `database: ":memory:"` supported for tests; `?` placeholders and `IS` for NULL-safe namespace comparison; meta stored as JSON text (no JSONB)
+- **`Memory::Sqlite.create_schema!`** — class method that creates the table and index using `CREATE TABLE IF NOT EXISTS`; accepts a file path or an existing `SQLite3::Database`; covers plain Ruby projects where no migration system exists
+- **Rails generators for migrations** — `rails generate active_harness:memory_postgresql` and `rails generate active_harness:memory_sqlite` each create a timestamped migration in `db/migrate/` using the current `ActiveRecord::Migration` version; PostgreSQL migration uses `jsonb` for meta; SQLite migration uses `text`
+- **Generator templates updated** — `install` and `memory` generator templates now produce classes that inherit from `Memory::JsonFile` with `file_name:` interface instead of raw `Memory` with `adapter: :file`
+- **Docs** — `docs/agents/examples/019_memory_postgresql.md` and `020_memory_sqlite.md` added; cover schema setup, Rails and plain Ruby usage, constructor options, API reference, SQL queries over history, and adapter comparison table
+
+---
+
 ## v0.2.24 — 2026-06-09
 
 - **`ActiveHarness::Memory::JsonFile`** — new convenience subclass of `Memory` with a `file_name:` interface; replaces `session_id:` with a path-safe name that may contain slashes (`"users/42/chat"`); final file is always `<storage_path>/<file_name>.json`; path traversal segments (`..`, `.`) and null bytes are rejected with `ArgumentError`; missing directories are created automatically on first write; default `storage_path` is `"storage/ai/memory"`
