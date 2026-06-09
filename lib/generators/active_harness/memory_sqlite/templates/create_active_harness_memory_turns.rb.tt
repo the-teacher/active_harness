@@ -1,0 +1,16 @@
+class CreateActiveHarnessMemoryTurns < ActiveRecord::Migration[<%= ActiveRecord::Migration.current_version %>]
+  def change
+    create_table :active_harness_memory_turns do |t|
+      t.text     :session_id, null: false
+      t.text     :namespace
+      t.text     :request,    null: false
+      t.text     :response,   null: false
+      t.text     :meta,       null: false, default: "{}"
+      t.datetime :created_at, null: false, default: -> { "CURRENT_TIMESTAMP" }
+    end
+
+    add_index :active_harness_memory_turns,
+              [:session_id, :namespace, :id],
+              name: "idx_ah_memory_turns_session"
+  end
+end

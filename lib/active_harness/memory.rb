@@ -1,6 +1,7 @@
 require_relative "memory/adapter/base"
-require_relative "memory/adapter/file"
-require_relative "memory/json_file"
+require_relative "memory/adapter/json_file"
+require_relative "memory/adapter/postgresql"
+require_relative "memory/adapter/sqlite"
 
 module ActiveHarness
   # Conversational memory for agents.
@@ -55,7 +56,7 @@ module ActiveHarness
   #
   class Memory
     ADAPTERS = {
-      file: ->(**opts) { Adapter::File.new(**opts) }
+      json_file: ->(**opts) { Adapter::JsonFile.new(**opts) }
     }.freeze
 
     attr_reader :session_id
@@ -65,7 +66,7 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     #   session_id       — required; uniquely identifies this conversation
     #   depth            — how many past turns to inject into messages (nil = all)
-    #   adapter          — :file (default), or an adapter instance
+    #   adapter          — :json_file (default), or an adapter instance
     #   enabled          — false disables all reads and writes (no-op mode)
     #   read_only        — true: load history but never write new turns
     #   namespace        — isolates history per-agent within a session
@@ -75,7 +76,7 @@ module ActiveHarness
     def initialize(
       session_id:,
       depth:       nil,
-      adapter:     :file,
+      adapter:     :json_file,
       enabled:     true,
       read_only:   false,
       namespace:   nil,

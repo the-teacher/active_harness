@@ -4,7 +4,7 @@ require "fileutils"
 module ActiveHarness
   class Memory
     module Adapter
-      # Persists memory as JSON files on disk.
+      # File-backed memory adapter — stores turns as JSON on disk.
       #
       # Each session is stored in one file:
       #   <path>/<session_id>.json                   (no namespace)
@@ -19,21 +19,21 @@ module ActiveHarness
       #   storage_size     — max turns kept in file          (default: 1000)
       #   eviction_percent — % of oldest turns to drop       (default: 10)
       #   on_trim          — Proc called with trimmed turns  (default: nil)
-      class File < Base
-        DEFAULT_PATH             = "storage/ai/memory"
-        DEFAULT_STORAGE_SIZE     = 1000
+      class JsonFile < Base
+        DEFAULT_PATH         = "storage/ai/memory"
+        DEFAULT_STORAGE_SIZE = 1000
         DEFAULT_TRIM_PERCENT = 10
 
         def initialize(opts = {})
-          @path             = opts.fetch(:path, DEFAULT_PATH)
-          @filename_opt     = opts[:filename]
-          @pretty           = opts.fetch(:pretty, false)
-          @compact          = opts.fetch(:compact, false)
-          @encoding         = opts.fetch(:encoding, "UTF-8")
-          @storage_size     = opts.fetch(:storage_size, DEFAULT_STORAGE_SIZE)
+          @path         = opts.fetch(:path, DEFAULT_PATH)
+          @filename_opt = opts[:filename]
+          @pretty       = opts.fetch(:pretty, false)
+          @compact      = opts.fetch(:compact, false)
+          @encoding     = opts.fetch(:encoding, "UTF-8")
+          @storage_size = opts.fetch(:storage_size, DEFAULT_STORAGE_SIZE)
           @trim_percent = opts.fetch(:eviction_percent, DEFAULT_TRIM_PERCENT)
-          @on_trim          = opts[:on_trim]
-          @namespace        = opts[:namespace]
+          @on_trim      = opts[:on_trim]
+          @namespace    = opts[:namespace]
 
           @session_id = nil
           @turns      = []
@@ -55,13 +55,12 @@ module ActiveHarness
         end
 
         def close
-          # File adapter writes immediately on each write, nothing to flush.
+          # Writes immediately on each write — nothing to flush.
         end
 
         def delete
           path = file_path
           ::FileUtils.rm_f(path)
-          # remove parent dir only if it's a namespace dir and now empty
           dir = ::File.dirname(path)
           if @namespace && Dir.exist?(dir) && Dir.empty?(dir)
             Dir.rmdir(dir)
@@ -77,8 +76,6 @@ module ActiveHarness
           name = resolve_filename
           if @namespace
             ::File.join(@path, @session_id.to_s, "#{@namespace}.json")
-          elsif @filename_opt
-            ::File.join(@path, name)
           else
             ::File.join(@path, name)
           end
@@ -100,7 +97,6 @@ module ActiveHarness
           data = JSON.parse(raw, symbolize_names: true)
           turns = Array(data[:turns])
 
-          # Normalise compact format (q/a) to full format (request/response)
           turns.map do |t|
             if t.key?(:q)
               { request: t[:q], response: t[:a] }
@@ -135,6 +131,42 @@ module ActiveHarness
           trimmed = @turns.shift(count)
           @on_trim&.call(trimmed)
         end
+      end
+    end
+
+    # Convenience Memory subclass for file-backed storage.
+    #
+    #   file_name:    replaces session_id — may contain slashes to create
+    #                 subdirectories under storage_path, e.g. "users/42/chat"
+    #                 Final file is always <storage_path>/<file_name>.json
+    #   storage_path: base directory (default: "storage/ai/memory")
+    #
+    # Path traversal is rejected: segments equal to "." or ".." or containing
+    # null bytes raise ArgumentError before any file I/O happens.
+    # Missing directories are created automatically on the first write.
+    class JsonFile < Memory
+      def initialize(file_name:, storage_path: Adapter::JsonFile::DEFAULT_PATH, **opts)
+        super(
+          session_id: sanitize!(file_name),
+          adapter:    Adapter::JsonFile.new(opts.merge(path: storage_path)),
+          **opts
+        )
+      end
+
+      private
+
+      def sanitize!(raw)
+        parts = raw.to_s.split("/").map(&:strip).reject(&:empty?)
+        raise ArgumentError, "file_name must not be empty" if parts.empty?
+
+        parts.each do |part|
+          if part == ".." || part == "." || part.include?("\0")
+            raise ArgumentError, "Invalid file_name segment: #{part.inspect}"
+          end
+        end
+
+        parts.last.sub!(/\.json\z/i, "")
+        parts.join("/")
       end
     end
   end
