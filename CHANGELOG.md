@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.27 — 2026-06-09
+
+- **`memory:` as a first-class parameter** — `Agent.call`, `Agent.new`, and `Tribunal.new` now accept `memory: nil` alongside `input:`, `context:`, `params:`, `streams:`; stored as `@memory` / `attr_accessor :memory`; passing memory through `context: { memory: mem }` is no longer needed or recommended
+- **`inject_agent_state` injects `@memory`** — prompt classes now receive `@memory` directly as an instance variable, just like `@input` and `@context`; reading memory from `@context[:memory]` in prompts is no longer needed
+- **`AgentMemory` concern simplified** — `:setup` callback that extracted `@memory` from `@context` removed; `@memory` is set by the constructor before any hook fires
+- **Docs updated** — examples `011`, `019`, `020` rewritten to use `memory:` parameter at call sites; concern code updated to remove the setup extraction step
+
+---
+
 ## v0.2.26 — 2026-06-09
 
 - **`Result#parsed` renamed to `Result#processed`** — the field that holds the parsed JSON output of an agent is now called `processed`; reflects that the value has been processed/normalized, not just parsed; all internal code, generator templates, and docs updated
