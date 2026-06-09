@@ -1,5 +1,6 @@
 require_relative "memory/adapter/base"
 require_relative "memory/adapter/file"
+require_relative "memory/json_file"
 
 module ActiveHarness
   # Conversational memory for agents.
