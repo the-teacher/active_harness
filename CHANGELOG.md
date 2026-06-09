@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.24 — 2026-06-09
+
+- **`ActiveHarness::Memory::JsonFile`** — new convenience subclass of `Memory` with a `file_name:` interface; replaces `session_id:` with a path-safe name that may contain slashes (`"users/42/chat"`); final file is always `<storage_path>/<file_name>.json`; path traversal segments (`..`, `.`) and null bytes are rejected with `ArgumentError`; missing directories are created automatically on first write; default `storage_path` is `"storage/ai/memory"`
+- **`Memory::JsonFile` — `.json` deduplication** — passing `file_name` with a `.json` suffix (e.g. `"chat.json"`) no longer produces a double extension (`chat.json.json`); the suffix is stripped in `sanitize!` before the session_id is set
+- **Example 011 rewritten** — `docs/agents/examples/011_memory_and_history.md` updated to show the recommended concern-based pattern (`AgentMemory` concern with `:setup` / `:before_call` / `:after_call` hooks), full `JsonFile` API reference, file storage layout, and in-memory history pattern without persistence
+
+---
+
 ## v0.2.23 — 2026-06-09
 
 - **Memory removed from `Agent`** — `memory:` parameter removed from `Agent.call` and `Agent.new`; `memory=` setter removed; automatic `save_to_memory` and `@memory&.load` on call removed; memory management is now the caller's responsibility
