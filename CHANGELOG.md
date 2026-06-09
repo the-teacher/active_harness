@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.26 — 2026-06-09
+
+- **`Result#parsed` renamed to `Result#processed`** — the field that holds the parsed JSON output of an agent is now called `processed`; reflects that the value has been processed/normalized, not just parsed; all internal code, generator templates, and docs updated
+- **`Tribunal#result`** — new method that returns a `Result` with `processed: { "verdict" => @verdict }`; tribunals and agents now expose the same interface from the pipeline's point of view
+- **`Pipeline#execute_step` unified** — the `if tribunal? / else` branch removed; both agents and tribunals are executed via the same single path: `.call.result`; `tribunal?` check retained only in `Step#transform?` to prevent tribunal steps from updating the payload
+- **Pipeline `README.md`** — new file at `lib/active_harness/pipeline/README.md` covering basic usage, step types, payload propagation, stop mechanics, events/hooks, memory, and a design proposal for a universal step interface (duck-type, lambda, Rack-style env, module-based options)
+
+---
+
 ## v0.2.25 — 2026-06-09
 
 - **Memory adapter files consolidated** — `adapter/file.rb` removed; `Memory::JsonFile` (convenience class) and `Adapter::JsonFile` (raw adapter, renamed from `Adapter::File`) now live together in `adapter/json_file.rb`; same pattern applied to PostgreSQL and SQLite — each `adapter/*.rb` file defines both the raw adapter and the public `Memory::*` subclass; require chain in `memory.rb` simplified to three lines
