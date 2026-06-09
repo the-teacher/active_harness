@@ -14,6 +14,7 @@ module ActiveHarness
         input:   nil,
         context: {},
         params:  {},
+        memory:  nil,
         models:  nil,
         streams: {}
       )
@@ -21,6 +22,7 @@ module ActiveHarness
           input:   input,
           context: context,
           params:  params,
+          memory:  memory,
           models:  models,
           streams: streams
         ).call
@@ -49,7 +51,8 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     attr_accessor :input,
                   :context,
-                  :params
+                  :params,
+                  :memory
     attr_reader   :result,
                   :token_stream,
                   :event_stream
@@ -63,6 +66,7 @@ module ActiveHarness
       input:   nil,
       context: {},
       params:  {},
+      memory:  nil,
       models:  nil,
       streams: {}
     )
@@ -71,6 +75,7 @@ module ActiveHarness
       normalize_input!
       @context         = context
       @params          = params
+      @memory          = memory
       @models_override = Array(models) if models
       @token_stream    = streams[:token]
       @event_stream    = streams[:agent]

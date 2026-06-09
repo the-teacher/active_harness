@@ -25,7 +25,14 @@ module ActiveHarness
           "anthropic-version" => ANTHROPIC_VERSION
         }
 
-        return call_streaming(url: config.anthropic_api_url, headers: headers, body: body, stream: stream, provider: :anthropic, model: model) if stream
+        return call_streaming(
+          url: config.anthropic_api_url,
+          headers: headers,
+          body: body,
+          stream: stream,
+          provider: :anthropic,
+          model: model
+        ) if stream
 
         raw  = post_json(URI(config.anthropic_api_url), headers: headers, body: body)
         data = parse!(raw)

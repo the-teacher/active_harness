@@ -51,10 +51,6 @@ One place for all project defaults — callers only pass a `file_name`.
 ```ruby
 module AgentMemory
   def self.included(base)
-    base.callback(:setup) do
-      @memory = @context.delete(:memory)
-    end
-
     base.before(:call) do
       @memory&.load
     end
@@ -74,11 +70,10 @@ end
 
 What this concern does:
 
-| Hook           | Action                                                             |
-| -------------- | ------------------------------------------------------------------ |
-| `:setup`       | Extracts `memory` from `@context` into `@memory` instance variable |
-| `:before_call` | Calls `@memory.load` — reads history from storage into RAM         |
-| `:after_call`  | Calls `@memory.record` — persists the turn to storage              |
+| Hook           | Action                                                     |
+| -------------- | ---------------------------------------------------------- |
+| `:before_call` | Calls `@memory.load` — reads history from storage into RAM |
+| `:after_call`  | Calls `@memory.record` — persists the turn to storage      |
 
 ---
 
@@ -105,8 +100,8 @@ end
 ```ruby
 memory = AppMemory.new(file_name: "users/#{user.id}")
 
-ChatAgent.call(input: "Hello! My name is Alice.", context: { memory: memory })
-ChatAgent.call(input: "What is my name?",         context: { memory: memory })
+ChatAgent.call(input: "Hello! My name is Alice.", memory: memory)
+ChatAgent.call(input: "What is my name?",         memory: memory)
 # => "Your name is Alice."
 ```
 

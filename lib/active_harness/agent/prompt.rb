@@ -53,6 +53,7 @@ module ActiveHarness
       obj.instance_variable_set(:@input,   @input)
       obj.instance_variable_set(:@context, @context)
       obj.instance_variable_set(:@config,  @config)
+      obj.instance_variable_set(:@memory,  @memory)
     end
   end
 end

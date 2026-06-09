@@ -48,7 +48,8 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     attr_accessor :input,
                   :context,
-                  :params
+                  :params,
+                  :memory
     attr_reader   :results,
                   :errors,
                   :verdict,
@@ -62,6 +63,7 @@ module ActiveHarness
       input:    nil,
       context:  {},
       params:   {},
+      memory:   nil,
       agents:   nil,
       timeout:  7,
       streams:  {},
@@ -72,6 +74,7 @@ module ActiveHarness
       @input                 = input
       @context               = context
       @params                = params
+      @memory                = memory
       @agents                = agents || config[:agents]
       @timeout               = timeout
       @process_block         = config[:process]

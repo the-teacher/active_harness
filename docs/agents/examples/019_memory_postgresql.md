@@ -122,8 +122,8 @@ Same `AgentMemory` concern from example 011 works unchanged:
 ```ruby
 module AgentMemory
   def self.included(base)
-    base.callback(:setup) do
-      @memory = @context.delete(:memory)
+    base.before(:call) do
+      @memory&.load
     end
 
     base.before(:call) do
@@ -169,7 +169,7 @@ end
 # app/controllers/chat_controller.rb
 def create
   memory = AppMemory.new(session_id: "users/#{current_user.id}")
-  result = ChatAgent.call(input: params[:message], context: { memory: memory })
+  result = ChatAgent.call(input: params[:message], memory: memory)
   render json: { reply: result.output }
 end
 ```
@@ -181,8 +181,8 @@ The AR connection is returned to the pool automatically when the request finishe
 ```ruby
 memory = AppMemory.new(session_id: "user_42")
 
-ChatAgent.call(input: "Hello! I'm Alice.", context: { memory: memory })
-ChatAgent.call(input: "What's my name?",  context: { memory: memory })
+ChatAgent.call(input: "Hello! I'm Alice.", memory: memory)
+ChatAgent.call(input: "What's my name?",  memory: memory)
 # => "Your name is Alice."
 
 memory.close  # release the dedicated PG connection
