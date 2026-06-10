@@ -90,6 +90,19 @@ app/
     └── memory/       # custom memory classes
 ```
 
+## Agent Documentation
+
+- [How to Create Your First Agent in 5 Minutes](docs/AGENTS.md#how-to-create-your-first-agent-in-5-minutes)
+- [How to Provide Fallbacks](docs/AGENTS.md#how-to-provide-fallbacks)
+- [Model Options](docs/AGENTS.md#model-options)
+- [How to Track Retries and Failures](docs/AGENTS.md#how-to-track-retries-and-failures)
+- [How to Use with RubyLLM](docs/AGENTS.md#how-to-use-with-rubyllm)
+- [JSON Output and Parsing](docs/AGENTS.md#json-output-and-parsing)
+- [Lifecycle Events](docs/AGENTS.md#lifecycle-events)
+- [Custom Providers](docs/AGENTS.md#custom-providers)
+- [Streaming in the Console](docs/AGENTS.md#streaming-in-the-console)
+- [Streaming in a Rails App](docs/AGENTS.md#streaming-in-a-rails-app)
+
 ## License
 
 MIT © [the-teacher](https://github.com/the-teacher)
