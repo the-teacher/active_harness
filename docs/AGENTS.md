@@ -413,8 +413,9 @@ const source = new EventSource("/ai/agent_stream?input=" + encodeURIComponent(in
 
 source.addEventListener("message", (e) => {
   const data = JSON.parse(e.data);
+  
   if (data.token) output.textContent += data.token;  // append token to the output element
-  if (data.done)  source.close();                     // graceful close after last token
+  if (data.done)  source.close();                    // graceful close after last token
   if (data.error) console.error(data.error);
 });
 ```
