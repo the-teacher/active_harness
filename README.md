@@ -92,17 +92,6 @@ app/
     └── memory/       # custom memory classes
 ```
 
-## Tracing and Observability
-
-- [How It Works](docs/TRACING.md#how-it-works)
-- [Simple Logging with Hooks](docs/TRACING.md#simple-logging-with-hooks)
-- [OpenTelemetry Setup](docs/TRACING.md#opentelemetry-setup)
-- [AgentTracing Concern](docs/TRACING.md#agenttracing-concern)
-- [TribunalTracing Concern](docs/TRACING.md#tribunaltracing-concern)
-- [PipelineTracing Concern](docs/TRACING.md#pipelinetracing-concern)
-- [Span Hierarchy](docs/TRACING.md#span-hierarchy)
-- [Connecting to a Backend](docs/TRACING.md#connecting-to-a-backend)
-
 ## Prompt Documentation
 
 - [How Prompts Work](docs/PROMPTS.md#how-prompts-work)
@@ -176,6 +165,17 @@ app/
 - [Providers Reference](docs/INSTALLATION.md#providers-reference)
 - [Global Settings](docs/INSTALLATION.md#global-settings)
 - [Generators](docs/INSTALLATION.md#generators)
+
+## Tracing and Observability
+
+- [How It Works](docs/TRACING.md#how-it-works)
+- [Simple Logging with Hooks](docs/TRACING.md#simple-logging-with-hooks)
+- [OpenTelemetry Setup](docs/TRACING.md#opentelemetry-setup)
+- [AgentTracing Concern](docs/TRACING.md#agenttracing-concern)
+- [TribunalTracing Concern](docs/TRACING.md#tribunaltracing-concern)
+- [PipelineTracing Concern](docs/TRACING.md#pipelinetracing-concern)
+- [Span Hierarchy](docs/TRACING.md#span-hierarchy)
+- [Connecting to a Backend](docs/TRACING.md#connecting-to-a-backend)
 
 ## License
 
