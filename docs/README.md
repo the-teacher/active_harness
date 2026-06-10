@@ -460,3 +460,11 @@ ActiveHarness can delegate HTTP calls to the `ruby_llm` gem instead of its built
 ## ActiveHarness and RubyLLM
 
 RubyLLM is a transport layer — a unified API for any LLM provider. ActiveHarness is an architectural framework for organizing complex AI flows. They live at different levels of the stack and work great together — see [ActiveHarness and RubyLLM →](docs/common/activeharness_and_rubyllm.md).
+
+## Event Tracing & Observability
+
+ActiveHarness ships with production-ready distributed tracing to monitor AI execution flows across your application.
+
+| Event Tracing Architecture               | Grafana Dashboard                    |
+| ---------------------------------------- | ------------------------------------ |
+| ![Event Tracing](docs/event_tracing.png) | ![Grafana Metrics](docs/grafana.png) |

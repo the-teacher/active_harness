@@ -30,13 +30,15 @@ Use `Tribunals` to run multiple agents in parallel and make `Verdicts` based on 
 
 <img width="1920" height="1080" alt="Tribunals" src="https://github.com/user-attachments/assets/1acc68b3-2d9f-4732-945b-4e99a32e853d" />
 
-## Provide Event Tracing & Observability
+## Provide Event Tracing & Observability!
 
 Use power of event hooks to log and trace every step of your AI flows, from individual agent calls to multi-step pipelines and parallel tribunals.
 
 | Event Tracing Architecture               | Grafana Dashboard                    |
 | ---------------------------------------- | ------------------------------------ |
 | ![Event Tracing](docs/event_tracing.png) | ![Grafana Metrics](docs/grafana.png) |
+
+**Backend Agnostic** — Built on OpenTelemetry, ready for any collector (Jaeger, Datadog, Honeycomb, or custom).
 
 ## Use Memory to make your agents stateful!
 
@@ -50,7 +52,7 @@ Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory i
 | --------------------------------- | -------------------------------- |
 | ![Streaming](docs/streaming2.gif) | ![Streaming](docs/streaming.gif) |
 
-**What you get out of the box:**
+## Key Capabilities
 
 | Capability                              | What it means                                                                                               |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -65,19 +67,11 @@ Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory i
 | **Rails-native&nbsp;DSL**               | Clean file structure, Railtie integration, generator support                                                |
 | **Event&nbsp;Tracing**                  | OpenTelemetry integration for distributed tracing of agents, tribunals, and pipelines                       |
 
-## Event Tracing & Observability
-
-ActiveHarness ships with production-ready distributed tracing to monitor AI execution flows across your application.
-
-| Event Tracing Architecture               | Grafana Dashboard                    |
-| ---------------------------------------- | ------------------------------------ |
-| ![Event Tracing](docs/event_tracing.png) | ![Grafana Metrics](docs/grafana.png) |
-
-**Backend Agnostic** — Built on OpenTelemetry, ready for any collector (Jaeger, Datadog, Honeycomb, or custom).
-
 ## File Structure
 
 File structure for Ruby and Ruby on Rails applications:
+
+Place all of your AI-related code in `app/ai` to keep it organized and separate from your core application logic. You can further organize it into subdirectories for prompts, agents, tribunals, pipelines, and memory.
 
 ```
 app/
