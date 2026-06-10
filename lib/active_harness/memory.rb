@@ -84,6 +84,12 @@ module ActiveHarness
       async:       false,
       **adapter_opts
     )
+      if self.class == Memory
+        raise NotImplementedError,
+          "Memory cannot be instantiated directly. " \
+          "Use Memory::JsonFile, Memory::Postgresql, or Memory::Sqlite."
+      end
+
       @session_id  = session_id
       @depth       = depth
       @enabled     = enabled
