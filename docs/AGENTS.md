@@ -1,0 +1,241 @@
+# Agents
+
+## How to Create Your First Agent in 5 Minutes
+
+### 1. Define a prompt
+
+A prompt is a plain Ruby class with a `#call` method that returns a string.
+
+```ruby
+class GreetingPrompt
+  def call
+    "You are a friendly assistant. Greet the user warmly and briefly."
+  end
+end
+```
+
+### 2. Define an agent
+
+```ruby
+class GreetingAgent < ActiveHarness::Agent
+  system_prompt GreetingPrompt
+
+  model do
+    use provider: :openrouter, model: "mistralai/mistral-nemo"
+  end
+end
+```
+
+### 3. Call the agent
+
+```ruby
+agent = GreetingAgent.new
+agent.input = "Hello!"
+agent.call
+
+puts agent.result.output
+```
+
+### 4. Inspect the result
+
+```ruby
+result = agent.result
+
+result.provider        # => "openrouter"
+result.model           # => "mistralai/mistral-nemo"
+result.input           # => "Hello!"
+result.output          # => "Hey there! Great to meet you..."
+result.usage           # => { input_tokens: 18, output_tokens: 24, total_tokens: 42 }
+result.cost            # => { input_cost: 0.0, output_cost: 0.0, total_cost: 0.0 }
+result.execution_time  # => 0.843
+```
+
+---
+
+## How to Provide Fallbacks
+
+Add `fallback` entries inside the `model` block. If the primary model fails, the next one is tried automatically.
+
+```ruby
+class GreetingAgent < ActiveHarness::Agent
+  system_prompt GreetingPrompt
+
+  model do
+    use      provider: :openrouter, model: "mistralai/mistral-nemo"
+    fallback provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free"
+    fallback provider: :openrouter, model: "google/gemma-4-31b-it:free"
+  end
+end
+```
+
+When all models fail, `ActiveHarness::Errors::AllModelsFailed` is raised:
+
+```ruby
+begin
+  agent.call
+rescue ActiveHarness::Errors::AllModelsFailed => e
+  puts "All models exhausted: #{e.message}"
+end
+```
+
+---
+
+## Model Options
+
+Both `use` and `fallback` accept the same set of options:
+
+| Option            | Type    | Default | Description                                    |
+| ----------------- | ------- | ------- | ---------------------------------------------- |
+| `provider:`       | Symbol  | —       | Provider key (`:openrouter`, `:anthropic`, …)  |
+| `model:`          | String  | —       | Model identifier string                        |
+| `temperature:`    | Float   | nil     | Sampling temperature (provider default if nil) |
+| `retry_attempts:` | Integer | 3       | How many times to retry this model on failure  |
+| `retry_delay:`    | Float   | 1.0     | Base delay in seconds between retries          |
+
+```ruby
+model do
+  use      provider:       :openrouter,
+           model:          "mistralai/mistral-nemo",
+           temperature:    0.7,
+           retry_attempts: 2,
+           retry_delay:    0.5
+
+  fallback provider:       :openrouter,
+           model:          "meta-llama/llama-3.3-70b-instruct:free",
+           retry_attempts: 1
+end
+```
+
+> `name:` is only used with `provider: :custom` — it selects which custom endpoint to load from the configuration. See [Custom Provider](agents/examples/013_custom_llm_backend.md).
+
+---
+
+## How to Track Retries and Failures
+
+Use `on :retry` to react to each failed model attempt, and `on :failure` when the entire chain is exhausted.
+
+```ruby
+class GreetingAgent < ActiveHarness::Agent
+  system_prompt GreetingPrompt
+
+  model do
+    use      provider: :openrouter, model: "mistralai/mistral-nemo"
+    fallback provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free"
+  end
+
+  # Fires after each failed attempt — before trying the next model.
+  # entry — the model entry that failed: { provider:, model:, ... }
+  # error — the exception raised
+  on :retry do |entry, error|
+    Rails.logger.warn("Model failed: #{entry[:model]} — #{error.message}")
+  end
+
+  # Fires when all models in the chain have failed.
+  # attempts — array of { provider:, model:, error:, error_code:, execution_time: }
+  on :failure do |attempts|
+    Rails.logger.error("All models failed. Attempts: #{attempts.map { |a| a[:model] }.join(', ')}")
+  end
+end
+```
+
+---
+
+## How to Use with RubyLLM
+
+By default ActiveHarness uses its own Net::HTTP providers. To delegate HTTP calls to the `ruby_llm` gem instead, define a `custom_llm_backend` block. Everything else — fallback chain, retry policy, hooks, streaming — works unchanged.
+
+```ruby
+class GreetingAgent < ActiveHarness::Agent
+  system_prompt GreetingPrompt
+
+  model do
+    use      provider: :openrouter, model: "mistralai/mistral-nemo", temperature: 0.7
+    fallback provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free"
+  end
+
+  # The block receives BackendParams with fields: model, provider, temperature.
+  # Must return a RubyLLM::Chat instance.
+  custom_llm_backend do |params|
+    RubyLLM.chat(
+      model:               params.model,
+      provider:            params.provider,
+      assume_model_exists: true
+    ).tap do |chat|
+      chat.with_temperature(params.temperature) if params.temperature
+    end
+  end
+end
+```
+
+> Requires `gem "ruby_llm"` in your Gemfile. ActiveHarness maps RubyLLM errors to its own error classes so the fallback chain and rescue blocks work the same way.
+
+---
+
+## Lifecycle Events
+
+| Event                  | Alias                    | Arguments           | When it fires                              |
+| ---------------------- | ------------------------ | ------------------- | ------------------------------------------ |
+| `on :setup`            | `callback :setup`        | —                   | Once, inside `initialize`                  |
+| `on :before_call`      | `before :call`           | —                   | Before the first model attempt             |
+| `on :after_call`       | `after :call`            | `result`            | After a successful model response          |
+| `on :before_system_prompt` | `before :system_prompt` | —              | Before the system prompt is resolved       |
+| `on :after_system_prompt`  | `after :system_prompt`  | `prompt`           | After the system prompt string is ready    |
+| `on :before_parse`     | `before :parse`          | `raw`               | Before output parsing (`format :json` only)|
+| `on :after_parse`      | `after :parse`           | `parsed`            | After successful parse (`format :json` only)|
+| `on :parse_error`      | `callback :parse_error`  | `raw, error`        | When JSON parse fails                      |
+| `on :retry`            | `callback :retry`        | `entry, error`      | After each failed model attempt            |
+| `on :failure`          | `callback :failure`      | `attempts`          | When the entire fallback chain is exhausted|
+
+To share hooks across agents, extract them into a module and use `self.included`:
+
+```ruby
+module AgentLogging
+  def self.included(base)
+    base.on(:setup) do
+      Rails.logger.debug("[#{self.class.name}] initialized")
+    end
+
+    base.before(:call) do
+      Rails.logger.info("[#{self.class.name}] ▶ calling with input: #{@input.to_s[0, 80]}")
+    end
+
+    base.before(:system_prompt) do
+      Rails.logger.debug("[#{self.class.name}] resolving system prompt")
+    end
+
+    base.after(:system_prompt) do |prompt|
+      Rails.logger.debug("[#{self.class.name}] prompt ready (#{prompt.to_s.length} chars)")
+    end
+
+    base.before(:parse) do |raw|
+      Rails.logger.debug("[#{self.class.name}] parsing output (#{raw.to_s.length} chars)")
+    end
+
+    base.after(:parse) do |parsed|
+      Rails.logger.debug("[#{self.class.name}] parsed: #{parsed.inspect[0, 120]}")
+    end
+
+    base.on(:parse_error) do |_raw, error|
+      Rails.logger.error("[#{self.class.name}] parse failed — #{error.message}")
+    end
+
+    base.after(:call) do |result|
+      Rails.logger.info("[#{self.class.name}] ✓ #{result.model} (#{result.execution_time}s, #{result.usage&.dig(:total_tokens)} tokens)")
+    end
+  end
+end
+```
+
+Include the concern into any agent:
+
+```ruby
+class GreetingAgent < ActiveHarness::Agent
+  include AgentLogging
+
+  system_prompt GreetingPrompt
+
+  model do
+    use provider: :openrouter, model: "mistralai/mistral-nemo"
+  end
+end
+```

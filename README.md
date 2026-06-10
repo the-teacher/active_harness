@@ -1,7 +1,7 @@
 # ActiveHarness
 
 <p align="center">
-  <img src="docs/top-logo.png" alt="ActiveHarness" width="600">
+  <img src="docs/images/top-logo.png" alt="ActiveHarness" width="600">
 </p>
 
 [![Gem Version](https://badge.fury.io/rb/active_harness.svg)](https://rubygems.org/gems/active_harness)
@@ -22,21 +22,21 @@ A **harness** in software is scaffolding that keeps a component under control �
 
 Build multi-step, trackable, cost-effective, and reliable AI flows with a clean, Rails-native DSL.
 
-<img width="1920" height="1080" src="https://github.com/user-attachments/assets/fc987934-1dfa-4898-8e6b-0f88f24648b7" alt="Pipeline Flow"/>
+<img widht="100%" src="https://github.com/user-attachments/assets/fc987934-1dfa-4898-8e6b-0f88f24648b7" alt="Pipeline Flow"/>
 
 ## Use Consensus-Based Decisions!
 
 Use `Tribunals` to run multiple agents in parallel and make `Verdicts` based on their agreement — improving **reliability** and reducing **biases** and **hallucinations**.
 
-<img width="1920" height="1080" alt="Tribunals" src="https://github.com/user-attachments/assets/1acc68b3-2d9f-4732-945b-4e99a32e853d" />
+<img widht="100%" alt="Tribunals" src="https://github.com/user-attachments/assets/1acc68b3-2d9f-4732-945b-4e99a32e853d" />
 
 ## Provide Event Tracing & Observability!
 
 Use power of event hooks to log and trace every step of your AI flows, from individual agent calls to multi-step pipelines and parallel tribunals.
 
-| Event Tracing Architecture               | Grafana Dashboard                    |
-| ---------------------------------------- | ------------------------------------ |
-| ![Event Tracing](docs/event_tracing.png) | ![Grafana Metrics](docs/grafana.png) |
+| Event Tracing Architecture                      | Grafana Dashboard                           |
+| ----------------------------------------------- | ------------------------------------------- |
+| ![Event Tracing](docs/images/event_tracing.png) | ![Grafana Metrics](docs/images/grafana.png) |
 
 **Backend Agnostic** — Built on OpenTelemetry, ready for any collector (Jaeger, Datadog, Honeycomb, or custom).
 
@@ -44,17 +44,17 @@ Use power of event hooks to log and trace every step of your AI flows, from indi
 
 Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory into prompts to make agents that remember past interactions.
 
-<img width="1920" height="1080" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
+<img widht="100%" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
 
 ## Visualise Models' Cost and Type
 
-<img width="1920" height="1080" alt="Pricing" src="https://github.com/user-attachments/assets/3ddbe1da-4e9d-4e5a-9f45-27e3a849dd3f" />
+<img widht="100%" alt="Pricing" src="https://github.com/user-attachments/assets/3ddbe1da-4e9d-4e5a-9f45-27e3a849dd3f" />
 
 ## Add Streaming (SSE)!
 
-| Rails App                         | Console                          |
-| --------------------------------- | -------------------------------- |
-| ![Streaming](docs/streaming2.gif) | ![Streaming](docs/streaming.gif) |
+| Rails App                                | Console                                 |
+| ---------------------------------------- | --------------------------------------- |
+| ![Streaming](docs/images/streaming2.gif) | ![Streaming](docs/images/streaming.gif) |
 
 ## Key Capabilities
 
