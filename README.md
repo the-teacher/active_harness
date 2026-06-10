@@ -106,16 +106,6 @@ app/
 - [Streaming in the Console](docs/AGENTS.md#streaming-in-the-console)
 - [Streaming in a Rails App](docs/AGENTS.md#streaming-in-a-rails-app)
 
-## Installation and Configuration
-
-- [Installation](docs/INSTALLATION.md#installation)
-- [Rails Setup](docs/INSTALLATION.md#rails-setup)
-- [Plain Ruby Setup](docs/INSTALLATION.md#plain-ruby-setup)
-- [Configuration](docs/INSTALLATION.md#configuration)
-- [Providers Reference](docs/INSTALLATION.md#providers-reference)
-- [Global Settings](docs/INSTALLATION.md#global-settings)
-- [Generators](docs/INSTALLATION.md#generators)
-
 ## Pipeline Documentation
 
 - [How to Create Your First Pipeline in 5 Minutes](docs/PIPELINES.md#how-to-create-your-first-pipeline-in-5-minutes)
@@ -126,6 +116,18 @@ app/
 - [Lifecycle Events](docs/PIPELINES.md#lifecycle-events)
 - [Event Streams](docs/PIPELINES.md#event-streams)
 - [Full Example](docs/PIPELINES.md#full-example)
+
+## Tribunal Documentation
+
+- [How to Create Your First Tribunal in 5 Minutes](docs/TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes)
+- [Tribunal from Different Agents](docs/TRIBUNALS.md#tribunal-from-different-agents)
+- [Verdict Strategies](docs/TRIBUNALS.md#verdict-strategies)
+- [Custom Verdict Logic](docs/TRIBUNALS.md#custom-verdict-logic)
+- [Tolerating Partial Failures](docs/TRIBUNALS.md#tolerating-partial-failures)
+- [Same Agent, Different Models](docs/TRIBUNALS.md#same-agent-different-models)
+- [Runtime Model Prepend per Agent](docs/TRIBUNALS.md#runtime-model-prepend-per-agent)
+- [Direct Usage](docs/TRIBUNALS.md#direct-usage)
+- [Lifecycle Events](docs/TRIBUNALS.md#lifecycle-events)
 
 ## Memory Documentation
 
@@ -141,17 +143,15 @@ app/
 - [PostgreSQL Backend](docs/MEMORY.md#postgresql-backend)
 - [SQLite Backend](docs/MEMORY.md#sqlite-backend)
 
-## Tribunal Documentation
+## Installation and Configuration
 
-- [How to Create Your First Tribunal in 5 Minutes](docs/TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes)
-- [Tribunal from Different Agents](docs/TRIBUNALS.md#tribunal-from-different-agents)
-- [Verdict Strategies](docs/TRIBUNALS.md#verdict-strategies)
-- [Custom Verdict Logic](docs/TRIBUNALS.md#custom-verdict-logic)
-- [Tolerating Partial Failures](docs/TRIBUNALS.md#tolerating-partial-failures)
-- [Same Agent, Different Models](docs/TRIBUNALS.md#same-agent-different-models)
-- [Runtime Model Prepend per Agent](docs/TRIBUNALS.md#runtime-model-prepend-per-agent)
-- [Direct Usage](docs/TRIBUNALS.md#direct-usage)
-- [Lifecycle Events](docs/TRIBUNALS.md#lifecycle-events)
+- [Installation](docs/INSTALLATION.md#installation)
+- [Rails Setup](docs/INSTALLATION.md#rails-setup)
+- [Plain Ruby Setup](docs/INSTALLATION.md#plain-ruby-setup)
+- [Configuration](docs/INSTALLATION.md#configuration)
+- [Providers Reference](docs/INSTALLATION.md#providers-reference)
+- [Global Settings](docs/INSTALLATION.md#global-settings)
+- [Generators](docs/INSTALLATION.md#generators)
 
 ## License
 
