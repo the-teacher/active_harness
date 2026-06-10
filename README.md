@@ -103,6 +103,16 @@ app/
 - [Streaming in the Console](docs/AGENTS.md#streaming-in-the-console)
 - [Streaming in a Rails App](docs/AGENTS.md#streaming-in-a-rails-app)
 
+## Tribunal Documentation
+
+- [How to Create Your First Tribunal in 5 Minutes](docs/TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes)
+- [Tribunal from Different Agents](docs/TRIBUNALS.md#tribunal-from-different-agents)
+- [Verdict Strategies](docs/TRIBUNALS.md#verdict-strategies)
+- [Tolerating Partial Failures](docs/TRIBUNALS.md#tolerating-partial-failures)
+- [Same Agent, Different Models](docs/TRIBUNALS.md#same-agent-different-models)
+- [Direct Usage](docs/TRIBUNALS.md#direct-usage)
+- [Lifecycle Events](docs/TRIBUNALS.md#lifecycle-events)
+
 ## License
 
 MIT © [the-teacher](https://github.com/the-teacher)
