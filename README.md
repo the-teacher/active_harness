@@ -106,6 +106,17 @@ app/
 - [Streaming in the Console](docs/AGENTS.md#streaming-in-the-console)
 - [Streaming in a Rails App](docs/AGENTS.md#streaming-in-a-rails-app)
 
+## Pipeline Documentation
+
+- [How to Create Your First Pipeline in 5 Minutes](docs/PIPELINES.md#how-to-create-your-first-pipeline-in-5-minutes)
+- [Step Types](docs/PIPELINES.md#step-types)
+- [Stop Conditions](docs/PIPELINES.md#stop-conditions)
+- [Tribunal Step](docs/PIPELINES.md#tribunal-step)
+- [Context: Accessing Previous Step Results](docs/PIPELINES.md#context-accessing-previous-step-results)
+- [Lifecycle Events](docs/PIPELINES.md#lifecycle-events)
+- [Event Streams](docs/PIPELINES.md#event-streams)
+- [Full Example](docs/PIPELINES.md#full-example)
+
 ## Tribunal Documentation
 
 - [How to Create Your First Tribunal in 5 Minutes](docs/TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes)
