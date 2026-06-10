@@ -14,7 +14,7 @@
 
 Build multi-step, trackable, cost-effective, and reliable AI flows with a clean, Rails-native DSL.
 
-![Pipeline Flow](docs/pipeline.png)
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/fc987934-1dfa-4898-8e6b-0f88f24648b7" alt="Pipeline Flow"/>
 
 ## Use Consensus-Based Decisions!
 
