@@ -4,6 +4,8 @@
 
 A Tribunal runs multiple agents **in parallel** and reduces their results to a single **verdict**.
 
+<img width="100%" src="images/tribunals.png" alt="Tribunal Diagram"/>
+
 ### 1. Define a prompt
 
 The prompt must instruct the model to return JSON with a consistent field every agent in the tribunal will produce:

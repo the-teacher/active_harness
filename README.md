@@ -28,6 +28,8 @@ Build multi-step, trackable, cost-effective, and reliable AI flows with a clean,
 
 Use `Tribunals` to run multiple agents in parallel and make `Verdicts` based on their agreement — improving **reliability** and reducing **biases** and **hallucinations**.
 
+<img width="100%" src="docs/images/tribunals.png" alt="Tribunal Diagram"/>
+
 <img widht="100%" alt="Tribunals" src="https://github.com/user-attachments/assets/1acc68b3-2d9f-4732-945b-4e99a32e853d" />
 
 ## Provide Event Tracing & Observability!
