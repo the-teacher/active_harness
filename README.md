@@ -10,6 +10,14 @@
 
 **ActiveHarness** is a Ruby framework for building production-grade LLM pipelines — with deep observability, consensus-based decisions, automatic fallbacks, and real-time cost and timing control. Made for Rails, works in plain Ruby too.
 
+Running a single LLM call is easy. Running a _reliable, observable, cost-controlled AI system_ is not.
+
+ActiveHarness gem gives you the scaffolding to build multi-step pipelines where every agent is under full control: its inputs are directed, its outputs are observed, its errors are retried, and its cost is tracked. You define the logic; ActiveHarness handles the infrastructure.
+
+## What is a "Harness"?
+
+A **harness** in software is scaffolding that keeps a component under control — directing its inputs, observing its outputs, and enforcing rules around it. **ActiveHarness** does exactly that for LLM agents.
+
 ## Build AI-Based Pipelines!
 
 Build multi-step, trackable, cost-effective, and reliable AI flows with a clean, Rails-native DSL.
@@ -36,17 +44,11 @@ Store conversation history in JSON, SQLite and PostgreSQL. Inject memory into pr
 
 <img width="1920" height="1080" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
 
-## Streaming (SSE)
+## Add Streaming (SSE)!
 
 | Rails App                         | Console                          |
 | --------------------------------- | -------------------------------- |
 | ![Streaming](docs/streaming2.gif) | ![Streaming](docs/streaming.gif) |
-
-## Why ActiveHarness?
-
-Running a single LLM call is easy. Running a _reliable, observable, cost-controlled AI system_ is not.
-
-ActiveHarness gives you the scaffolding to build multi-step pipelines where every agent is under full control: its inputs are directed, its outputs are observed, its errors are retried, and its cost is tracked. You define the logic; ActiveHarness handles the infrastructure.
 
 **What you get out of the box:**
 
@@ -72,10 +74,6 @@ ActiveHarness ships with production-ready distributed tracing to monitor AI exec
 | ![Event Tracing](docs/event_tracing.png) | ![Grafana Metrics](docs/grafana.png) |
 
 **Backend Agnostic** — Built on OpenTelemetry, ready for any collector (Jaeger, Datadog, Honeycomb, or custom).
-
-## What is a "Harness"?
-
-A **harness** in software is scaffolding that keeps a component under control — directing its inputs, observing its outputs, and enforcing rules around it. **ActiveHarness** does exactly that for LLM agents.
 
 ### Table of Contents
 
