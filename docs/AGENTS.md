@@ -288,3 +288,37 @@ class SentimentAgent < ActiveHarness::Agent
   end
 end
 ```
+
+---
+
+## Custom Providers
+
+Any OpenAI-compatible endpoint can be registered under an arbitrary name and used alongside built-in providers.
+
+Register in `config/initializers/active_harness.rb`:
+
+```ruby
+ActiveHarness.configure do |config|
+  config.custom["MyLocal"]["url"]     = "http://localhost:11434/v1/chat/completions"
+  config.custom["MyLocal"]["api_key"] = ENV["MYLOCAL_API_KEY"]  # omit if no auth required
+
+  config.custom["PrivateGPU"]["url"]     = "https://gpu.internal/v1/chat/completions"
+  config.custom["PrivateGPU"]["api_key"] = ENV["PRIVATEGPU_API_KEY"]
+end
+```
+
+Use in an agent with `provider: :custom` and `name:` matching the registered key:
+
+```ruby
+class GreetingAgent < ActiveHarness::Agent
+  system_prompt GreetingPrompt
+
+  model do
+    use      provider: :custom, name: "MyLocal",    model: "llama3.2"
+    fallback provider: :custom, name: "PrivateGPU", model: "mixtral-8x7b"
+    fallback provider: :openrouter,                 model: "mistralai/mistral-nemo"
+  end
+end
+```
+
+> `name:` is mandatory for `provider: :custom` — it identifies which endpoint to load from `config.custom`. Omitting it raises `InvalidRequestError` at call time.
