@@ -46,6 +46,10 @@ Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory i
 
 <img width="1920" height="1080" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
 
+## Visualise Models' Cost and Type
+
+<img width="1920" height="1080" alt="Pricing" src="https://github.com/user-attachments/assets/3ddbe1da-4e9d-4e5a-9f45-27e3a849dd3f" />
+
 ## Add Streaming (SSE)!
 
 | Rails App                         | Console                          |
