@@ -52,18 +52,18 @@ Store conversation history in JSON, SQLite and PostgreSQL. Inject memory into pr
 
 **What you get out of the box:**
 
-| Capability                  | What it means                                                                                               |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Multi-step Pipelines**    | Chain agents sequentially, with per-step stop conditions and context forwarding                             |
-| **Tribunal Consensus**      | Run multiple agents in parallel and accept the result only if they agree (unanimous, majority, or custom)   |
-| **Automatic Fallbacks**     | If a model fails, the next one in the chain takes over — zero extra code                                    |
-| **Retry Policy**            | Exponential backoff per model, globally configurable or per-agent                                           |
-| **Full Observability**      | Lifecycle hooks on every agent event: `before_call`, `after_call`, `retry`, `failure` — log, stream, or act |
-| **Real-time Streaming**     | SSE-ready token streaming from any agent into your Rails response                                           |
-| **Execution Time Tracking** | Per-agent and per-pipeline timing built in                                                                  |
-| **Token & Cost Tracking**   | Know exactly what each call cost in tokens and dollars                                                      |
-| **Rails-native DSL**        | Clean file structure, Railtie integration, generator support                                                |
-| **Event Tracing**           | OpenTelemetry integration for distributed tracing of agents, tribunals, and pipelines                       |
+| Capability                              | What it means                                                                                               |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Multi-step&nbsp;Pipelines**           | Chain agents sequentially, with per-step stop conditions and context forwarding                             |
+| **Tribunal&nbsp;Consensus**             | Run multiple agents in parallel and accept the result only if they agree (unanimous, majority, or custom)   |
+| **Automatic&nbsp;Fallbacks**            | If a model fails, the next one in the chain takes over — zero extra code                                    |
+| **Retry&nbsp;Policy**                   | Exponential backoff per model, globally configurable or per-agent                                           |
+| **Full&nbsp;Observability**             | Lifecycle hooks on every agent event: `before_call`, `after_call`, `retry`, `failure` — log, stream, or act |
+| **Real-time&nbsp;Streaming**            | SSE-ready token streaming from any agent into your Rails response                                           |
+| **Execution&nbsp;Time&nbsp;Tracking**   | Per-agent and per-pipeline timing built in                                                                  |
+| **Token&nbsp;&nbsp;Cost&nbsp;Tracking** | Know exactly what each call cost in tokens and dollars                                                      |
+| **Rails-native&nbsp;DSL**               | Clean file structure, Railtie integration, generator support                                                |
+| **Event&nbsp;Tracing**                  | OpenTelemetry integration for distributed tracing of agents, tribunals, and pipelines                       |
 
 ## Event Tracing & Observability
 
