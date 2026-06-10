@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.29 — 2026-06-10
+
+- **`Memory` direct instantiation blocked** — `Memory.new(...)` now raises `NotImplementedError` when called directly; users must instantiate one of the concrete subclasses: `Memory::JsonFile`, `Memory::Postgresql`, or `Memory::Sqlite`
+- **Documentation** — `docs/MEMORY.md` added: covers `Memory::JsonFile` with all options, custom memory subclass pattern, managing memory via agent callbacks, `AgentMemory` concern, three injection patterns (input prepend, system prompt hook, prompt class), `to_messages` filters, API reference, namespace isolation, pipeline sharing, and PostgreSQL / SQLite backend setup; each backend section includes a custom subclass example
+
+---
+
 ## v0.2.28 — 2026-06-09
 
 - **`Result#context_window`** — new field on `Result`; populated from `ActiveHarness::Costs` after each successful call using the model that actually ran (primary or fallback); `nil` if the model is not in the registry
