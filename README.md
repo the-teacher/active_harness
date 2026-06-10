@@ -14,7 +14,7 @@
 
 Build multi-step, trackable, cost-effective, and reliable AI flows with a clean, Rails-native DSL.
 
-<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/fc987934-1dfa-4898-8e6b-0f88f24648b7" alt="Pipeline Flow"/>
+<img width="1920" height="1080" src="https://github.com/user-attachments/assets/fc987934-1dfa-4898-8e6b-0f88f24648b7" alt="Pipeline Flow"/>
 
 ## Use Consensus-Based Decisions!
 
@@ -34,7 +34,7 @@ Use power of event hooks to log and trace every step of your AI flows, from indi
 
 Store conversation history in JSON, SQLite and PostgreSQL. Inject memory into prompts to make agents that remember past interactions.
 
-![Memory](docs/memory.png)
+<img width="1920" height="1080" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
 
 ## Streaming (SSE)
 
