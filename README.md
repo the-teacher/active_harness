@@ -92,6 +92,19 @@ app/
     └── memory/       # custom memory classes
 ```
 
+## Prompt Documentation
+
+- [How Prompts Work](docs/PROMPTS.md#how-prompts-work)
+- [Minimal Prompt](docs/PROMPTS.md#minimal-prompt)
+- [Multi-line Prompt](docs/PROMPTS.md#multi-line-prompt)
+- [Dynamic Content with @context](docs/PROMPTS.md#dynamic-content-with-context)
+- [Tuning with @params](docs/PROMPTS.md#tuning-with-params)
+- [Using @input in the Prompt](docs/PROMPTS.md#using-input-in-the-prompt)
+- [JSON Output Prompt](docs/PROMPTS.md#json-output-prompt)
+- [Using @memory for Conversation History](docs/PROMPTS.md#using-memory-for-conversation-history)
+- [Respecting @context_window](docs/PROMPTS.md#respecting-context_window)
+- [Generator](docs/PROMPTS.md#generator)
+
 ## Agent Documentation
 
 - [How to Create Your First Agent in 5 Minutes](docs/AGENTS.md#how-to-create-your-first-agent-in-5-minutes)
