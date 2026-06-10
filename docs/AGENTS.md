@@ -171,20 +171,68 @@ end
 
 ---
 
+## JSON Output and Parsing
+
+Define a prompt that instructs the model to return JSON, and add `format :json` to the agent:
+
+```ruby
+class SentimentPrompt
+  def call
+    <<~PROMPT
+      Analyze the sentiment of the user's message.
+      Return only valid JSON, no prose, no code fences:
+      RESPONSE FORMAT:
+      {
+        "sentiment": "positive"|"negative"|"neutral",
+        "score": 0.0..1.0
+      }
+    PROMPT
+  end
+end
+```
+
+```ruby
+class SentimentAgent < ActiveHarness::Agent
+  system_prompt SentimentPrompt
+  format :json
+
+  model do
+    use provider: :openrouter, model: "mistralai/mistral-nemo"
+  end
+end
+```
+
+```ruby
+agent = SentimentAgent.new
+agent.input = "I love this product!"
+agent.call
+
+result = agent.result
+
+result.output     # => '{"sentiment":"positive","score":0.92}'  — raw string, always present
+result.processed  # => {"sentiment"=>"positive","score"=>0.92}  — parsed Ruby Hash
+```
+
+`format :json` is required explicitly because ActiveHarness cannot infer your intent from the prompt alone — the model might return JSON as part of a text answer. Setting the flag also enables automatic stripping of markdown code fences (` ```json ... ``` `) that some models add despite being instructed not to, and activates the `:before_parse` / `:after_parse` / `:parse_error` hooks.
+
+Without `format :json`, `result.processed` equals `result.output` — the raw string.
+
+---
+
 ## Lifecycle Events
 
-| Event                  | Alias                    | Arguments           | When it fires                              |
-| ---------------------- | ------------------------ | ------------------- | ------------------------------------------ |
-| `on :setup`            | `callback :setup`        | —                   | Once, inside `initialize`                  |
-| `on :before_call`      | `before :call`           | —                   | Before the first model attempt             |
-| `on :after_call`       | `after :call`            | `result`            | After a successful model response          |
-| `on :before_system_prompt` | `before :system_prompt` | —              | Before the system prompt is resolved       |
-| `on :after_system_prompt`  | `after :system_prompt`  | `prompt`           | After the system prompt string is ready    |
-| `on :before_parse`     | `before :parse`          | `raw`               | Before output parsing (`format :json` only)|
-| `on :after_parse`      | `after :parse`           | `parsed`            | After successful parse (`format :json` only)|
-| `on :parse_error`      | `callback :parse_error`  | `raw, error`        | When JSON parse fails                      |
-| `on :retry`            | `callback :retry`        | `entry, error`      | After each failed model attempt            |
-| `on :failure`          | `callback :failure`      | `attempts`          | When the entire fallback chain is exhausted|
+| Event                      | Alias                   | Arguments      | When it fires                                |
+| -------------------------- | ----------------------- | -------------- | -------------------------------------------- |
+| `on :setup`                | `callback :setup`       | —              | Once, inside `initialize`                    |
+| `on :before_call`          | `before :call`          | —              | Before the first model attempt               |
+| `on :after_call`           | `after :call`           | `result`       | After a successful model response            |
+| `on :before_system_prompt` | `before :system_prompt` | —              | Before the system prompt is resolved         |
+| `on :after_system_prompt`  | `after :system_prompt`  | `prompt`       | After the system prompt string is ready      |
+| `on :before_parse`         | `before :parse`         | `raw`          | Before output parsing (`format :json` only)  |
+| `on :after_parse`          | `after :parse`          | `parsed`       | After successful parse (`format :json` only) |
+| `on :parse_error`          | `callback :parse_error` | `raw, error`   | When JSON parse fails                        |
+| `on :retry`                | `callback :retry`       | `entry, error` | After each failed model attempt              |
+| `on :failure`              | `callback :failure`     | `attempts`     | When the entire fallback chain is exhausted  |
 
 To share hooks across agents, extract them into a module and use `self.included`:
 
@@ -226,13 +274,14 @@ module AgentLogging
 end
 ```
 
-Include the concern into any agent:
+Include the concern into an agent. Use `format :json` so the parse hooks actually fire:
 
 ```ruby
-class GreetingAgent < ActiveHarness::Agent
+class SentimentAgent < ActiveHarness::Agent
   include AgentLogging
 
-  system_prompt GreetingPrompt
+  system_prompt SentimentPrompt
+  format :json
 
   model do
     use provider: :openrouter, model: "mistralai/mistral-nemo"
