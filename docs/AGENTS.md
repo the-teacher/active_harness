@@ -322,3 +322,99 @@ end
 ```
 
 > `name:` is mandatory for `provider: :custom` — it identifies which endpoint to load from `config.custom`. Omitting it raises `InvalidRequestError` at call time.
+
+---
+
+## Streaming in the Console
+
+Pass a lambda to `streams: { token: }` to receive each token as it arrives. The full output is still available in `result.output` after the stream ends.
+
+Instance API:
+
+```ruby
+agent = GreetingAgent.new
+
+print "AI: "
+agent.call("Tell me about the water cycle.", streams: { token: ->(token) { print token; $stdout.flush } })
+puts
+
+puts agent.result.execution_time
+```
+
+Class API:
+
+```ruby
+print "AI: "
+agent = GreetingAgent.call(
+  input:   "Tell me about the water cycle.",
+  streams: { token: ->(token) { print token; $stdout.flush } }
+)
+puts
+
+puts agent.result.output.length
+```
+
+> `$stdout.flush` is required in the console — without it tokens are buffered and appear all at once at the end.
+
+---
+
+## Streaming in a Rails App
+
+Use `ActionController::Live` and SSE to push tokens to the browser in real time.
+
+```ruby
+class AiController < ApplicationController
+  # Required — enables response.stream and keeps the connection open
+  include ActionController::Live
+
+  def agent_stream
+    prepare_sse_response
+
+    # All frames on this connection carry event: "message"
+    sse = ActionController::Live::SSE.new(response.stream, event: "message")
+
+    SupportAgent.call(
+      input:   params.require(:input),
+      # Each token is pushed to the browser immediately as it arrives
+      streams: { token: ->(token) { sse.write({ token: token }.to_json) } }
+    )
+
+    # Signal the client that the stream is complete
+    sse.write({ done: true }.to_json)
+  rescue ActionController::Live::ClientDisconnected
+    # Browser closed the tab or navigated away — nothing to do
+  rescue StandardError => e
+    sse.write({ error: e.message }.to_json) rescue nil
+    sse.write({ done: true }.to_json)       rescue nil
+  ensure
+    # Must always close — otherwise the thread and connection leak
+    sse.close
+  end
+
+  private
+
+  def prepare_sse_response
+    # ActionDispatch::ServerTiming crashes with Live on Rails 8
+    request.env["action_dispatch.server_timing_events"] ||= []
+    # Tell the browser this is a streaming SSE response
+    response.headers["Content-Type"]      = "text/event-stream"
+    # Every request must reach the server — no caching
+    response.headers["Cache-Control"]     = "no-cache"
+    # Disable nginx / proxy buffering so tokens arrive immediately
+    response.headers["X-Accel-Buffering"] = "no"
+  end
+end
+```
+
+Client-side JavaScript:
+
+```javascript
+const source = new EventSource("/ai/agent_stream?input=" + encodeURIComponent(input));
+
+source.addEventListener("message", (e) => {
+  const data = JSON.parse(e.data);
+  if (data.token) output.textContent += data.token;  // append token to the output element
+  if (data.done)  source.close();                     // graceful close after last token
+  if (data.error) console.error(data.error);
+});
+```
