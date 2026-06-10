@@ -8,9 +8,9 @@
 
 > **⚠️ Work in progress.** The API is under active development and may change between versions without notice.
 
-**ActiveHarness** is a Ruby framework for building production-grade LLM pipelines — with deep observability, consensus-based decisions, automatic fallbacks, and real-time cost and timing control. Made for Rails, works in plain Ruby too.
-
 Running a single LLM call is easy. Running a _reliable, observable, cost-controlled AI system_ is not.
+
+**ActiveHarness** is a Ruby framework for building production-grade LLM pipelines — with deep observability, consensus-based decisions, automatic fallbacks, and real-time cost and timing control. Made for Rails, works in plain Ruby too.
 
 ActiveHarness gem gives you the scaffolding to build multi-step pipelines where every agent is under full control: its inputs are directed, its outputs are observed, its errors are retried, and its cost is tracked. You define the logic; ActiveHarness handles the infrastructure.
 
@@ -26,7 +26,7 @@ Build multi-step, trackable, cost-effective, and reliable AI flows with a clean,
 
 ## Use Consensus-Based Decisions!
 
-Use **Tribunals** to run multiple agents in parallel and make `Verdicts` based on their agreement — improving **reliability** and reducing **biases** and **hallucinations**.
+Use `Tribunals` to run multiple agents in parallel and make `Verdicts` based on their agreement — improving **reliability** and reducing **biases** and **hallucinations**.
 
 <img width="1920" height="1080" alt="Tribunals" src="https://github.com/user-attachments/assets/1acc68b3-2d9f-4732-945b-4e99a32e853d" />
 
@@ -40,7 +40,7 @@ Use power of event hooks to log and trace every step of your AI flows, from indi
 
 ## Use Memory to make your agents stateful!
 
-Store conversation history in JSON, SQLite and PostgreSQL. Inject memory into prompts to make agents that remember past interactions.
+Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory into prompts to make agents that remember past interactions.
 
 <img width="1920" height="1080" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
 
