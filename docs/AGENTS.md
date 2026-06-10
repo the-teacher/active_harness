@@ -110,6 +110,40 @@ end
 
 ---
 
+## Modifying the Model Chain at Runtime
+
+`agent.models` returns a mutable `ModelList` proxy. Use it to adjust the chain after instantiation, before calling the agent.
+
+| Method               | What it does                                               |
+| -------------------- | ---------------------------------------------------------- |
+| `prepend([...])`     | Inserts models **before** the class-defined chain          |
+| `push([...])`        | Appends models **after** the class-defined chain           |
+| `insert(pos, {...})` | Inserts a single model at an arbitrary position            |
+| `replace([...])`     | Replaces the entire chain, discarding all previous models  |
+
+```ruby
+agent = GreetingAgent.new
+agent.input = "Hello!"
+
+# Try a fast model first, before the class-defined chain
+agent.models.prepend([{ provider: :openrouter, model: "google/gemma-4-31b-it:free" }])
+
+# Add a last-resort fallback at the end
+agent.models.push([{ provider: :openrouter, model: "qwen/qwen3-coder:free" }])
+
+# Insert a model at position 1 (after the first model)
+agent.models.insert(1, { provider: :openrouter, model: "mistralai/mistral-small-24b-instruct-2501:free" })
+
+# Replace the entire chain for this request only
+agent.models.replace([{ provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free" }])
+
+agent.call
+```
+
+The final order is: `prepended + class chain + pushed`. `insert` collapses everything into a single flat list at the moment of insertion.
+
+---
+
 ## How to Track Retries and Failures
 
 Use `on :retry` to react to each failed model attempt, and `on :failure` when the entire chain is exhausted.

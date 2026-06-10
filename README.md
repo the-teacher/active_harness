@@ -95,6 +95,7 @@ app/
 - [How to Create Your First Agent in 5 Minutes](docs/AGENTS.md#how-to-create-your-first-agent-in-5-minutes)
 - [How to Provide Fallbacks](docs/AGENTS.md#how-to-provide-fallbacks)
 - [Model Options](docs/AGENTS.md#model-options)
+- [Modifying the Model Chain at Runtime](docs/AGENTS.md#modifying-the-model-chain-at-runtime)
 - [How to Track Retries and Failures](docs/AGENTS.md#how-to-track-retries-and-failures)
 - [How to Use with RubyLLM](docs/AGENTS.md#how-to-use-with-rubyllm)
 - [JSON Output and Parsing](docs/AGENTS.md#json-output-and-parsing)
@@ -108,8 +109,10 @@ app/
 - [How to Create Your First Tribunal in 5 Minutes](docs/TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes)
 - [Tribunal from Different Agents](docs/TRIBUNALS.md#tribunal-from-different-agents)
 - [Verdict Strategies](docs/TRIBUNALS.md#verdict-strategies)
+- [Custom Verdict Logic](docs/TRIBUNALS.md#custom-verdict-logic)
 - [Tolerating Partial Failures](docs/TRIBUNALS.md#tolerating-partial-failures)
 - [Same Agent, Different Models](docs/TRIBUNALS.md#same-agent-different-models)
+- [Runtime Model Prepend per Agent](docs/TRIBUNALS.md#runtime-model-prepend-per-agent)
 - [Direct Usage](docs/TRIBUNALS.md#direct-usage)
 - [Lifecycle Events](docs/TRIBUNALS.md#lifecycle-events)
 

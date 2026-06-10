@@ -217,6 +217,55 @@ end
 
 ---
 
+## Custom Verdict Logic
+
+For anything beyond `:unanimous` and `:majority`, use a `process` block. It receives the full array of successful results and its return value becomes `#verdict`.
+
+**At least one agent says ok:**
+
+```ruby
+class SafetyTribunal < ActiveHarness::Tribunal
+  agents ToxicityAgent, AggressionAgent, SpamAgent
+
+  process do |results|
+    results.any? { |r| r.processed["result"] == true }
+  end
+end
+```
+
+**Minimum count threshold:**
+
+```ruby
+process do |results|
+  results.count { |r| r.processed["result"] == true } >= 2
+end
+```
+
+**Weighted by confidence score:**
+
+```ruby
+process do |results|
+  total_score = results.sum { |r| r.processed["score"].to_f }
+  total_score / results.size >= 0.7
+end
+```
+
+The `process` block can also be set on an instance to override the class-level definition for a single call:
+
+```ruby
+tribunal = SafetyTribunal.new(input: "...")
+tribunal.process { |results| results.any? { |r| r.processed["result"] == true } }
+tribunal.call
+```
+
+Priority order when multiple definitions exist:
+
+```
+instance process block  →  class process block  →  verdict strategy
+```
+
+---
+
 ## Tolerating Partial Failures
 
 By default a tribunal raises `AllAgentsFailed` only when **all** agents fail. Use `may_fail:` to set a stricter threshold:
@@ -261,6 +310,51 @@ class PolitenessTribunal < ActiveHarness::Tribunal
       ]
     )
   end
+end
+```
+
+---
+
+## Runtime Model Prepend per Agent
+
+Use `models.prepend` to inject a high-priority model into each agent's chain at runtime — without changing the class definition. Useful for A/B testing, routing by user tier, or temporarily promoting a model.
+
+```ruby
+class PolitenessTribunal < ActiveHarness::Tribunal
+  process do |results|
+    results.all? { |r| r.processed["result"] == true }
+  end
+
+  def initialize(input:, fast_model: nil)
+    agents = [
+      PolitenessAgent.new,
+      PolitenessAgent.new,
+      PolitenessAgent.new
+    ]
+
+    # Prepend a different first-choice model to each agent instance
+    agents[0].models.prepend([{ provider: :openrouter, model: "mistralai/mistral-nemo" }])
+    agents[1].models.prepend([{ provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free" }])
+    agents[2].models.prepend([{ provider: :openrouter, model: "google/gemma-4-31b-it:free" }])
+
+    # Optionally prepend a shared fast model to all agents at position 0
+    if fast_model
+      agents.each do |agent|
+        agent.models.prepend([{ provider: :openrouter, model: fast_model }])
+      end
+    end
+
+    super(input: input, agents: agents)
+  end
+end
+```
+
+```ruby
+tribunal = PolitenessTribunal.new(input: "I hate this product!")
+tribunal.call
+
+tribunal.results.each do |result|
+  puts "#{result.model}: #{result.processed["result"].inspect}"
 end
 ```
 
