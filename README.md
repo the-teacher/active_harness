@@ -127,6 +127,20 @@ app/
 - [Event Streams](docs/PIPELINES.md#event-streams)
 - [Full Example](docs/PIPELINES.md#full-example)
 
+## Memory Documentation
+
+- [How Memory Works](docs/MEMORY.md#how-memory-works)
+- [JsonFile Memory](docs/MEMORY.md#jsonfile-memory)
+- [Custom Memory Class](docs/MEMORY.md#custom-memory-class)
+- [Managing Memory via Agent Callbacks](docs/MEMORY.md#managing-memory-via-agent-callbacks)
+- [Injection Patterns](docs/MEMORY.md#injection-patterns)
+- [Filtering History with to_messages](docs/MEMORY.md#filtering-history-with-to_messages)
+- [Memory API Reference](docs/MEMORY.md#memory-api-reference)
+- [Memory with namespace:](docs/MEMORY.md#memory-with-namespace)
+- [Sharing Memory Across Pipeline Steps](docs/MEMORY.md#sharing-memory-across-pipeline-steps)
+- [PostgreSQL Backend](docs/MEMORY.md#postgresql-backend)
+- [SQLite Backend](docs/MEMORY.md#sqlite-backend)
+
 ## Tribunal Documentation
 
 - [How to Create Your First Tribunal in 5 Minutes](docs/TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes)
