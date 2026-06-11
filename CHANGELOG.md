@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.30 — 2026-06-11
+
+- **`Pipeline#result`** — new method that wraps pipeline outcome into a `Result` struct (`input`, `output`, `processed`, `execution_time`); `processed` carries `{ "stopped" => bool, "stopped_at" => step_name_or_nil }`; lets a pipeline be used as a step inside another pipeline with the same duck-type interface as `Agent` and `Tribunal`
+- **`Pipeline::Step#transform` DSL** — new block-form DSL inside a step definition; the block receives the `Result` and must return the new payload value; enables custom extraction when the raw `result.output` is not what should flow downstream (e.g. nested pipeline steps, struct fields)
+- **`Step#transform?` updated** — now returns `true` when an explicit `transform` block is defined, regardless of whether `stop_if` is also set; legacy default (`!tribunal? && @stop_if.nil?`) still applies when no block is given
+- **`Step#extract_payload`** — new private helper; calls the user's `transform` block when present, otherwise falls back to `result.output`; replaces the inline `result.output` assignment in `Pipeline#call`
+- **`execute_step` forwards `pipeline:` stream** — nested pipeline instances now receive the outer pipeline's `@pipeline_event_stream`; inner pipeline step events (`:before_step`, `:after_step`, `:stopped`, `:complete`) propagate to SSE controllers and other stream consumers transparently
+
+---
+
 ## v0.2.29 — 2026-06-10
 
 - **`Memory` direct instantiation blocked** — `Memory.new(...)` now raises `NotImplementedError` when called directly; users must instantiate one of the concrete subclasses: `Memory::JsonFile`, `Memory::Postgresql`, or `Memory::Sqlite`
