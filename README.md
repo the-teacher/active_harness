@@ -136,6 +136,17 @@ app/
 - [Event Streams](docs/PIPELINES.md#event-streams)
 - [Full Example](docs/PIPELINES.md#full-example)
 
+## Nested Pipelines Documentation
+
+- [How It Works](docs/NESTED_PIPLINES.md#how-it-works)
+- [Minimal Example](docs/NESTED_PIPLINES.md#minimal-example)
+- [Stopping the Outer Pipeline from the Inside](docs/NESTED_PIPLINES.md#stopping-the-outer-pipeline-from-the-inside)
+- [transform — Why It Is Required](docs/NESTED_PIPLINES.md#transform--why-it-is-required)
+- [Accessing Inner Results from the Outer Context](docs/NESTED_PIPLINES.md#accessing-inner-results-from-the-outer-context)
+- [Event Streams](docs/NESTED_PIPLINES.md#event-streams)
+- [Multiple Levels of Nesting](docs/NESTED_PIPLINES.md#multiple-levels-of-nesting)
+- [Reference](docs/NESTED_PIPLINES.md#reference)
+
 ## Tribunal Documentation
 
 - [How to Create Your First Tribunal in 5 Minutes](docs/TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes)
