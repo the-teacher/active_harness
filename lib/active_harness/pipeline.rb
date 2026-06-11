@@ -140,6 +140,20 @@ module ActiveHarness
       @stopped
     end
 
+    # Wraps pipeline outcome into a Result so a pipeline can be used as a step
+    # inside another pipeline, matching the same interface as Agent and Tribunal.
+    #
+    # output    — final payload (nil when stopped)
+    # processed — { "stopped" => bool, "stopped_at" => step_name_string_or_nil }
+    def result
+      Result.new(
+        input:          @original_input,
+        output:         @output,
+        processed:      { "stopped" => @stopped, "stopped_at" => @stopped_at&.to_s },
+        execution_time: @execution_time
+      )
+    end
+
     # Execute all steps sequentially. Returns self for chaining.
     def call
       config = self.class.pipeline_config
@@ -155,7 +169,7 @@ module ActiveHarness
 
         @step_results[step.name] = result
         @context[step.name]      = result
-        @payload                 = result.output if step.transform?
+        @payload                 = step.extract_payload(result) if step.transform?
 
         fire(:after_step, step.name, result, config)
         fire_step(:after_step, step.name, result, config)
@@ -210,7 +224,12 @@ module ActiveHarness
     end
 
     def execute_step(step)
-      streams = { token: @token_stream, agent: @agent_event_stream, tribunal: @tribunal_event_stream }.compact
+      streams = {
+        token:    @token_stream,
+        agent:    @agent_event_stream,
+        tribunal: @tribunal_event_stream,
+        pipeline: @pipeline_event_stream
+      }.compact
       step.agent_class.new(
         input:   @payload,
         context: @context.dup,
