@@ -22,13 +22,19 @@ A **harness** in software is scaffolding that keeps a component under control â€
 
 Build multi-step, trackable, cost-effective, and reliable AI flows with a clean, Rails-native DSL.
 
-<img widht="100%" src="https://github.com/user-attachments/assets/fc987934-1dfa-4898-8e6b-0f88f24648b7" alt="Pipeline Flow"/>
+<img width="100%" src="https://github.com/user-attachments/assets/fc987934-1dfa-4898-8e6b-0f88f24648b7" alt="Pipeline Flow"/>
 
 ## Build Nested AI Pipelines!
 
 Group related steps into reusable sub-pipelines, and compose complex workflows from smaller ones. Each pipeline is just another step, with its own stop conditions, context forwarding, and execution time tracking.
 
-<img widht="100%" src="https://github.com/user-attachments/assets/10d8ce3f-89aa-4c58-8697-73c34d6067a3" alt="Nested Pipelines"/>
+<img width="100%" src="https://github.com/user-attachments/assets/10d8ce3f-89aa-4c58-8697-73c34d6067a3" alt="Nested Pipelines"/>
+
+## Control the Cost of Your AI Calls!
+
+With ActiveHarness you can track time, tokens, and dollars for every agent call, pipeline step, and tribunal.
+
+<img width="100%"  src="https://github.com/user-attachments/assets/ec0905f0-3118-4f49-95c1-1c216f5a037c" alt="Cost Control" />
 
 ## Use Consensus-Based Decisions!
 
@@ -36,7 +42,7 @@ Use `Tribunals` to run multiple agents in parallel and make `Verdicts` based on 
 
 <img width="100%" src="docs/images/tribunals.png" alt="Tribunal Diagram"/>
 
-<img widht="100%" alt="Tribunals" src="https://github.com/user-attachments/assets/1acc68b3-2d9f-4732-945b-4e99a32e853d" />
+<img width="100%" alt="Tribunals" src="https://github.com/user-attachments/assets/1acc68b3-2d9f-4732-945b-4e99a32e853d" />
 
 ## Provide Event Tracing & Observability!
 
@@ -52,11 +58,11 @@ Use power of event hooks to log and trace every step of your AI flows, from indi
 
 Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory into prompts to make agents that remember past interactions.
 
-<img widht="100%" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
+<img width="100%" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
 
 ## Visualise Models' Cost and Type
 
-<img widht="100%" alt="Pricing" src="https://github.com/user-attachments/assets/3ddbe1da-4e9d-4e5a-9f45-27e3a849dd3f" />
+<img width="100%" alt="Pricing" src="https://github.com/user-attachments/assets/3ddbe1da-4e9d-4e5a-9f45-27e3a849dd3f" />
 
 ## Add Streaming (SSE)!
 
