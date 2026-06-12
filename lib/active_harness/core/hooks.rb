@@ -18,7 +18,7 @@ module ActiveHarness
       # Blocks run in the receiver's instance context (instance_exec / instance_eval).
       def run_hooks(hooks_hash, event, *args)
         Array(hooks_hash[event]).each do |blk|
-          args.any? ? instance_exec(*args, &blk) : instance_eval(&blk)
+          args.empty? ? instance_eval(&blk) : instance_exec(*args, &blk)
         end
       end
     end
