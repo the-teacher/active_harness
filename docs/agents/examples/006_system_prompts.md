@@ -93,7 +93,7 @@ When ActiveHarness resolves a system prompt class it injects the full agent stat
 | `@context` | `Hash` | Arbitrary caller-supplied context |
 | `@params` | `Hash` | Technical parameters passed via `params:` |
 | `@memory` | `Memory \| nil` | Memory object if `memory:` was passed |
-| `@context_window` | `Integer \| nil` | Context window size for the primary model (from `Costs`); `nil` if unknown |
+| `@context_window` | `Integer \| nil` | Context window size for the primary model (from `Pricing`); `nil` if unknown |
 | `@config` | `Hash` | Agent class-level DSL config (read-only) |
 
 `@context` is for domain data (user id, locale, flags). `@params` is for technical overrides that should not mix with domain context — things like `{ history_fraction: 0.4 }` or `{ max_tokens: 500 }`.

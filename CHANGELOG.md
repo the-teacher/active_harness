@@ -19,8 +19,8 @@
 
 ## v0.2.28 — 2026-06-09
 
-- **`Result#context_window`** — new field on `Result`; populated from `ActiveHarness::Costs` after each successful call using the model that actually ran (primary or fallback); `nil` if the model is not in the registry
-- **`Agent#context_window`** — new `attr_reader`; set at initialization time from the first model in the list via `Costs`; available in all hook blocks as `@context_window`; injected into prompt class instances alongside `@input`, `@memory`, etc.
+- **`Result#context_window`** — new field on `Result`; populated from `ActiveHarness::Pricing` after each successful call using the model that actually ran (primary or fallback); `nil` if the model is not in the registry
+- **`Agent#context_window`** — new `attr_reader`; set at initialization time from the first model in the list via `Pricing`; available in all hook blocks as `@context_window`; injected into prompt class instances alongside `@input`, `@memory`, etc.
 - **`Memory#to_messages(token_budget:)`** — new optional parameter; trims turns oldest-first using a `chars / 4` token estimate until the budget is satisfied; composable with existing `filter:`, `since:`, and `depth:` options
 - **`MemoryPrompt` updated** — automatically passes `token_budget: context_window * 0.25` to `to_messages` when `@context_window` is present; falls back to no limit when context window is unknown
 
@@ -164,13 +164,13 @@
 
 - **`result.cost`** — `{ input_cost:, output_cost:, total_cost: }` in USD per request
 - **`agent/cost.rb`** — `calculate_cost` private method; `nil` when model or usage is missing
-- **`Costs.load_registry`** — robust loading: falls back to bundled `data/models.json` when cache is absent or corrupted (`JSON::ParserError`)
+- **`Pricing.load_registry`** — robust loading: falls back to bundled `data/models.json` when cache is absent or corrupted (`JSON::ParserError`)
 
 ---
 
 ## v0.2.12 — 2026-05-25
 
-- **`ActiveHarness::Costs`** module — pricing registry for 100+ models
+- **`ActiveHarness::Pricing`** module — pricing registry for 100+ models
 - **`data/models.json`** — bundled pricing data (`input_per_million` / `output_per_million` in USD)
 - Docs: `docs/agents/costs.md`
 

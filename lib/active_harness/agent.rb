@@ -196,7 +196,7 @@ module ActiveHarness
 
     def lookup_model_cost(entry)
       return nil unless entry
-      Costs.find(entry[:model].to_s)
+      Pricing.find(entry[:model].to_s)
     rescue StandardError
       nil
     end

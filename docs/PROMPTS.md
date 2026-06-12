@@ -253,7 +253,7 @@ class MemoryPrompt
 end
 ```
 
-`@context_window` comes from the Costs table for the primary model. When it is `nil` (unknown model), `token_budget: nil` disables the limit.
+`@context_window` comes from the Pricing registry for the primary model. When it is `nil` (unknown model), `token_budget: nil` disables the limit.
 
 ---
 

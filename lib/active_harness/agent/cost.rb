@@ -3,7 +3,7 @@ module ActiveHarness
     private
 
     # Builds a CostBreakdown for a single request from token usage and
-    # pricing data from ActiveHarness::Costs.
+    # pricing data from ActiveHarness::Pricing.
     #
     # Returns CostBreakdown (input, output, total in USD),
     # or nil if usage is absent or the model is not found in the pricing registry.

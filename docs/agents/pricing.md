@@ -34,18 +34,18 @@ All values are in **USD**, rounded to 8 decimal places.
 ## Pricing Registry
 
 ActiveHarness ships with a bundled pricing snapshot (`lib/active_harness/data/models.json`).  
-The registry is refreshed automatically once per day and cached to `{project_root}/tmp/active_harness/costs.json`.
+The registry is refreshed automatically once per day and cached to `{project_root}/tmp/active_harness/pricing.json`.
 
 **Fetch fresh data manually:**
 
 ```ruby
-ActiveHarness::Costs.update   # downloads from models.dev and saves to tmp/
+ActiveHarness::Pricing.update   # downloads from models.dev and saves to tmp/
 ```
 
 **Look up a model:**
 
 ```ruby
-m = ActiveHarness::Costs.find("mistralai/mistral-nemo")
+m = ActiveHarness::Pricing.find("mistralai/mistral-nemo")
 puts m.input_per_million    # => 0.15   (USD per 1M input tokens)
 puts m.output_per_million   # => 0.15   (USD per 1M output tokens)
 ```
@@ -53,16 +53,16 @@ puts m.output_per_million   # => 0.15   (USD per 1M output tokens)
 **Browse by provider:**
 
 ```ruby
-ActiveHarness::Costs.providers.openai      # => [ModelCost, ...]
-ActiveHarness::Costs.providers[:mistral]
-ActiveHarness::Costs.providers.list        # => ["anthropic", "gemini", "mistral", ...]
+ActiveHarness::Pricing.providers.openai      # => [ModelPrice, ...]
+ActiveHarness::Pricing.providers[:mistral]
+ActiveHarness::Pricing.providers.list        # => ["anthropic", "gemini", "mistral", ...]
 
-ActiveHarness::Costs.all                   # => all models from all supported providers
+ActiveHarness::Pricing.all                   # => all models from all supported providers
 ```
 
 ---
 
-## ModelCost Fields
+## ModelPrice Fields
 
 | Field                           | Type        | Description                       |
 | ------------------------------- | ----------- | --------------------------------- |

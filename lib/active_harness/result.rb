@@ -3,7 +3,7 @@ require "json"
 module ActiveHarness
   # Value objects for structured result data.
 
-  # Pricing rates for a model (per-token, from Costs registry).
+  # Pricing rates for a model (per-token, from Pricing registry).
   # nil when the model is not found in the pricing registry.
   ModelPricing = Struct.new(:input, :output, keyword_init: true)
 

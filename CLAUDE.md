@@ -53,7 +53,7 @@ Sequential chain of agents and tribunals as named steps. Each step can have a `s
 
 **Providers** (`lib/active_harness/providers/`) — One file per provider, all subclassing `Providers::Base`. Supported symbols: `:openai`, `:anthropic`, `:gemini`, `:groq`, `:openrouter`, `:xai`, `:deepseek`, `:mistral`, `:ollama`, `:perplexity`, `:gpustack`, `:azure`, `:bedrock`, `:vertexai`, `:custom`. To add a provider: subclass `Providers::Base`, implement `#call`, register in `agent/providers.rb` `PROVIDERS` hash.
 
-**`ActiveHarness::Costs`** — Pulls pricing from `models.dev` API (cached 24h in `tmp/active_harness/costs.json`), falls back to bundled `lib/active_harness/data/models.json`.
+**`ActiveHarness::Pricing`** — Pulls pricing from `models.dev` API (cached 24h in `tmp/active_harness/pricing.json`), falls back to bundled `lib/active_harness/data/models.json`.
 
 ### Hooks System
 

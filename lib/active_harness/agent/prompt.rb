@@ -61,7 +61,7 @@ module ActiveHarness
     end
 
     def context_window_for_prompt
-      Costs.find(model_list.to_a.first&.dig(:model).to_s)&.context_window
+      Pricing.find(model_list.to_a.first&.dig(:model).to_s)&.context_window
     rescue StandardError
       nil
     end

@@ -163,7 +163,7 @@ Prompt classes receive the same instance context as hooks, so `@memory` is acces
 
 ## Context window and history budgeting
 
-Every agent automatically looks up the context window size for its primary model from `ActiveHarness::Costs` at initialization time. The value is stored as `@context_window` (an integer, or `nil` if the model is not in the registry) and is:
+Every agent automatically looks up the context window size for its primary model from `ActiveHarness::Pricing` at initialization time. The value is stored as `@context_window` (an integer, or `nil` if the model is not in the registry) and is:
 
 - available in all hook blocks (`on :before_call`, etc.)
 - injected into prompt class instances alongside `@input`, `@memory`, etc.

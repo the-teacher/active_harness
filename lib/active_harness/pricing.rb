@@ -10,28 +10,28 @@ module ActiveHarness
   # by ActiveHarness (files present in lib/active_harness/providers/).
   #
   # Data source priority:
-  #   1. {project_root}/tmp/active_harness/costs.json — fetched cache (refreshed once per day)
+  #   1. {project_root}/tmp/active_harness/pricing.json — fetched cache (refreshed once per day)
   #   2. lib/active_harness/data/models.json           — bundled fallback (ships with gem)
   #
   # Usage:
   #
   #   # Fetch fresh data and save to tmp cache (also called automatically when stale)
-  #   ActiveHarness::Costs.update
+  #   ActiveHarness::Pricing.update
   #
   #   # All models (auto-updates cache if missing or older than 24h)
-  #   ActiveHarness::Costs.all
+  #   ActiveHarness::Pricing.all
   #
   #   # Single model by ID
-  #   ActiveHarness::Costs.find("gpt-4o")
+  #   ActiveHarness::Pricing.find("gpt-4o")
   #
   #   # By provider — method or bracket syntax
-  #   ActiveHarness::Costs.providers.openai
-  #   ActiveHarness::Costs.providers[:anthropic]
+  #   ActiveHarness::Pricing.providers.openai
+  #   ActiveHarness::Pricing.providers[:anthropic]
   #
   #   # List providers that have data
-  #   ActiveHarness::Costs.providers.list
+  #   ActiveHarness::Pricing.providers.list
   #
-  module Costs
+  module Pricing
     BUNDLED_DATA_FILE = File.expand_path("data/models.json", __dir__).freeze
     MODELS_DEV_URL    = "https://models.dev/api.json"
     CACHE_TTL         = 86_400 # 24 hours in seconds
@@ -54,7 +54,7 @@ module ActiveHarness
     }.freeze
 
     # Value object representing the pricing for a single model.
-    ModelCost = Struct.new(
+    ModelPrice = Struct.new(
       :id,
       :name,
       :provider,
@@ -89,31 +89,31 @@ module ActiveHarness
         parts << "output=$#{output_per_million}/M" if output_per_million
         parts << "ctx=#{context_window}"           if context_window
         parts << "cats=#{categories.join(',')}"    if categories.any?
-        "#<ModelCost #{parts.join(' ')}>"
+        "#<ModelPrice #{parts.join(' ')}>"
       end
     end
 
     # Proxy object that exposes providers as methods and via [].
     class ProvidersProxy
       def [](name)
-        ActiveHarness::Costs.for_provider(name.to_s)
+        ActiveHarness::Pricing.for_provider(name.to_s)
       end
 
       def list
-        ActiveHarness::Costs.provider_names
+        ActiveHarness::Pricing.provider_names
       end
 
       def method_missing(name, *args, &block)
         provider = name.to_s
-        if ActiveHarness::Costs.provider_names.include?(provider)
-          ActiveHarness::Costs.for_provider(provider)
+        if ActiveHarness::Pricing.provider_names.include?(provider)
+          ActiveHarness::Pricing.for_provider(provider)
         else
           super
         end
       end
 
       def respond_to_missing?(name, include_private = false)
-        ActiveHarness::Costs.provider_names.include?(name.to_s) || super
+        ActiveHarness::Pricing.provider_names.include?(name.to_s) || super
       end
     end
 
@@ -154,7 +154,7 @@ module ActiveHarness
       end
 
       # Fetches fresh pricing data from models.dev, filters to supported providers,
-      # and writes the result to {project_root}/tmp/active_harness/costs.json.
+      # and writes the result to {project_root}/tmp/active_harness/pricing.json.
       # Returns the number of models saved, or raises on HTTP failure.
       def update
         raw_api = fetch_models_dev
@@ -176,7 +176,7 @@ module ActiveHarness
 
       # Path to the per-project cache file.
       def cache_file
-        File.join(project_root, "tmp", "active_harness", "costs.json")
+        File.join(project_root, "tmp", "active_harness", "pricing.json")
       end
 
       # Names of providers supported by ActiveHarness (derived from providers/ directory).
@@ -267,7 +267,7 @@ module ActiveHarness
 
       def build_cost(raw)
         standard = raw.dig(:pricing, :text_tokens, :standard) || {}
-        ModelCost.new(
+        ModelPrice.new(
           id:                            raw[:id],
           name:                          raw[:name],
           provider:                      raw[:provider],
