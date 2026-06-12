@@ -54,7 +54,6 @@ module ActiveHarness
                   :params,
                   :memory
     attr_reader   :result,
-                  :context_window,
                   :token_stream,
                   :event_stream
 
@@ -77,9 +76,8 @@ module ActiveHarness
       @context         = context
       @params          = params
       @memory          = memory
-      @models_override  = Array(models) if models
-      @context_window   = lookup_context_window(self.models.to_a.first)
-      @token_stream     = streams[:token]
+      @models_override = Array(models) if models
+      @token_stream    = streams[:token]
       @event_stream     = streams[:agent]
       fire(:setup)
     end
@@ -146,31 +144,59 @@ module ActiveHarness
     end
 
     def build_result(response, entry, attempts, elapsed)
-      raw       = response[:content]
-      processed = parse_output(raw)
-      usage     = response[:usage]
-      cw        = lookup_context_window(entry)
+      raw        = response[:content]
+      processed  = parse_output(raw)
+      raw_usage  = response[:usage]
+      model_cost = lookup_model_cost(entry)
 
       Result.new(
         input:          @input,
         output:         raw,
         processed:      processed,
         system_prompt:  @system_prompt,
-        provider:       entry[:provider],
-        model:          entry[:model],
-        temperature:    entry[:temperature],
+        model:          build_model_info(entry, model_cost),
         model_list:     model_list,
         attempts:       attempts,
         execution_time: elapsed,
-        usage:          usage,
-        cost:           calculate_cost(entry[:model], usage),
-        context_window: cw
+        usage:          build_usage(raw_usage, model_cost)
       )
     end
 
-    def lookup_context_window(entry)
+    def build_model_info(entry, model_cost)
+      pricing = if model_cost&.input_per_million && model_cost&.output_per_million
+        ModelPricing.new(
+          input:  (model_cost.input_per_million  / 1_000_000.0).round(10),
+          output: (model_cost.output_per_million / 1_000_000.0).round(10)
+        )
+      end
+
+      ModelInfo.new(
+        name:           entry[:model],
+        provider:       entry[:provider],
+        temperature:    entry[:temperature],
+        context_window: model_cost&.context_window,
+        pricing:        pricing
+      )
+    end
+
+    def build_usage(raw_usage, model_cost)
+      return nil if raw_usage.nil?
+
+      tokens = TokenCounts.new(
+        input:  raw_usage[:input_tokens],
+        output: raw_usage[:output_tokens],
+        total:  raw_usage[:total_tokens]
+      )
+
+      UsageInfo.new(
+        tokens: tokens,
+        cost:   calculate_cost(model_cost, tokens)
+      )
+    end
+
+    def lookup_model_cost(entry)
       return nil unless entry
-      Costs.find(entry[:model])&.context_window
+      Costs.find(entry[:model].to_s)
     rescue StandardError
       nil
     end

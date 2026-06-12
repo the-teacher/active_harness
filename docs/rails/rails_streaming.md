@@ -168,7 +168,7 @@ def lifecycle_event_message(event, args)
     { event: "after_call",
       text:  "Response received (#{result.execution_time}s)",
       level: "success",
-      model: result.model,
+      model: result.model.name,
       time:  result.execution_time }
   when :retry
     entry, error = args

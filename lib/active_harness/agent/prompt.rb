@@ -57,7 +57,13 @@ module ActiveHarness
       obj.instance_variable_set(:@params,         @params)
       obj.instance_variable_set(:@config,         @config)
       obj.instance_variable_set(:@memory,         @memory)
-      obj.instance_variable_set(:@context_window, @context_window)
+      obj.instance_variable_set(:@context_window, context_window_for_prompt)
+    end
+
+    def context_window_for_prompt
+      Costs.find(model_list.to_a.first&.dig(:model).to_s)&.context_window
+    rescue StandardError
+      nil
     end
   end
 end

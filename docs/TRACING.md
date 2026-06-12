@@ -32,9 +32,9 @@ class SupportAgent < ActiveHarness::Agent
 
   after(:call) do |result|
     Rails.logger.info "[#{self.class.name}] done " \
-                      "model=#{result.model} " \
+                      "model=#{result.model.name} " \
                       "time=#{result.execution_time}s " \
-                      "tokens=#{result.usage&.dig("total_tokens")}"
+                      "tokens=#{result.usage&.tokens&.total}"
   end
 
   callback(:retry) do |entry, error|
@@ -59,7 +59,7 @@ module AgentLogging
 
     base.after(:call) do |result|
       Rails.logger.info "[#{self.class.name}] done " \
-                        "model=#{result.model} " \
+                        "model=#{result.model.name} " \
                         "time=#{result.execution_time}s"
     end
 
@@ -216,12 +216,12 @@ module AgentTracing
       if @tracer_span
         @tracer_span
           .event("after_call",
-            llm: { model: result.model, time_s: result.execution_time, tokens: result.usage&.dig("total_tokens") }
+            llm: { model: result.model.name, time_s: result.execution_time, tokens: result.usage&.tokens&.total }
           )
           .attrs({
-            "llm.model"  => result.model,
+            "llm.model"  => result.model.name,
             "llm.time_s" => result.execution_time,
-            "llm.tokens" => result.usage&.dig("total_tokens")
+            "llm.tokens" => result.usage&.tokens&.total
           })
           .attrs(tracing_extra_params(result))
           .finish
@@ -307,7 +307,7 @@ module TribunalTracing
     base.on(:after_agent) do |result, index|
       @tracer_span&.event("agent_done",
         agent: { index: index },
-        llm:   { model: result.model, time_s: result.execution_time }
+        llm:   { model: result.model.name, time_s: result.execution_time }
       )
     end
 
@@ -372,7 +372,7 @@ module PipelineTracing
       if (span = @tracer_spans&.delete(step_name))
         attrs = {}
         attrs["llm.time_s"] = result.execution_time if result.respond_to?(:execution_time)
-        attrs["llm.model"]  = result.model          if result.respond_to?(:model)
+        attrs["llm.model"]  = result.model.name          if result.respond_to?(:model)
         span.attrs(attrs).finish
       end
     end

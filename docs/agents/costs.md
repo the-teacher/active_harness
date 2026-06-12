@@ -12,10 +12,10 @@ Cost is computed from token usage and per-model pricing data bundled with the ge
 agent = SupportAgent.call(input: "What is your return policy?")
 result = agent.result
 
-if result.cost
-  puts result.cost[:input_cost]   # => 0.00003
-  puts result.cost[:output_cost]  # => 0.00024
-  puts result.cost[:total_cost]   # => 0.00027
+if result.usage.cost
+  puts result.usage.cost.input   # => 0.00003
+  puts result.usage.cost.output  # => 0.00024
+  puts result.usage.cost.total   # => 0.00027
 else
   puts "Cost unavailable for this model"
 end
@@ -23,7 +23,7 @@ end
 
 All values are in **USD**, rounded to 8 decimal places.
 
-`result.cost` is `nil` when:
+`result.usage.cost` is `nil` when:
 
 - The model is not found in the pricing registry.
 - The provider did not return usage data (some free-tier models, streaming without usage header).

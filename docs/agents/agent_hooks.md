@@ -15,7 +15,7 @@ Instance-level registration overrides class-level:
 
 ```ruby
 agent = MyAgent.new
-agent.on(:after_call) { |result| puts result.model }
+agent.on(:after_call) { |result| puts result.model.name }
 ```
 
 ---

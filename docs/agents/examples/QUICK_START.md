@@ -78,7 +78,7 @@ end
 
 ```ruby
 on :after_call do |result|
-  puts "✓ #{result.model}: #{result.execution_time}s"
+  puts "✓ #{result.model.name}: #{result.execution_time}s"
 end
 
 on :retry do |entry, error|

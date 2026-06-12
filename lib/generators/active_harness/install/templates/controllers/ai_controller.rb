@@ -12,7 +12,7 @@ class AiSupportController < ApplicationController
 
     render json: {
       output: result.output,
-      model:  result.model,
+      model:  result.model.name,
       time:   result.execution_time
     }
   end
@@ -30,7 +30,7 @@ class AiSupportController < ApplicationController
 
     render json: {
       output: result.output,
-      model:  result.model,
+      model:  result.model.name,
       time:   result.execution_time,
       turns:  memory.size
     }

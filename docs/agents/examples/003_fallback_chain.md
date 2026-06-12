@@ -58,7 +58,7 @@ agent = ResilientAgent.new(input: "What is the meaning of life?")
 agent.call
 result = agent.result
 
-puts "\n✓ Successfully used model: #{result.model}"
+puts "\n✓ Successfully used model: #{result.model.name}"
 puts "Response: #{result.output}"
 ```
 

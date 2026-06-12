@@ -49,7 +49,7 @@ Sequential chain of agents and tribunals as named steps. Each step can have a `s
 
 **`ActiveHarness::Memory`** (`lib/active_harness/memory.rb`) — Conversation history storage. Must be subclassed (`Memory::JsonFile`, `Memory::Postgresql`, `Memory::Sqlite`). Records turns automatically after each successful agent/pipeline call. **Memory is never auto-injected into LLM messages** — always inject manually via a hook, prompt class, or `before_call` block.
 
-**`ActiveHarness::Result`** — `Struct` wrapping: `input`, `output`, `processed`, `system_prompt`, `provider`, `model`, `temperature`, `model_list`, `attempts`, `execution_time`, `usage`, `cost`, `context_window`. For `format :json` agents, `processed` is a parsed Ruby Hash/Array; for `:text` it's the raw string.
+**`ActiveHarness::Result`** — `Struct` wrapping: `input`, `output`, `processed`, `system_prompt`, `model` (a `ModelInfo` struct with `.name`, `.provider`, `.temperature`, `.context_window`, `.pricing`), `model_list`, `attempts`, `execution_time`, `usage` (a `UsageInfo` struct with `.tokens.{input,output,total}` and `.cost.{input,output,total}`). For `format :json` agents, `processed` is a parsed Ruby Hash/Array; for `:text` it's the raw string.
 
 **Providers** (`lib/active_harness/providers/`) — One file per provider, all subclassing `Providers::Base`. Supported symbols: `:openai`, `:anthropic`, `:gemini`, `:groq`, `:openrouter`, `:xai`, `:deepseek`, `:mistral`, `:ollama`, `:perplexity`, `:gpustack`, `:azure`, `:bedrock`, `:vertexai`, `:custom`. To add a provider: subclass `Providers::Base`, implement `#call`, register in `agent/providers.rb` `PROVIDERS` hash.
 

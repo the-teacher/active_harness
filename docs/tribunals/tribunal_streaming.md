@@ -139,13 +139,13 @@ def tribunal_event_message(event, args)
     result, index = args
     polite = result.processed&.dig("result") == true
     { event: "agent_done",
-      text:  "Agent #{index + 1} done: #{result.model} (#{result.execution_time}s)",
+      text:  "Agent #{index + 1} done: #{result.model.name} (#{result.execution_time}s)",
       level: polite ? "success" : "warning",
       index: index,
-      model: result.model,
+      model: result.model.name,
       time:  result.execution_time,
       usage: result.usage,
-      cost:  result.cost,
+      cost:  result.usage.cost,
       result: polite,
       reason: result.processed&.dig("reason") }
   when :agent_error

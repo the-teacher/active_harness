@@ -8,9 +8,9 @@ agent.call
 result = agent.result
 
 if result.usage
-  puts result.usage[:input_tokens]   # => 41
-  puts result.usage[:output_tokens]  # => 78
-  puts result.usage[:total_tokens]   # => 119
+  puts result.usage.tokens.input   # => 41
+  puts result.usage.tokens.output  # => 78
+  puts result.usage.tokens.total   # => 119
 end
 ```
 
@@ -20,6 +20,6 @@ For a tribunal, inspect each agent's result individually:
 tribunal.call
 
 tribunal.results.each do |result|
-  puts "#{result.model}: #{result.usage&.dig(:total_tokens)} tokens"
+  puts "#{result.model.name}: #{result.usage&.tokens&.total} tokens"
 end
 ```

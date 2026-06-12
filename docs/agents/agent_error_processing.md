@@ -124,7 +124,7 @@ records every failed attempt that occurred before the successful one:
 ```ruby
 result = SupportAgent.call(input: "Hello").result
 
-puts result.model      # => "meta-llama/llama-3.1-8b-instruct"  (the model that succeeded)
+puts result.model.name      # => "meta-llama/llama-3.1-8b-instruct"  (the model that succeeded)
 puts result.attempts   # => [{provider:, model:, error:, ...}, ...]  (everything that failed before)
 ```
 

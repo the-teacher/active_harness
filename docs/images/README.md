@@ -110,13 +110,13 @@ agent.call
 result = agent.result
 
 puts result.output                     # => "Our return policy is..."
-puts result.model                      # => "mistralai/mistral-nemo"
+puts result.model.name                      # => "mistralai/mistral-nemo"
 puts result.execution_time             # => 1.352  (seconds)
 
 # If providers return token usage info, it's all here:
-puts result.usage[:input_tokens]       # => 41
-puts result.usage[:output_tokens]      # => 78
-puts result.usage[:total_tokens]       # => 119
+puts result.usage.tokens.input       # => 41
+puts result.usage.tokens.output      # => 78
+puts result.usage.tokens.total       # => 119
 ```
 
 `call` returns `self`, so calls can be chained:
@@ -210,7 +210,7 @@ puts politeness_tribunal.execution_time   # => 0.94  (both agents ran in paralle
 
 # Inspect each agent's reasoning:
 politeness_tribunal.results.each do |result|
-  puts result.model                        # => "gpt-4o-mini"
+  puts result.model.name                        # => "gpt-4o-mini"
   puts result.parsed["result"]             # => false
   puts result.parsed["reason"]             # => "The message contains aggressive language..."
 end
@@ -449,7 +449,7 @@ When a provider returns token counts, they are available on the `Result` object 
 
 ## Cost Calculation
 
-ActiveHarness automatically calculates the monetary cost of every LLM call and attaches it to the `Result` object as `result.cost`:
+ActiveHarness automatically calculates the monetary cost of every LLM call and attaches it to the `Result` object as `result.usage.cost`:
 
 Pricing data is bundled with the gem and refreshed automatically once per day from [models.dev](https://models.dev) — see the [full Cost Calculation reference →](docs/agents/costs.md).
 

@@ -136,7 +136,7 @@ module AgentMemory
         request:  @input,
         response: result.output,
         agent:    self.class.name,
-        model:    result.model
+        model:    result.model.name
       )
     end
   end

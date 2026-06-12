@@ -79,7 +79,7 @@ puts tribunal.execution_time   # => 1.243  — wall time of the parallel run
 
 ```ruby
 tribunal.results.each do |result|
-  puts result.model
+  puts result.model.name
   puts result.processed["result"]   # => true / false
   puts result.processed["reason"]   # => "The message is impolite because..."
   puts result.execution_time
@@ -356,7 +356,7 @@ tribunal = PolitenessTribunal.new(input: "I hate this product!")
 tribunal.call
 
 tribunal.results.each do |result|
-  puts "#{result.model}: #{result.processed["result"].inspect}"
+  puts "#{result.model.name}: #{result.processed["result"].inspect}"
 end
 ```
 
@@ -407,7 +407,7 @@ module TribunalLogging
     end
 
     base.on(:after_agent) do |result|
-      Rails.logger.info("[#{self.class.name}] agent done — #{result.model}: #{result.processed.inspect}")
+      Rails.logger.info("[#{self.class.name}] agent done — #{result.model.name}: #{result.processed.inspect}")
     end
 
     base.on(:agent_error) do |name, error|

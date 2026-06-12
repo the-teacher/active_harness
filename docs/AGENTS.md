@@ -41,13 +41,23 @@ puts agent.result.output
 ```ruby
 result = agent.result
 
-result.provider        # => "openrouter"
-result.model           # => "mistralai/mistral-nemo"
-result.input           # => "Hello!"
-result.output          # => "Hey there! Great to meet you..."
-result.usage           # => { input_tokens: 18, output_tokens: 24, total_tokens: 42 }
-result.cost            # => { input_cost: 0.0, output_cost: 0.0, total_cost: 0.0 }
-result.execution_time  # => 0.843
+result.input                   # => "Hello!"
+result.output                  # => "Hey there! Great to meet you..."
+result.execution_time          # => 0.843
+
+result.model.name              # => "mistralai/mistral-nemo"
+result.model.provider          # => "openrouter"
+result.model.temperature       # => 0.7
+result.model.context_window    # => 128_000
+result.model.pricing.input     # => 0.0000003   # per token, nil if not in registry
+result.model.pricing.output    # => 0.0000003
+
+result.usage.tokens.input      # => 18
+result.usage.tokens.output     # => 24
+result.usage.tokens.total      # => 42
+result.usage.cost.input        # => 0.0
+result.usage.cost.output       # => 0.0
+result.usage.cost.total        # => 0.0
 ```
 
 ---
@@ -302,7 +312,7 @@ module AgentLogging
     end
 
     base.after(:call) do |result|
-      Rails.logger.info("[#{self.class.name}] ✓ #{result.model} (#{result.execution_time}s, #{result.usage&.dig(:total_tokens)} tokens)")
+      Rails.logger.info("[#{self.class.name}] ✓ #{result.model.name} (#{result.execution_time}s, #{result.usage&.tokens&.total} tokens)")
     end
   end
 end

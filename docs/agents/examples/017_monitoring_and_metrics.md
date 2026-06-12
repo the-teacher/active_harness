@@ -47,13 +47,13 @@ class MonitoredAgent < ActiveHarness::Agent
 
     @metrics.merge!({
       success: true,
-      model: result.model,
+      model: result.model.name,
       execution_time: result.execution_time,
       total_time: elapsed,
-      input_tokens: result.usage[:input_tokens],
-      output_tokens: result.usage[:output_tokens],
-      total_tokens: result.usage[:total_tokens],
-      cost: result.cost,
+      input_tokens: result.usage.tokens.input,
+      output_tokens: result.usage.tokens.output,
+      total_tokens: result.usage.tokens.total,
+      cost: result.usage.cost,
       output_length: result.output.length
     })
 
@@ -259,11 +259,11 @@ class PrometheusAgent < ActiveHarness::Agent
   )
 
   on :after_call do |result|
-    labels = { agent_class: self.class.name, model: result.model }
+    labels = { agent_class: self.class.name, model: result.model.name }
 
     @@execution_time.observe(result.execution_time, labels: labels)
-    @@tokens_used.increment(result.usage[:total_tokens], labels: labels)
-    @@cost.increment(result.cost, labels: labels)
+    @@tokens_used.increment(result.usage.tokens.total, labels: labels)
+    @@cost.increment(result.usage.cost, labels: labels)
   end
 
   on :retry do |entry, error|
@@ -298,10 +298,10 @@ class SentryAgent < ActiveHarness::Agent
   on :after_call do |result|
     Sentry.capture_message("Agent call successful", level: 'info', extra: {
       agent: self.class.name,
-      model: result.model,
+      model: result.model.name,
       execution_time: result.execution_time,
-      tokens: result.usage[:total_tokens],
-      cost: result.cost
+      tokens: result.usage.tokens.total,
+      cost: result.usage.cost
     })
   end
 

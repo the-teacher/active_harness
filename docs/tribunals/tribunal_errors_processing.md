@@ -17,7 +17,7 @@ tribunal.call
 
 # Successful results only
 tribunal.results.each do |result|
-  puts "#{result.model}: #{result.processed["result"]}"
+  puts "#{result.model.name}: #{result.processed["result"]}"
 end
 
 # Failed agents

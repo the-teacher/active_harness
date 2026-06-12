@@ -71,9 +71,9 @@ class HookedAgent < ActiveHarness::Agent
   # Hook 6: after_call — after successful call
   after :call do |result|
     puts "[AFTER_CALL] ✓ Success!"
-    puts "  Model: #{result.model}"
+    puts "  Model: #{result.model.name}"
     puts "  Execution time: #{result.execution_time}s"
-    puts "  Tokens: #{result.usage[:total_tokens]}"
+    puts "  Tokens: #{result.usage.tokens.total}"
   end
 
   # Hook 7: retry — on model error

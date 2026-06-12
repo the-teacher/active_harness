@@ -130,9 +130,9 @@ class LoggingAgent < ActiveHarness::Agent
   on :after_call do |result|
     elapsed = Time.now - @start_time
     puts "[SUCCESS] Completed in #{elapsed.round(2)}s"
-    puts "  Model: #{result.model}"
-    puts "  Tokens: #{result.usage[:total_tokens]}"
-    puts "  Cost: $#{result.cost}"
+    puts "  Model: #{result.model.name}"
+    puts "  Tokens: #{result.usage.tokens.total}"
+    puts "  Cost: $#{result.usage.cost}"
   end
 
   on :retry do |entry, error|
@@ -206,7 +206,7 @@ class Ai::AgentsController < ApplicationController
       render json: {
         success: true,
         output: result.output,
-        model: result.model,
+        model: result.model.name,
         time: result.execution_time
       }
 

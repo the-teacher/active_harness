@@ -46,7 +46,7 @@ class Ai::AgentsController < ApplicationController
   def send_final_event(sse, result)
     sse.write({
       done: true,
-      model: result.model,
+      model: result.model.name,
       time: result.execution_time,
       usage: result.usage
     }.to_json)

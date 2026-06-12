@@ -115,13 +115,13 @@ puts agent.result.output
 Every agent returns a `Result` object:
 
 ```ruby
-result.provider       # LLM provider
-result.model          # model used
+result.model.provider       # LLM provider
+result.model.name          # model used
 result.input          # input data
 result.output         # model response
 result.system_prompt  # system prompt
 result.usage          # token statistics
-result.cost           # request cost
+result.usage.cost           # request cost
 result.execution_time # execution time
 ```
 

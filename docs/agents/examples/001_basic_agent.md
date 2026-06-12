@@ -43,19 +43,25 @@ agent.call
 # Get the result
 result = agent.result
 
-puts "Model: #{result.model}"
+puts "Model: #{result.model.name}"
 puts "Response: #{result.output}"
 ```
 
 ## Result Structure
 
 ```ruby
-result.provider       # => "openrouter"
-result.model          # => "mistralai/mistral-nemo"
-result.input          # => "Hello! How are you?"
-result.output         # => "Model response..."
-result.system_prompt  # => "System instructions..."
-result.usage          # => { input_tokens: 10, output_tokens: 20, total_tokens: 30 }
-result.cost           # => 0.00015
-result.execution_time # => 1.234
+result.input                 # => "Hello! How are you?"
+result.output                # => "Model response..."
+result.system_prompt         # => "System instructions..."
+result.execution_time        # => 1.234
+
+result.model.name            # => "mistralai/mistral-nemo"
+result.model.provider        # => "openrouter"
+result.model.context_window  # => 128_000
+result.model.pricing.input   # => 0.0000003
+
+result.usage.tokens.input    # => 10
+result.usage.tokens.output   # => 20
+result.usage.tokens.total    # => 30
+result.usage.cost.total      # => 0.00015
 ```

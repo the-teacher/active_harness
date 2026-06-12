@@ -200,7 +200,7 @@ class MonitoredRubyLLMAgent < ActiveHarness::Agent
 
   on :after_call do |result|
     elapsed = (Time.now - @start_time).round(2)
-    puts "[SUCCESS] #{result.model} — #{elapsed}s"
+    puts "[SUCCESS] #{result.model.name} — #{elapsed}s"
   end
 
   on :retry do |entry, error|

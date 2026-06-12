@@ -224,7 +224,7 @@ class SupportPipeline < ActiveHarness::Pipeline
   # Fires for every agent event inside this pipeline (setup, before_call, after_call, retry, …)
   on_agent_event do |event, *args|
     result = args[0]
-    Rails.logger.info("[agent #{event}] #{result.model} #{result.execution_time}s") if event == :after_call
+    Rails.logger.info("[agent #{event}] #{result.model.name} #{result.execution_time}s") if event == :after_call
   end
 
   # Fires for every tribunal event (before_call, after_agent, after_verdict, …)

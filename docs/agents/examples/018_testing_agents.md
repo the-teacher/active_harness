@@ -23,7 +23,7 @@ RSpec.describe SupportAgent do
 
         expect(agent.result).to be_present
         expect(agent.result.output).to be_present
-        expect(agent.result.model).to be_present
+        expect(agent.result.model.name).to be_present
       end
 
       it 'includes usage information' do
@@ -105,8 +105,8 @@ RSpec.describe SupportAgent do
       agent.call
 
       expect(agent.result.output).to eq("Mocked response")
-      expect(agent.result.usage[:input_tokens]).to eq(10)
-      expect(agent.result.usage[:output_tokens]).to eq(5)
+      expect(agent.result.usage.tokens.input).to eq(10)
+      expect(agent.result.usage.tokens.output).to eq(5)
     end
   end
 end
@@ -281,14 +281,14 @@ RSpec.describe SupportAgent do
       agent = SupportAgent.new(input: "Question")
       agent.call
 
-      expect(agent.result.usage[:total_tokens]).to be < 1000
+      expect(agent.result.usage.tokens.total).to be < 1000
     end
 
     it 'costs less than threshold' do
       agent = SupportAgent.new(input: "Question")
       agent.call
 
-      expect(agent.result.cost).to be < 0.01
+      expect(agent.result.usage.cost).to be < 0.01
     end
   end
 end

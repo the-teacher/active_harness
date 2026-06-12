@@ -61,7 +61,7 @@ module AgentMemory
         request:  @input,
         response: result.output,
         agent:    self.class.name,
-        model:    result.model
+        model:    result.model.name
       )
     end
   end
@@ -167,7 +167,7 @@ Every agent automatically looks up the context window size for its primary model
 
 - available in all hook blocks (`on :before_call`, etc.)
 - injected into prompt class instances alongside `@input`, `@memory`, etc.
-- stored on `result.context_window` after a successful call (reflects the model that actually ran, including fallbacks)
+- stored on `result.model.context_window` after a successful call (reflects the model that actually ran, including fallbacks)
 
 ### Trimming history to fit the context window
 
@@ -225,11 +225,11 @@ end
 
 ```ruby
 result = ChatAgent.call(input: "Hello", memory: mem)
-puts result.context_window   # => 131072 (or nil)
-puts result.model            # => "mistralai/mistral-nemo"
+puts result.model.context_window   # => 131072 (or nil)
+puts result.model.name            # => "mistralai/mistral-nemo"
 ```
 
-If the primary model failed and a fallback took over, `result.context_window` reflects the fallback model's window — not the primary one.
+If the primary model failed and a fallback took over, `result.model.context_window` reflects the fallback model's window — not the primary one.
 
 ---
 

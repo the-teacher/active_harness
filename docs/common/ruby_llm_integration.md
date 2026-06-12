@@ -69,7 +69,7 @@ end
 
 result = SupportAgent.call(input: "What is the capital of France?")
 puts result.output          # => "The capital of France is Paris."
-puts result.model           # => "mistralai/mistral-nemo"
+puts result.model.name           # => "mistralai/mistral-nemo"
 puts result.execution_time  # => 1.117
 ```
 
