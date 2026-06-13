@@ -134,12 +134,14 @@ module ActiveHarness
       @models = []
     end
 
-    def use(provider:, model:, temperature: nil, name: nil, retry_attempts: nil, retry_delay: nil)
+    def use(provider:, model:, temperature: nil, name: nil, size: nil, quality: nil, retry_attempts: nil, retry_delay: nil)
       @models << {
         provider:       provider,
         model:          model,
         temperature:    temperature,
         name:           name,
+        size:           size,
+        quality:        quality,
         retry_attempts: retry_attempts,
         retry_delay:    retry_delay
       }.compact

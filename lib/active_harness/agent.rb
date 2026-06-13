@@ -188,15 +188,23 @@ module ActiveHarness
         total:  raw_usage[:total_tokens]
       )
 
-      UsageInfo.new(
-        tokens: tokens,
-        cost:   calculate_cost(model_cost, tokens)
-      )
+      cost = if raw_usage.key?(:provider_cost)
+        CostBreakdown.new(total: raw_usage[:provider_cost].round(8))
+      else
+        calculate_cost(model_cost, tokens)
+      end
+
+      UsageInfo.new(tokens: tokens, cost: cost)
     end
 
     def lookup_model_cost(entry)
       return nil unless entry
-      Pricing.find(entry[:model].to_s)
+
+      if entry[:provider].to_sym == :openrouter
+        Pricing::OpenRouter.find(entry[:model].to_s) || Pricing.find(entry[:model].to_s)
+      else
+        Pricing.find(entry[:model].to_s)
+      end
     rescue StandardError
       nil
     end
@@ -215,4 +223,5 @@ require_relative "agent/providers"
 require_relative "agent/output_parser"
 require_relative "agent/custom_llm_backend"
 require_relative "agent/cost"
+require_relative "agent/image"
 

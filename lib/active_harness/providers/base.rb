@@ -22,14 +22,18 @@ module ActiveHarness
 
       # Normalize OpenAI-compatible usage object to a consistent hash.
       # Returns nil if the response contains no usage data.
+      # provider_cost is included when the provider returns a cost field (e.g. OpenRouter).
       def extract_usage_openai(data)
         u = data["usage"]
         return nil unless u
-        {
+
+        result = {
           input_tokens:  u["prompt_tokens"].to_i,
           output_tokens: u["completion_tokens"].to_i,
           total_tokens:  u["total_tokens"].to_i
         }
+        result[:provider_cost] = u["cost"].to_f if u.key?("cost")
+        result
       end
 
       # Normalize Anthropic usage object.

@@ -21,7 +21,11 @@ require_relative "active_harness/providers/azure"
 require_relative "active_harness/providers/bedrock"
 require_relative "active_harness/providers/vertexai"
 require_relative "active_harness/providers/custom"
+require_relative "active_harness/providers/images/openai"
+require_relative "active_harness/providers/images/openrouter"
 require_relative "active_harness/pricing"
+require_relative "active_harness/pricing/models_dev"
+require_relative "active_harness/pricing/openrouter"
 require_relative "active_harness/memory"
 require_relative "active_harness/agent"
 require_relative "active_harness/tribunal"
@@ -30,7 +34,7 @@ require_relative "active_harness/pipeline"
 require_relative "active_harness/railtie" if defined?(Rails::Railtie)
 
 module ActiveHarness
-  VERSION = "0.2.33"
+  VERSION = "0.2.34"
 
   class << self
     # Configure ActiveHarness.
