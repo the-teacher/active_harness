@@ -13,33 +13,47 @@ module ActiveHarness
   #   Pricing.providers.openai     → Array<ModelPrice>
   #   Pricing.update               → refreshes ModelsDev cache
   module Pricing
-    # Pricing rates for a single model (per-million USD).
+    # Pricing rates for a single model.
+    # All *_per_million fields are in USD per 1M tokens.
+    # audio_input_per_million / audio_output_per_million may represent
+    # per-million audio tokens or per-unit (second/char) depending on provider.
     ModelPrice = Struct.new(
       :id,
       :name,
       :provider,
-      :input_per_million,
-      :output_per_million,
+      # Primary fields (used for cost calculation, backward-compatible)
+      :input_per_million,               # text tokens input
+      :output_per_million,              # primary output (text or image_output for imggen)
       :cache_read_input_per_million,
       :cache_write_input_per_million,
       :context_window,
       :max_output_tokens,
       :input_modalities,
       :output_modalities,
+      # Extended modality-specific pricing
+      :image_input_per_million,         # image tokens accepted as input (vision models)
+      :image_output_per_million,        # image generation output tokens (imggen models)
+      :audio_input_per_million,         # audio tokens accepted as input
+      :audio_output_per_million,        # audio output tokens (TTS models)
+      :web_search_per_request,          # per web-search call in USD
       keyword_init: true
     ) do
       # Capability tags derived from modality data.
-      # Possible values: "vision", "pdf", "audio", "video", "imggen", "embed"
+      # Possible values: "vision", "pdf", "audio", "video", "imggen", "embed",
+      #                  "speech", "transcription", "rerank"
       def categories
-        inp = input_modalities  || []
-        out = output_modalities || []
+        inp = Array(input_modalities)
+        out = Array(output_modalities)
         cats = []
-        cats << "vision" if inp.include?("image")
-        cats << "pdf"    if inp.include?("pdf")
-        cats << "audio"  if inp.include?("audio") || out.include?("audio")
-        cats << "video"  if inp.include?("video")  || out.include?("video")
-        cats << "imggen" if out.include?("image")
-        cats << "embed"  if id.to_s.match?(/embed/i) || name.to_s.match?(/embed/i)
+        cats << "vision"        if inp.include?("image")
+        cats << "pdf"           if inp.include?("pdf")
+        cats << "audio"         if inp.include?("audio")
+        cats << "video"         if inp.include?("video") || out.include?("video")
+        cats << "imggen"        if out.include?("image")
+        cats << "speech"        if out.include?("speech")
+        cats << "transcription" if out.include?("transcription")
+        cats << "rerank"        if out.include?("rerank")
+        cats << "embed"         if out.include?("embeddings")
         cats
       end
 
@@ -91,6 +105,13 @@ module ActiveHarness
     # Facade — delegates to ModelsDev (general fallback source)
     # ---------------------------------------------------------------------------
     class << self
+      # Eagerly fetch all pricing sources and load them into memory.
+      # Called at Rails startup. Network failures are silently ignored.
+      def preload!
+        ModelsDev.preload!
+        OpenRouter.preload!
+      end
+
       def find(model_id)
         ModelsDev.find(model_id)
       end

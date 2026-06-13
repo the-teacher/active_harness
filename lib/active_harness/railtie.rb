@@ -8,5 +8,9 @@ module ActiveHarness
         app.config.autoload_paths << path.to_s if path.exist?
       end
     end
+
+    config.after_initialize do
+      ActiveHarness::Pricing.preload!
+    end
   end
 end

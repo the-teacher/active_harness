@@ -18,7 +18,7 @@ module ActiveHarness
     #   Pricing::ModelsDev.update
     module ModelsDev
       MODELS_DEV_URL = "https://models.dev/api.json"
-      CACHE_TTL         = 86_400
+      MEMORY_TTL     = 3 * 86_400  # 3 days
 
       MODELS_DEV_PROVIDER_MAP = {
         "openai"         => "openai",
@@ -65,25 +65,36 @@ module ActiveHarness
           end
         end
 
+        # Fetches fresh data from models.dev, writes to cache file, loads into memory.
+        # Called automatically when memory is stale. Can also be called explicitly.
+        def preload!
+          update
+        rescue StandardError
+          nil
+        ensure
+          @registry   = load_registry
+          @loaded_at  = @registry.empty? ? nil : Time.now
+          @provider_names = nil
+        end
+
         def update
           raw_api = fetch_models_dev
           models  = extract_models(raw_api)
 
           FileUtils.mkdir_p(File.dirname(cache_file))
           File.write(cache_file, JSON.generate(models))
-
-          reload!
           models.size
         end
 
         def reload!
           @registry       = nil
+          @loaded_at      = nil
           @provider_names = nil
           nil
         end
 
         def cache_file
-          File.join(project_root, "tmp", "active_harness", "pricing_models_dev.json")
+          File.join(project_root, "tmp", "active_harness", "models_dev_pricing.json")
         end
 
         def available_providers
@@ -98,18 +109,31 @@ module ActiveHarness
         private
 
         def ensure_fresh_registry
-          return if cache_file_fresh?
-          update
-        rescue StandardError
-          # Network unavailable — fall back to bundled/stale cache silently
+          return if memory_fresh?
+
+          unless file_fresh?
+            begin
+              update
+            rescue StandardError
+              nil
+            end
+          end
+
+          @registry       = load_registry
+          @loaded_at      = @registry.empty? ? nil : Time.now
+          @provider_names = nil
         end
 
-        def cache_file_fresh?
-          File.exist?(cache_file) && (Time.now - File.mtime(cache_file)) < CACHE_TTL
+        def memory_fresh?
+          @loaded_at && (Time.now - @loaded_at) < MEMORY_TTL
+        end
+
+        def file_fresh?
+          File.exist?(cache_file) && (Time.now - File.mtime(cache_file)) < MEMORY_TTL
         end
 
         def registry
-          @registry ||= load_registry
+          @registry ||= []
         end
 
         def load_registry
