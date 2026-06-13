@@ -36,6 +36,10 @@ With ActiveHarness you can track time, tokens, and dollars for every agent call,
 
 <img width="100%"  src="https://github.com/user-attachments/assets/ec0905f0-3118-4f49-95c1-1c216f5a037c" alt="Cost Control" />
 
+| Cost in Application                                                                                       | Provider's Cost                                                                                            |
+| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| <img alt="Image" src="https://github.com/user-attachments/assets/6890af98-34cb-45e7-8162-030292d016a5" /> | <img  alt="Image" src="https://github.com/user-attachments/assets/c5a3cc01-5adc-4b84-b7c1-5a08a9e79b50" /> |
+
 ## Use Consensus-Based Decisions!
 
 Use `Tribunals` to run multiple agents in parallel and make `Verdicts` based on their agreement — improving **reliability** and reducing **biases** and **hallucinations**.
