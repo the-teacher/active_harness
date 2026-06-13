@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.2.34 — 2026-06-13
+
+- **Image generation support** — new `image true` / `size "1024x1024"` class-level DSL on `Agent`; when set, the model chain is routed through `IMAGE_PROVIDERS` instead of the standard text provider table
+- **`Providers::Images::OpenAI`** (`lib/active_harness/providers/images/openai.rb`) — calls `/v1/images/generations`; accepts `model:`, `prompt:`, `size:`, `quality:`; returns `b64_json`; defaults to `"1024x1024"` (compatible with dall-e-3 and gpt-image models)
+- **`Providers::Images::OpenRouter`** (`lib/active_harness/providers/images/openrouter.rb`) — uses the chat completions endpoint with `modalities: ["image", "text"]`; builds `messages` internally from the `prompt:` string
+- **`agent/image.rb`** — model validation at call time: each model in the chain is checked against `Pricing.find(model_id).categories`; raises `ArgumentError` if the model does not include `"imggen"` in its output modalities; unknown models (not in registry) pass silently
+- **`Pricing::ModelsDev`** (`lib/active_harness/pricing/models_dev.rb`) — models.dev implementation extracted from `pricing.rb` into its own module; cache file renamed to `pricing_models_dev.json`; serves as the general fallback source
+- **`Pricing::OpenRouter`** (`lib/active_harness/pricing/openrouter.rb`) — new pricing source specific to OpenRouter; fetches image models via `GET /api/v1/models?output_modalities=image`, then enriches each with `image_output` rate from `/api/v1/models/{id}/endpoints`; cache file `pricing_openrouter.json`; `image_output` rate is used as `output_per_million` for image-output models
+- **`pricing.rb` rewritten as facade** — now only defines shared types (`ModelPrice`, `ProvidersProxy`) and delegates `Pricing.find` / `Pricing.all` / etc. to `ModelsDev`
+- **`provider_cost` from response** — `Providers::Base#extract_usage_openai` extracts `usage["cost"]` when present (returned by OpenRouter for image calls); `Agent#build_usage` uses it as exact cost, bypassing token-rate calculation; `lookup_model_cost` now checks `Pricing::OpenRouter` first for `:openrouter` provider before falling back to `Pricing::ModelsDev`
+- **Bundled `data/models.json` removed** — 1.4 MB snapshot deleted; `Pricing::ModelsDev` returns `nil` / `[]` when cache is absent and network is unavailable rather than serving stale bundled data
+
+---
+
+## v0.2.33 — 2026-06-12
+
+- **`Core::HookRunner#run_hooks`** — minor readability fix: condition inverted from `args.any?` to `args.empty?` (same behaviour, clearer branch ordering)
+
+---
+
+## v0.2.32 — 2026-06-12
+
+- **`Costs` → `Pricing`** — module renamed from `ActiveHarness::Costs` to `ActiveHarness::Pricing`; file `lib/active_harness/costs.rb` renamed to `pricing.rb`; all internal references updated
+- **`docs/agents/costs.md` → `pricing.md`** — doc file renamed to match the new module name
+
+---
+
+## v0.2.31 — 2026-06-12
+
+- **`Result` struct restructured** — flat fields (`provider`, `model` string, `temperature`, `context_window`, `cost`) replaced with nested value objects:
+  - `ModelInfo` — `.name`, `.provider`, `.temperature`, `.context_window`, `.pricing` (`ModelPricing` or nil); `result.model` now returns this struct
+  - `ModelPricing` — `.input`, `.output` per-token rates in USD
+  - `TokenCounts` — `.input`, `.output`, `.total`; `result.usage.tokens`
+  - `CostBreakdown` — `.input`, `.output`, `.total` in USD; `result.usage.cost`
+  - `UsageInfo` — `.tokens` + `.cost`; `result.usage` now returns this struct
+- **`Agent#build_model_info` / `#build_usage`** — extracted as private methods; `calculate_cost` signature changed from `(model_id, usage)` to `(pricing, tokens)` to work with the new structs
+- **`@context_window` removed from `Agent` attrs** — no longer set in `initialize` or exposed as `attr_reader`; computed lazily via `context_window_for_prompt` only when injecting state into a prompt class instance
+
+---
+
 ## v0.2.30 — 2026-06-11
 
 - **`Pipeline#result`** — new method that wraps pipeline outcome into a `Result` struct (`input`, `output`, `processed`, `execution_time`); `processed` carries `{ "stopped" => bool, "stopped_at" => step_name_or_nil }`; lets a pipeline be used as a step inside another pipeline with the same duck-type interface as `Agent` and `Tribunal`
