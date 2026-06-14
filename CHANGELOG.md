@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.37 — 2026-06-14
+
+### Pricing extracted to `active_harness_pricing` gem
+
+`ActiveHarness::Pricing` and its two data sources (`ModelsDev`, `OpenRouter`) moved to a standalone gem [`active_harness_pricing`](https://github.com/the-teacher/active_harness). `active_harness` now declares it as a required dependency.
+
+- `lib/active_harness/pricing.rb` and `lib/active_harness/pricing/` removed from this repo
+- `require "active_harness_pricing"` replaces the three `require_relative` calls in `active_harness.rb`
+- `spec.add_dependency "active_harness_pricing"` added to gemspec
+- Namespace `ActiveHarness::Pricing` is unchanged — no call-site changes required
+
+---
+
 ## v0.2.36 — 2026-06-14
 
 ### Unified streaming interface — `streams:` hash replaced by `token:` and `stream:`
