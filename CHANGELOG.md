@@ -1,5 +1,68 @@
 # Changelog
 
+## v0.2.35 — 2026-06-13
+
+### `Pricing::OpenRouter` — complete rewrite (all modalities)
+
+Previously only fetched `?output_modalities=image` models. Now fetches all 7 modality endpoints and merges results by model id:
+
+- `GET /api/v1/models` (base, ~337 text models)
+- `GET /api/v1/models?output_modalities=image` (~32 image-gen models, 25 unique)
+- `GET /api/v1/models?output_modalities=embeddings` (~26 models, all unique)
+- `GET /api/v1/models?output_modalities=speech` (~9 TTS models)
+- `GET /api/v1/models?output_modalities=transcription` (~10 STT models)
+- `GET /api/v1/models?output_modalities=video` (~14 models, $0 pricing in API)
+- `GET /api/v1/models?output_modalities=rerank` (~4 models, $0 pricing in API)
+
+Merge strategy: models seen in multiple endpoints are deduplicated by id; pricing fields are merged (non-zero value wins); `input_modalities` and `output_modalities` are unioned. Image-output models are further enriched via `GET /api/v1/models/{id}/endpoints` to get the accurate `image_output` rate.
+
+- **Transcription pricing detection** — OpenRouter stores the audio cost in the `prompt` field with two different units depending on the model: values `< 0.0001` are per-audio-token (e.g. `gpt-4o-transcribe` at $2.5/M tokens) and converted with `× 1_000_000`; values `≥ 0.0001` are per-minute (e.g. Whisper at $0.006/min) and stored as raw USD.
+- **Zero-priced models included** — rerank and video models have `pricing: {prompt: "0", completion: "0"}` in the API; previously they were filtered out; now only models with missing `id` or `name` are skipped.
+- **Cache file renamed** — `pricing_openrouter.json` → `openrouter_pricing.json`
+
+### `Pricing::ModelPrice` — extended modality-specific pricing fields
+
+Five new fields added to the `ModelPrice` struct (all `keyword_init:`):
+
+| field | unit | notes |
+|---|---|---|
+| `image_input_per_million` | USD / 1M image tokens | vision models (maps from `p[:image]`) |
+| `image_output_per_million` | USD / 1M image tokens | imggen models (from `/endpoints`) |
+| `audio_input_per_million` | USD / 1M or per-min | audio/transcription input |
+| `audio_output_per_million` | USD / 1M audio tokens | TTS models (from `/endpoints`) |
+| `web_search_per_request` | USD flat | per web-search call |
+
+`categories` method updated:
+- `"speech"` — `output_modalities.include?("speech")`
+- `"transcription"` — `output_modalities.include?("transcription")`
+- `"rerank"` — `output_modalities.include?("rerank")`
+- `"embed"` — `output_modalities.include?("embeddings")` (was name-matching before, now modality-based)
+- `"audio"` — now only from `input_modalities` (removed the `output_modalities` side that conflated audio-input and TTS)
+
+### `Pricing::ModelsDev` — 3-day in-memory cache
+
+- `CACHE_TTL = 86_400` (24h file TTL) → `MEMORY_TTL = 3 * 86_400` (72h, applies to both file and memory)
+- Three-tier freshness: `memory_fresh?` → `file_fresh?` → network fetch; no network hit while in-memory registry is fresh
+- `preload!` class method — forces a network fetch and loads result into memory; network failures are silently rescued; called by `Pricing.preload!` at Rails startup
+- `reload!` now also nils `@loaded_at` so next access re-reads from file/network
+- Cache file renamed: `pricing_models_dev.json` → `models_dev_pricing.json`
+
+### `Pricing.preload!` facade method
+
+New `Pricing.preload!` method calls `ModelsDev.preload!` and `OpenRouter.preload!` in sequence. Network failures from either source are silently rescued — the other source still loads.
+
+### `Railtie` — pricing preloaded at Rails startup
+
+```ruby
+config.after_initialize do
+  ActiveHarness::Pricing.preload!
+end
+```
+
+Runs after all initializers, before the first request. In Puma with `preload!` the fetch happens in the master process and workers inherit the in-memory registry via copy-on-write.
+
+---
+
 ## v0.2.34 — 2026-06-13
 
 - **Image generation support** — new `image true` / `size "1024x1024"` class-level DSL on `Agent`; when set, the model chain is routed through `IMAGE_PROVIDERS` instead of the standard text provider table
