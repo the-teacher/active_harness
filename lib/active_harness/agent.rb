@@ -198,18 +198,6 @@ module ActiveHarness
       UsageInfo.new(tokens: tokens, cost: cost)
     end
 
-    def lookup_model_cost(entry)
-      return nil unless entry
-
-      if entry[:provider].to_sym == :openrouter
-        Pricing::OpenRouter.find(entry[:model].to_s) || Pricing.find(entry[:model].to_s)
-      else
-        Pricing.find(entry[:model].to_s)
-      end
-    rescue StandardError
-      nil
-    end
-
     def normalize_input!
       return if @config.fetch(:normalize_input, true) == false
       @input = @input&.strip&.gsub(/\s+/, " ")
