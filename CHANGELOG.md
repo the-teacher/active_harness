@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.2.36 — 2026-06-14
+
+### Unified streaming interface — `streams:` hash replaced by `token:` and `stream:`
+
+The four-key `streams: { token:, agent:, tribunal:, pipeline: }` hash is removed in favour of two flat keyword params:
+
+| Param | Signature | Purpose |
+|---|---|---|
+| `token:` | `->(chunk) {}` | Raw token-by-token streaming from the LLM provider. Controls HTTP streaming mode. |
+| `stream:` | `->(source, event, *args) {}` | Lifecycle events from any layer. `source` is `:agent`, `:tribunal`, or `:pipeline`. |
+
+All three abstractions — `Agent`, `Tribunal`, `Pipeline` — now accept `token:` and `stream:` as top-level keyword arguments. The `stream:` lambda flows automatically through the entire chain: Pipeline → Tribunal → Agent. Each layer prefixes its events with the appropriate source symbol, so a single lambda handles all event types at the call site:
+
+```ruby
+SupportPipeline.new(
+  input:  input,
+  stream: ->(source, event, *args) {
+    case source
+    when :pipeline then handle_pipeline_event(event, args)
+    when :tribunal then handle_tribunal_event(event, args)
+    when :agent    then handle_agent_event(event, args)
+    end
+  }
+)
+```
+
+Adding new entity types in the future only requires a new `when` branch — the interface stays the same.
+
+**Breaking changes:**
+
+- `Agent.call(..., streams: { token: t, agent: s })` → `Agent.call(..., token: t, stream: s)`
+- `Tribunal.new(..., streams: { token: t, agent: s, tribunal: s })` → `Tribunal.new(..., token: t, stream: s)`
+- `Pipeline.new(..., streams: { token: t, agent: s, tribunal: s, pipeline: s })` → `Pipeline.new(..., token: t, stream: s)`
+- `Agent#token_stream` / `Agent#event_stream` → `Agent#token` / `Agent#stream`
+- `Tribunal#token_stream` / `Tribunal#agent_event_stream` / `Tribunal#tribunal_event_stream` → `Tribunal#token` / `Tribunal#stream`
+- Lifecycle hooks inside agent/tribunal subclasses that called `@event_stream&.call(event, *args)` or `@tribunal_event_stream&.call(event, *args)` must now call `@stream&.call(:agent, event, *args)` or `@stream&.call(:tribunal, event, *args)` respectively
+- The class-level Pipeline DSL (`on_agent_event`, `on_tribunal_event`, `on_pipeline_event`) is unchanged — only the runtime-passed parameter changed
+
+**Internal:** `Agent#fire` now calls `@stream&.call(:agent, event, *args)`; `Tribunal#fire` calls `@stream&.call(:tribunal, event, *args)`; `Pipeline#fire` calls `@stream&.call(:pipeline, event, step_name, data)`. `Pipeline#merge_stream` updated to dispatch class-level handlers by source.
+
+---
+
 ## v0.2.35 — 2026-06-13
 
 ### `Pricing::OpenRouter` — complete rewrite (all modalities)
