@@ -1,21 +1,21 @@
 # Tribunal Streaming — Live Events via SSE
 
 Tribunals run agents in parallel and produce a final verdict.
-By passing a `tribunal_event_stream:` lambda, you can push each tribunal lifecycle event
+By passing a `stream:` lambda, you can push each tribunal lifecycle event
 to the browser in real time over a single SSE connection — without polling.
-Pass `stream:` and/or `agent_event_stream:` to forward streaming callbacks to every agent the tribunal launches.
 
 ---
 
 ## How It Works
 
-The tribunal accepts three optional streaming parameters:
+The tribunal accepts two optional streaming parameters:
 
-- `tribunal_event_stream:` — lambda called on each tribunal lifecycle event (start, agent done, verdict, …)
-- `agent_event_stream:` — forwarded to every agent as their `event_stream:` (per-agent hook events)
-- `stream:` — forwarded to every agent as their `stream:` (raw token stream)
+| Parameter | Lambda signature           | What it receives                                  |
+| --------- | -------------------------- | ------------------------------------------------- |
+| `stream:` | `->(source, event, *args)` | `:tribunal` events and `:agent` events from every agent the tribunal launches |
+| `token:`  | `->(chunk) {}`             | Raw token chunks (only if agents stream tokens)   |
 
-This lambda is called from inside lifecycle hooks as each event occurs:
+The `stream:` lambda is called from inside lifecycle hooks as each event occurs:
 agent launched, agent completed, agent failed, verdict computed.
 
 On the Rails side you use `ActionController::Live` to keep the HTTP connection
@@ -23,29 +23,31 @@ open and push events as `text/event-stream` (SSE).
 
 ---
 
-## Step 1 — Add tribunal_event_stream to the Tribunal
+## Step 1 — Add stream hooks to the Tribunal
 
 ```ruby
 class PolitenessLifecycleTribunal < ActiveHarness::Tribunal
-  on(:before_agent) { |agent, index| @tribunal_event_stream&.call(:agent_start, index) }
-  on(:after_agent)  { |result, index| @tribunal_event_stream&.call(:agent_done, result, index) }
-  on(:agent_error)  { |name, err, index| @tribunal_event_stream&.call(:agent_error, name, err, index) }
-  on(:after_call)   { |results, _errors| @tribunal_event_stream&.call(:all_done) }
-  on(:after_verdict){ |verdict| @tribunal_event_stream&.call(:verdict, verdict) }
-
-  def initialize(input:, tribunal_event_stream: nil)
-    # build agents...
-    super(input: input, agents: agents, tribunal_event_stream: tribunal_event_stream)
+  def initialize(input:, token: nil, stream: nil)
+    agents = PolitenessTribunal::MODELS.map do |model|
+      PolitenessAgent.new(models: [{ provider: :openrouter, model: model }])
+    end
+    super(input: input, agents: agents, token: token, stream: stream)
   end
 
-  process do |results|
-    results.all? { |r| r.processed["result"] == true }
+  verdict :majority, may_fail: 1 do |result|
+    result.processed["result"] == true
   end
+
+  on(:before_agent) { |agent, index| @stream&.call(:tribunal, :agent_start, index) }
+  on(:after_agent)  { |result, index| @stream&.call(:tribunal, :agent_done, result, index) }
+  on(:agent_error)  { |name, err, index| @stream&.call(:tribunal, :agent_error, name, err, index) }
+  on(:after_call)   { |results, _errors| @stream&.call(:tribunal, :all_done) }
+  after(:verdict)   { |verdict| @stream&.call(:tribunal, :verdict, verdict) }
 end
 ```
 
-The `&.` guard means the hooks are completely silent when `tribunal_event_stream` is `nil` —
-the same tribunal class works for both the plain and the live-sidebar versions.
+The `&.` guard means the hooks are completely silent when `stream` is `nil` —
+the same tribunal class works for both plain and live-sidebar versions.
 
 ---
 
@@ -83,19 +85,21 @@ end
 def politeness_lifecycle_stream
   prepare_sse_response
 
-  input = params.require(:input)
+  input      = params.require(:input)
+  sse_events = ActionController::Live::SSE.new(response.stream, event: "lifecycle")
+  sse_done   = ActionController::Live::SSE.new(response.stream, event: "message")
 
-  stream     = response.stream
-  sse_events = ActionController::Live::SSE.new(stream, event: "lifecycle")
-  sse_done   = ActionController::Live::SSE.new(stream, event: "message")
-
-  event_stream = ->(name, *args) do
-    sse_events.write(tribunal_event_message(name, args).to_json)
+  stream = ->(source, event, *args) do
+    payload = case source
+              when :tribunal then tribunal_event_message(event, args).merge(source: "tribunal")
+              when :agent    then agent_event_message(event, args).merge(source: "agent")
+              end
+    sse_events.write(payload.to_json) if payload
   rescue IOError, ActionController::Live::ClientDisconnected
   end
 
-  tribunal = PolitenessLifecycleTribunal.new(input: input, tribunal_event_stream: event_stream)
-  event_stream.call(:tribunal_start, tribunal_agent_count)
+  tribunal = PolitenessLifecycleTribunal.new(input: input, stream: stream)
+  stream.call(:tribunal, :tribunal_start, PolitenessTribunal::MODELS.size)
   tribunal.call
 
   sse_done.write({
@@ -138,14 +142,12 @@ def tribunal_event_message(event, args)
   when :agent_done
     result, index = args
     polite = result.processed&.dig("result") == true
-    { event: "agent_done",
-      text:  "Agent #{index + 1} done: #{result.model.name} (#{result.execution_time}s)",
-      level: polite ? "success" : "warning",
-      index: index,
-      model: result.model.name,
-      time:  result.execution_time,
-      usage: result.usage,
-      cost:  result.usage.cost,
+    { event:  "agent_done",
+      text:   "Agent #{index + 1} done: #{result.model.name} (#{result.execution_time}s)",
+      level:  polite ? "success" : "warning",
+      index:  index,
+      model:  result.model.name,
+      time:   result.execution_time,
       result: polite,
       reason: result.processed&.dig("reason") }
   when :agent_error
@@ -158,7 +160,7 @@ def tribunal_event_message(event, args)
     { event: "all_done", text: "All agents finished — computing verdict…", level: "info" }
   when :verdict
     verdict = args[0]
-    { event: "verdict",
+    { event:   "verdict",
       text:    verdict ? "✓ Polite" : "✗ Not polite",
       level:   verdict ? "success" : "error",
       verdict: verdict }
@@ -175,44 +177,31 @@ const es = new EventSource(
   "/ai/tribunals/politeness/lifecycle/stream?input=" + encodeURIComponent(val),
 );
 
-// Lifecycle events — update sidebar and panels in real time
 es.addEventListener("lifecycle", function (ev) {
   const p = JSON.parse(ev.data);
 
-  appendToSidebar(p); // show text + level in sidebar
+  appendToSidebar(p);
 
   if (p.event === "agent_done" && p.index != null) {
-    populatePanel(p.index, p); // fill panel immediately when agent finishes
+    populatePanel(p.index, p);
   }
 
   if (p.event === "verdict") {
-    showVerdict(p.verdict); // update final verdict box
+    showVerdict(p.verdict);
   }
 });
 
-// Done signal — total time and any partial errors
 es.onmessage = function (ev) {
   const p = JSON.parse(ev.data);
   if (p.done) {
     showTotalTime(p.time);
-
-    // Agents that errored out
     (p.errors || []).forEach((e) =>
       appendToSidebar({ level: "error", text: e.agent + ": " + e.error }),
     );
-
     es.close();
   }
 };
 ```
-
-Key points:
-
-- `es.addEventListener("lifecycle", ...)` handles named `lifecycle` SSE events.
-- `es.onmessage` handles the unnamed default `message` events (the `done` signal).
-- Panels are populated **as each agent finishes**, not after all are done — this is the
-  key difference from the plain polling approach.
-- `p.errors` in the `done` payload contains agents that failed, for display and debugging.
 
 ---
 
@@ -220,16 +209,16 @@ Key points:
 
 ```
 browser opens EventSource("/stream?input=…")
-  ← event: lifecycle  {"event":"tribunal_start", "text":"launching 3 agents…"}
-  ← event: lifecycle  {"event":"agent_start", "index":0, ...}
-  ← event: lifecycle  {"event":"agent_start", "index":1, ...}
-  ← event: lifecycle  {"event":"agent_start", "index":2, ...}
-  ← event: lifecycle  {"event":"agent_done",  "index":2, "result":true, ...}
-  ← event: lifecycle  {"event":"agent_done",  "index":0, "result":true, ...}
-  ← event: lifecycle  {"event":"agent_error", "index":1, "text":"error…"}
-  ← event: lifecycle  {"event":"all_done", ...}
-  ← event: lifecycle  {"event":"verdict", "verdict":false}
-  ← data: {"done":true, "time":2.4, "errors":[{"agent":"PolitenessAgent","error":"…"}]}
+  ← event: lifecycle  {"event":"tribunal_start", "text":"launching 3 agents…", "source":"tribunal"}
+  ← event: lifecycle  {"event":"agent_start", "index":0, "source":"tribunal"}
+  ← event: lifecycle  {"event":"agent_start", "index":1, "source":"tribunal"}
+  ← event: lifecycle  {"event":"agent_start", "index":2, "source":"tribunal"}
+  ← event: lifecycle  {"event":"agent_done",  "index":2, "result":true, "source":"tribunal"}
+  ← event: lifecycle  {"event":"agent_done",  "index":0, "result":true, "source":"tribunal"}
+  ← event: lifecycle  {"event":"agent_error", "index":1, "source":"tribunal"}
+  ← event: lifecycle  {"event":"all_done", "source":"tribunal"}
+  ← event: lifecycle  {"event":"verdict", "verdict":false, "source":"tribunal"}
+  ← data: {"done":true, "time":2.4, "errors":[...]}
 ```
 
 Agents complete in non-deterministic order — panels update as each one finishes.

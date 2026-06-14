@@ -66,8 +66,7 @@ module ActiveHarness
       # any agent or tribunal executed within this pipeline (including agents
       # running inside tribunals). Multiple blocks can be registered; all fire.
       #
-      # The handler receives the same (event, *args) signature that the runtime
-      # streams: { agent: lambda } would receive.
+      # The handler receives (event, *args) — already scoped to the source.
       #
       #   on_agent_event do |event, result|
       #     Rails.logger.info "[Agent #{event}] #{result.model}" if event == :after_call
@@ -116,24 +115,23 @@ module ActiveHarness
       context: {},
       params:  {},
       memory:  nil,
-      streams: {}
+      token:   nil,
+      stream:  nil
     )
-      @original_input        = input
-      @payload               = input
-      @context               = context.dup
-      @params                = params
-      @memory                = memory
-      @token_stream          = streams[:token]
-      class_streams          = self.class.pipeline_config[:streams] || {}
-      @agent_event_stream    = merge_stream(streams[:agent],    class_streams[:agent])
-      @tribunal_event_stream = merge_stream(streams[:tribunal], class_streams[:tribunal])
-      @pipeline_event_stream = merge_stream(streams[:pipeline], class_streams[:pipeline])
-      @step_results          = {}
-      @stopped               = false
-      @stopped_at            = nil
-      @stop_reason           = nil
-      @execution_time        = nil
-      @output                = nil
+      @original_input = input
+      @payload        = input
+      @context        = context.dup
+      @params         = params
+      @memory         = memory
+      @token          = token
+      class_streams   = self.class.pipeline_config[:streams] || {}
+      @stream         = merge_stream(stream, class_streams)
+      @step_results   = {}
+      @stopped        = false
+      @stopped_at     = nil
+      @stop_reason    = nil
+      @execution_time = nil
+      @output         = nil
     end
 
     def stopped?
@@ -179,7 +177,7 @@ module ActiveHarness
           @stopped_at  = step.name
           @stop_reason = result
           run_hooks(config[:hooks], :stopped, step.name, result)
-          @pipeline_event_stream&.call(:stopped, step.name, result)
+          @stream&.call(:pipeline, :stopped, step.name, result)
           break
         end
       end
@@ -196,7 +194,7 @@ module ActiveHarness
 
         last_result = @step_results[@step_results.keys.last]
         run_hooks(config[:hooks], :complete, last_result)
-        @pipeline_event_stream&.call(:complete, last_result)
+        @stream&.call(:pipeline, :complete, last_result)
       end
 
       self
@@ -204,37 +202,41 @@ module ActiveHarness
 
     private
 
-    # Combines a runtime-passed stream lambda with zero or more class-level handler
-    # blocks registered via on_agent_event / on_tribunal_event / on_pipeline_event.
-    # Returns nil when there are no handlers at all, preserving the existing
-    # "no stream" fast path in agents and tribunals.
+    # Combines a runtime-passed stream lambda with class-level handler blocks
+    # registered via on_agent_event / on_tribunal_event / on_pipeline_event.
+    # Returns nil when there are no handlers at all.
     #
-    # Each class-level handler is evaluated via instance_exec so that blocks
-    # written in the pipeline class body can access pipeline instance variables
-    # (e.g. @otel_pipeline_span, @params) and call pipeline instance methods.
+    # Class-level handlers receive (event, *args) — already scoped to source.
+    # Runtime lambda receives (source, event, *args).
+    # instance_exec lets class-level blocks access pipeline instance variables.
     def merge_stream(passed_in, class_handlers)
-      class_handlers = Array(class_handlers).compact
-      return passed_in if class_handlers.empty?
+      agent_handlers    = Array(class_handlers[:agent]).compact
+      tribunal_handlers = Array(class_handlers[:tribunal]).compact
+      pipeline_handlers = Array(class_handlers[:pipeline]).compact
+
+      has_class_handlers = agent_handlers.any? || tribunal_handlers.any? || pipeline_handlers.any?
+      return passed_in unless has_class_handlers
 
       pipeline_instance = self
-      ->(event, *args) {
-        class_handlers.each { |h| pipeline_instance.instance_exec(event, *args, &h) }
-        passed_in&.call(event, *args)
+      ->(source, event, *args) {
+        handlers = case source
+                   when :agent    then agent_handlers
+                   when :tribunal then tribunal_handlers
+                   when :pipeline then pipeline_handlers
+                   else                []
+                   end
+        handlers.each { |h| pipeline_instance.instance_exec(event, *args, &h) }
+        passed_in&.call(source, event, *args)
       }
     end
 
     def execute_step(step)
-      streams = {
-        token:    @token_stream,
-        agent:    @agent_event_stream,
-        tribunal: @tribunal_event_stream,
-        pipeline: @pipeline_event_stream
-      }.compact
       step.agent_class.new(
         input:   @payload,
         context: @context.dup,
         params:  @params,
-        streams: streams
+        token:   @token,
+        stream:  @stream
       ).call.result
     end
   end

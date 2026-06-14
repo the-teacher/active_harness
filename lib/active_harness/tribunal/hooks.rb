@@ -72,10 +72,9 @@ module ActiveHarness
       run_hooks(@hooks, event, *args)
     end
 
-    # Fire the DSL-registered hook AND the external tribunal_event_stream lambda (if set).
     def fire(event, *args)
       run_hook(event, *args)
-      @tribunal_event_stream&.call(event, *args)
+      @stream&.call(:tribunal, event, *args)
     rescue IOError, ActionController::Live::ClientDisconnected
       nil
     end

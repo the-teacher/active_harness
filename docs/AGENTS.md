@@ -371,7 +371,7 @@ end
 
 ## Streaming in the Console
 
-Pass a lambda to `streams: { token: }` to receive each token as it arrives. The full output is still available in `result.output` after the stream ends.
+Pass a `token:` lambda to receive each token as it arrives. The full output is still available in `result.output` after the stream ends.
 
 Instance API:
 
@@ -379,7 +379,7 @@ Instance API:
 agent = GreetingAgent.new
 
 print "AI: "
-agent.call("Tell me about the water cycle.", streams: { token: ->(token) { print token; $stdout.flush } })
+agent.call("Tell me about the water cycle.", token: ->(token) { print token; $stdout.flush })
 puts
 
 puts agent.result.execution_time
@@ -390,8 +390,8 @@ Class API:
 ```ruby
 print "AI: "
 agent = GreetingAgent.call(
-  input:   "Tell me about the water cycle.",
-  streams: { token: ->(token) { print token; $stdout.flush } }
+  input:  "Tell me about the water cycle.",
+  token:  ->(token) { print token; $stdout.flush }
 )
 puts
 
@@ -418,9 +418,9 @@ class AiController < ApplicationController
     sse = ActionController::Live::SSE.new(response.stream, event: "message")
 
     SupportAgent.call(
-      input:   params.require(:input),
+      input:  params.require(:input),
       # Each token is pushed to the browser immediately as it arrives
-      streams: { token: ->(token) { sse.write({ token: token }.to_json) } }
+      token:  ->(token) { sse.write({ token: token }.to_json) }
     )
 
     # Signal the client that the stream is complete

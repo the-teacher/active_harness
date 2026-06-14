@@ -9,7 +9,7 @@ A pipeline can be used as a step inside another pipeline. This lets you group re
 `Pipeline` exposes a `#result` method that returns the same `Result` struct that agents and tribunals return. This means a pipeline is just another callable that satisfies the step interface:
 
 ```
-step calls  .new(input:, context:, params:, streams:).call.result
+step calls  .new(input:, context:, params:, token:, stream:).call.result
 ```
 
 Agents, tribunals, and pipelines all respond to that call chain. The outer pipeline does not know or care which one it is running.
@@ -190,7 +190,7 @@ end
 
 ## Event Streams
 
-Event streams propagate automatically. The outer pipeline passes its `pipeline:` stream to every nested pipeline. Inner step events — `:before_step`, `:after_step`, `:stopped`, `:complete` — all reach the same stream handler.
+Event streams propagate automatically. The outer pipeline passes its `stream:` lambda to every nested pipeline. Inner step events — `:before_step`, `:after_step`, `:stopped`, `:complete` — all reach the same handler prefixed with `:pipeline` as source.
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline

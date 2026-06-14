@@ -89,13 +89,9 @@ end
 ### Use streaming
 
 ```ruby
-token_stream = ->(token) do
-  print token
-end
-
 agent = MyAgent.new(
-  input: "Question",
-  streams: { token: token_stream }
+  input:  "Question",
+  token:  ->(chunk) { print chunk }
 )
 agent.call
 ```

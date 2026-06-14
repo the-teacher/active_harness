@@ -16,7 +16,8 @@ module ActiveHarness
         params:  {},
         memory:  nil,
         models:  nil,
-        streams: {}
+        token:   nil,
+        stream:  nil
       )
         new(
           input:   input,
@@ -24,7 +25,8 @@ module ActiveHarness
           params:  params,
           memory:  memory,
           models:  models,
-          streams: streams
+          token:   token,
+          stream:  stream
         ).call
       end
 
@@ -54,8 +56,8 @@ module ActiveHarness
                   :params,
                   :memory
     attr_reader   :result,
-                  :token_stream,
-                  :event_stream
+                  :token,
+                  :stream
 
     def models=(list)
       @models_override = Array(list)
@@ -68,7 +70,8 @@ module ActiveHarness
       params:  {},
       memory:  nil,
       models:  nil,
-      streams: {}
+      token:   nil,
+      stream:  nil
     )
       @input           = input
       @config          = self.class.agent_config
@@ -77,8 +80,8 @@ module ActiveHarness
       @params          = params
       @memory          = memory
       @models_override = Array(models) if models
-      @token_stream    = streams[:token]
-      @event_stream     = streams[:agent]
+      @token           = token
+      @stream          = stream
       fire(:setup)
     end
 
@@ -88,15 +91,13 @@ module ActiveHarness
     # Optionally accepts input and stream callback inline:
     #   agent.call("What is the capital of Japan?")
     #   agent.call("...", stream: ->(token) { print token })
-    def call(input = nil, streams: nil)
+    def call(input = nil, token: nil, stream: nil)
       if input
         @input = input
         normalize_input!
       end
-      if streams
-        @token_stream = streams[:token] if streams.key?(:token)
-        @event_stream = streams[:agent] if streams.key?(:agent)
-      end
+      @token  = token  if token
+      @stream = stream if stream
       fire(:before_call)
       @system_prompt = resolve_system_prompt
       attempts = []

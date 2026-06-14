@@ -55,9 +55,8 @@ module ActiveHarness
                   :verdict,
                   :execution_time,
                   :agent_execution_times,
-                  :token_stream,
-                  :agent_event_stream,
-                  :tribunal_event_stream
+                  :token,
+                  :stream
 
     def initialize(
       input:    nil,
@@ -66,7 +65,8 @@ module ActiveHarness
       memory:   nil,
       agents:   nil,
       timeout:  7,
-      streams:  {},
+      token:    nil,
+      stream:   nil,
       may_fail: :_unset
     )
       config = self.class.tribunal_config
@@ -82,9 +82,8 @@ module ActiveHarness
       @evaluate_block        = config[:evaluate_block]
       @may_fail              = may_fail == :_unset ? config[:may_fail] : may_fail
       @hooks                 = config[:hooks].transform_values { |v| Array(v).dup }
-      @token_stream          = streams[:token]
-      @agent_event_stream    = streams[:agent]
-      @tribunal_event_stream = streams[:tribunal]
+      @token                 = token
+      @stream                = stream
       @results               = []
       @errors                = []
       @verdict               = nil
@@ -181,14 +180,13 @@ module ActiveHarness
     end
 
     def resolve_agents
-      agent_streams = { token: @token_stream, agent: @agent_event_stream }.compact
       @agents.map do |agent|
         if agent.is_a?(Class)
-          agent.new(input: @input, context: @context.dup, params: @params, streams: agent_streams)
+          agent.new(input: @input, context: @context.dup, params: @params, token: @token, stream: @stream)
         else
           agent.input = @input if @input
-          agent.instance_variable_set(:@token_stream, @token_stream) if @token_stream
-          agent.instance_variable_set(:@event_stream, @agent_event_stream) if @agent_event_stream
+          agent.instance_variable_set(:@token,  @token)  if @token
+          agent.instance_variable_set(:@stream, @stream) if @stream
           agent
         end
       end

@@ -8,12 +8,14 @@ over a single HTTP connection — without WebSockets or background jobs.
 
 ## How it works
 
-ActiveHarness exposes two streaming callbacks:
+ActiveHarness exposes two streaming parameters:
 
-| Callback        | Fires when                      | Carries                       |
-| --------------- | ------------------------------- | ----------------------------- |
-| `token_stream:` | Each token arrives from the LLM | `String` — the raw token      |
-| `event_stream:` | Each agent lifecycle hook runs  | `Symbol` name + optional args |
+| Parameter | Lambda signature           | Fires when                       | Carries                           |
+| --------- | -------------------------- | -------------------------------- | --------------------------------- |
+| `token:`  | `->(chunk) {}`             | Each token arrives from the LLM  | `String` — the raw token          |
+| `stream:` | `->(source, event, *args)` | Each lifecycle hook fires        | source (`:agent`/`:tribunal`/`:pipeline`), event name, optional args |
+
+Both are optional and independent — pass only what you need.
 
 On the Rails side you use `ActionController::Live` to keep the HTTP connection
 open and push data as `text/event-stream` (SSE).  
@@ -48,7 +50,7 @@ endpoints are reached via `EventSource`, not a form POST.
 # config/routes.rb
 namespace :ai do
   scope :agents, as: :agents do
-    get "lifecycle",       to: "agents#lifecycle"
+    get "lifecycle",        to: "agents#lifecycle"
     get "lifecycle/stream", to: "agents#lifecycle_stream", as: :lifecycle_stream
   end
 end
@@ -84,13 +86,15 @@ load balancers) that this is a live stream, not a cacheable response.
 ```ruby
 # Wraps one SSE object — called per token by the agent.
 def build_token_stream(sse)
-  ->(token) { sse.write({ token: token }.to_json) }
+  ->(chunk) { sse.write({ token: chunk }.to_json) }
 end
 
 # Wraps another SSE object — called per lifecycle hook by the agent.
+# source is :agent for standalone agents; :tribunal or :pipeline when called from those.
 def build_event_stream(sse)
-  ->(name, *args) do
-    sse.write(lifecycle_event_message(name, args).to_json)
+  ->(_source, event, *args) do
+    payload = lifecycle_event_message(event, args)
+    sse.write(payload.to_json) if payload
   rescue IOError, ActionController::Live::ClientDisconnected
     # browser disconnected mid-stream — ignore silently
   end
@@ -116,13 +120,10 @@ def lifecycle_stream
   sse_tokens    = ActionController::Live::SSE.new(stream, event: "message")
   sse_lifecycle = ActionController::Live::SSE.new(stream, event: "lifecycle")
 
-  token_stream = build_token_stream(sse_tokens)
-  event_stream = build_event_stream(sse_lifecycle)
-
   SupportAgent.call(
-    input:        input,
-    token_stream: token_stream,
-    event_stream: event_stream
+    input:  input,
+    token:  build_token_stream(sse_tokens),
+    stream: build_event_stream(sse_lifecycle)
   )
 
   # Signal to the browser that the stream is complete.
@@ -178,7 +179,7 @@ def lifecycle_event_message(event, args)
   when :failure
     { event: "failure",           text: "All models failed",     level: "error" }
   else
-    { event: event.to_s,          text: event.to_s,              level: "info" }
+    nil
   end
 end
 ```
@@ -188,36 +189,7 @@ into plain JSON hashes the browser can render directly.
 
 ---
 
-## Step 7 — Configure the agent to fire lifecycle events
-
-The agent needs hooks that call its `event_stream` lambda:
-
-```ruby
-# app/ai/agents/support_agent.rb
-class SupportAgent < ActiveHarness::Agent
-  system_prompt SupportPrompt
-
-  model do
-    use      provider: :openrouter, model: "mistralai/mistral-nemo"
-    fallback provider: :openrouter, model: "meta-llama/llama-3.1-8b-instruct"
-  end
-
-  on(:setup)             { @event_stream&.call(:setup) }
-  before(:system_prompt) { @event_stream&.call(:before_system_prompt) }
-  after(:system_prompt)  { @event_stream&.call(:after_system_prompt) }
-  before(:call)          { @event_stream&.call(:before_call) }
-  after(:call)           { |r| @event_stream&.call(:after_call, r) }
-  callback(:retry)       { |entry, err| @event_stream&.call(:retry, entry, err) }
-  callback(:failure)     { |attempts| @event_stream&.call(:failure, attempts) }
-end
-```
-
-The `&.` safe-navigation operator means the hooks are no-ops when the agent
-is called without an `event_stream:` (e.g. in tests or background jobs).
-
----
-
-## Step 8 — The view (HTML page)
+## Step 7 — The view (HTML page)
 
 ```erb
 <%# app/views/ai/agents/lifecycle.html.erb %>
@@ -245,13 +217,9 @@ is called without an `event_stream:` (e.g. in tests or background jobs).
 <% end %>
 ```
 
-The page uses a **dedicated layout** (`layout "ai"` in the controller) that
-contains `<%= yield :scripts %>` before `</body>` — no importmap, no Turbo
-dependency. The script loads only on this page.
-
 ---
 
-## Step 9 — The JavaScript (no framework)
+## Step 8 — The JavaScript (no framework)
 
 ```js
 // app/javascript/ai_agent_lifecycle.js
@@ -264,7 +232,6 @@ dependency. The script loads only on this page.
     var val = document.getElementById("ah-input").value.trim();
     if (!val) return;
 
-    // Open the SSE connection.
     var es = new EventSource(
       "/ai/agents/lifecycle/stream?input=" + encodeURIComponent(val),
     );
@@ -278,36 +245,27 @@ dependency. The script loads only on this page.
     // "message" events carry tokens.
     es.onmessage = function (ev) {
       var p = JSON.parse(ev.data);
-      if (p.done) {
-        end();
-        return;
-      }
-      if (p.error) {
-        /* show error */ end();
-        return;
-      }
+      if (p.done) { end(); return; }
+      if (p.error) { /* show error */ end(); return; }
       document.getElementById("ah-output").textContent += p.token;
     };
 
     // "lifecycle" events carry agent hook data.
     es.addEventListener("lifecycle", function (ev) {
       var p = JSON.parse(ev.data);
-      appendLifecycleEvent(p); // render in sidebar
+      appendLifecycleEvent(p);
       if (p.event === "after_call" && p.model)
         document.getElementById("ah-meta").textContent =
           "Model: " + p.model + " · " + p.time + "s";
     });
 
     es.onerror = function () {
-      if (done) return; // server closed cleanly after {done:true} — ignore
+      if (done) return;
       end();
     };
   });
 })();
 ```
-
-The IIFE runs once when the `<script>` tag is executed (bottom of `<body>`),
-so no `DOMContentLoaded` is needed.
 
 ---
 

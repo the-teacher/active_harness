@@ -60,15 +60,14 @@ module ActiveHarness
 
     private
 
-    # Fires global hook AND pipeline_event_stream. Consistent with Agent#fire and Tribunal#fire.
     def fire(event, step_name, data, config)
       run_hooks(config[:hooks], event, step_name, data)
-      @pipeline_event_stream&.call(event, step_name, data)
+      @stream&.call(:pipeline, event, step_name, data)
     rescue IOError, ActionController::Live::ClientDisconnected
       nil
     end
 
-    # Per-step hook: receives (data) only — not forwarded to pipeline_event_stream
+    # Per-step hook: receives (data) only — not forwarded to stream
     # (global fire already covers the step event with step_name context).
     def fire_step(event, step_name, data, config)
       run_hooks(config[:step_hooks][step_name] || {}, event, data)

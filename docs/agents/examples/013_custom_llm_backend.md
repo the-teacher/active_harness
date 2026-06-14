@@ -170,7 +170,7 @@ end
 
 agent = StreamingRubyLLMAgent.new(
   input: "Tell me about the history of computers",
-  streams: { token: token_stream }
+  token: token_stream
 )
 agent.call
 ```

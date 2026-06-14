@@ -35,7 +35,7 @@ Tests live in `test/active_harness/` and use Minitest. There is no linter. Ruby 
 ### Three Primary Abstractions
 
 **`ActiveHarness::Agent`** (`lib/active_harness/agent.rb` + `lib/active_harness/agent/`)
-Single LLM call with a model chain, system prompt, hooks, retry policy, and optional streaming. Call pattern: `MyAgent.call(input: "...", context: {}, params: {}, memory: nil, models: nil, streams: {})`. Returns `self`; result is on `agent.result` (a `Result` struct). Can also be instantiated and called inline: `agent.call("new input")`.
+Single LLM call with a model chain, system prompt, hooks, retry policy, and optional streaming. Call pattern: `MyAgent.call(input: "...", context: {}, params: {}, memory: nil, models: nil, token: nil, stream: nil)`. Returns `self`; result is on `agent.result` (a `Result` struct). Can also be instantiated and called inline: `agent.call("new input")`.
 
 **`ActiveHarness::Tribunal`** (`lib/active_harness/tribunal.rb` + subdirs)
 Runs multiple agents in parallel via `concurrent-ruby`'s `Concurrent::Future`. Computes a verdict from all successful results using either a `:unanimous`/`:majority` built-in strategy or a custom `process { |results| ... }` block. Tolerates partial failure via `may_fail: N`. Returns `self`; verdict is on `tribunal.verdict`.
@@ -66,7 +66,7 @@ Pipeline hooks: `:before_step`, `:after_step`, `:stopped`, `:complete`. Can be s
 
 Tribunal hooks: `:before_call`, `:after_call`, `:before_agent`, `:after_agent`, `:agent_error`, `:before_verdict`, `:after_verdict`.
 
-**Event streams** (`streams: { token:, agent:, tribunal:, pipeline: }`) are lambdas passed at call-site that fire alongside DSL hooks — used for Rails SSE, OpenTelemetry, logging, etc. Pipelines merge class-level `on_agent_event`/`on_tribunal_event`/`on_pipeline_event` blocks with runtime-passed lambdas.
+**Event streams** — two keyword params passed at call-site: `token: ->(chunk) {}` for raw token streaming (controls HTTP mode), and `stream: ->(source, event, *args) {}` for lifecycle events. Sources: `:agent`, `:tribunal`, `:pipeline`. The `stream:` flows through Pipeline → Tribunal → Agent automatically. Pipelines merge class-level `on_agent_event`/`on_tribunal_event`/`on_pipeline_event` blocks with the runtime-passed `stream:` lambda.
 
 ### Model Chain DSL
 

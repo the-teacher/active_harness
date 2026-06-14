@@ -55,7 +55,7 @@ class Ai::AgentsController < ApplicationController
   def run_agent_with_sse(input, sse)
     agent = StreamingAgent.new(
       input: input,
-      streams: { token: build_token_stream(sse) }
+      token: build_token_stream(sse)
     )
     agent.call
     send_final_event(sse, agent.result)
