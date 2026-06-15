@@ -1,5 +1,94 @@
 # Changelog
 
+## v0.2.39 — 2026-06-15
+
+### Pipeline: lambda steps, `executors` accessor, `steps` iterator, unified `call` interface
+
+#### Lambda steps
+
+A step can now be a plain Ruby lambda instead of an agent class. The lambda must return an `ActiveHarness::Result`:
+
+```ruby
+step :normalize, ->(input) {
+  clean = input.strip.gsub(/\s+/, " ")
+  ActiveHarness::Result.new(output: clean, processed: clean)
+}
+```
+
+Declare `context:` and/or `params:` in the signature to receive pipeline context and params:
+
+```ruby
+step :enrich, ->(input, context:, params:) {
+  prefix = context[:user_name] || params[:prefix] || ""
+  ActiveHarness::Result.new(output: "#{prefix}: #{input}", processed: "#{prefix}: #{input}")
+}
+```
+
+Lambda steps support `stop_if` via the block form:
+
+```ruby
+step :length_guard do
+  use ->(input) {
+    ActiveHarness::Result.new(output: input, processed: { "too_long" => input.length > 500 })
+  }
+  stop_if ->(result) { result.processed["too_long"] == true }
+end
+```
+
+Lambda steps have no model chain, no retry logic, and no hooks. They run synchronously.
+
+#### `pipeline.executors` — pre-call configuration
+
+All non-lambda executor instances (agents, tribunals, nested pipelines) are now created at `Pipeline.new` — before `call` runs. This lets you reconfigure them per-request:
+
+```ruby
+pipeline = SupportPipeline.new(input: "...")
+pipeline.executors[:translate].models.prepend(provider: :openai, model: "gpt-4.1-mini")
+pipeline.executors[:respond].params = { tone: "formal" }
+pipeline.call
+```
+
+#### `pipeline.steps` iterator — replaces `step_results`
+
+`pipeline.step_results` (hash) is replaced by `pipeline.steps` (enumerator). Each iteration yields `(name, executor, result)`:
+
+```ruby
+pipeline.steps { |name, executor, result| puts "#{name}: #{result.output}" }
+
+# Enumerator form
+pipeline.steps.map { |name, executor, result| [name, result.output] }
+```
+
+Steps that did not run (pipeline stopped before reaching them) are skipped automatically.
+
+**Breaking change:** `pipeline.step_results` is removed. Use `pipeline.steps { |name, executor, result| }` or `pipeline.steps.to_a`.
+
+#### Unified `call` interface
+
+`Pipeline#call` and `Tribunal#call` now accept `(input = nil, token: nil, stream: nil)`, matching the `Agent#call` interface. This makes all three abstractions interchangeable as pipeline executors.
+
+---
+
+## v0.2.38 — 2026-06-15
+
+### Cost lookup extracted to `agent/cost.rb` with extensible provider table
+
+`lookup_model_cost` moved from `agent.rb` to `agent/cost.rb` and refactored to a three-tier fallback:
+
+1. `provider_cost` in the API response (handled upstream in `build_usage`)
+2. Provider-specific source from `PROVIDER_PRICING_SOURCES` (e.g. `Pricing::OpenRouter` for `:openrouter`)
+3. `Pricing::ModelsDev` general fallback
+
+```ruby
+PROVIDER_PRICING_SOURCES = {
+  openrouter: Pricing::OpenRouter
+}.freeze
+```
+
+To add pricing support for a new provider, add an entry to `PROVIDER_PRICING_SOURCES` — no other changes required.
+
+---
+
 ## v0.2.37 — 2026-06-14
 
 ### Pricing extracted to `active_harness_pricing` gem
