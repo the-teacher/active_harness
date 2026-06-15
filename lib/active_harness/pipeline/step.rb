@@ -1,18 +1,18 @@
 module ActiveHarness
   class Pipeline
     class Step
-      attr_reader :name, :agent_class
+      attr_reader :name, :executor
 
-      def initialize(name, agent_class = nil, &block)
-        @name        = name
-        @agent_class = agent_class
-        @stop_if     = nil
+      def initialize(name, executor = nil, &block)
+        @name     = name
+        @executor = executor
+        @stop_if  = nil
         instance_eval(&block) if block_given?
       end
 
-      # DSL: use TranslationAgent
+      # DSL: use TranslationAgent / SafetyTribunal / NestedPipeline
       def use(klass)
-        @agent_class = klass
+        @executor = klass
       end
 
       # DSL (inside block): stop_if ->(result) { ... }
@@ -35,9 +35,13 @@ module ActiveHarness
         @transform_block
       end
 
-      # True if agent_class is a Tribunal subclass — tribunal steps do not update payload.
+      def lambda?
+        @executor.is_a?(Proc)
+      end
+
+      # True if the executor is a Tribunal subclass — tribunal steps do not update payload.
       def tribunal?
-        @agent_class.is_a?(Class) && @agent_class <= ActiveHarness::Tribunal
+        @executor.is_a?(Class) && @executor <= ActiveHarness::Tribunal
       end
 
       # Returns true when this step should update the pipeline payload after execution.

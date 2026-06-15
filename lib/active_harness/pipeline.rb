@@ -29,7 +29,7 @@ module ActiveHarness
   #   pipeline.call
   #   pipeline.output       # => final payload string (nil if stopped)
   #   pipeline.stopped?     # => false
-  #   pipeline.step_results # => { translate: <Result>, ... }
+  #   pipeline.steps { |name, result| ... }  # iterate over completed steps
   #
   class Pipeline
     # -------------------------------------------------------------------------
@@ -46,8 +46,8 @@ module ActiveHarness
       #     use InjectionGuardAgent
       #     stop_if ->(result) { result.processed["detected"] == true }
       #   end
-      def step(name, agent_class = nil, &block)
-        pipeline_config[:steps] << Pipeline::Step.new(name, agent_class, &block)
+      def step(name, executor = nil, &block)
+        pipeline_config[:steps] << Pipeline::Step.new(name, executor, &block)
       end
 
       def pipeline_config
@@ -100,7 +100,6 @@ module ActiveHarness
                   :stopped_at,
                   :stop_reason,
                   :execution_time,
-                  :step_results,
                   :context
     attr_writer   :context
     attr_accessor :params
@@ -126,6 +125,7 @@ module ActiveHarness
       @token          = token
       class_streams   = self.class.pipeline_config[:streams] || {}
       @stream         = merge_stream(stream, class_streams)
+      @executors      = build_executors
       @step_results   = {}
       @stopped        = false
       @stopped_at     = nil
@@ -134,8 +134,42 @@ module ActiveHarness
       @output         = nil
     end
 
+    # Returns a hash of pre-created executor instances keyed by step name.
+    # Available immediately after new — before call — so instances can be
+    # configured (model lists, params, etc.) before execution begins.
+    #
+    #   pipeline = SupportPipeline.new(input: "...")
+    #   pipeline.executors[:translate].models.prepend(provider: :openai, model: "gpt-4.1")
+    #   pipeline.executors[:guard].params = { strict: true }
+    #   pipeline.call
+    def executors
+      @executors
+    end
+
     def stopped?
       @stopped
+    end
+
+    # Iterates over completed steps as (name, executor, result) tuples.
+    # Steps that did not run (pipeline stopped before reaching them) are skipped.
+    # Returns an Enumerator when called without a block.
+    #
+    #   pipeline.steps { |name, executor, result| }
+    #
+    #   name     — step name symbol          (:translate, :guard, …)
+    #   executor — the instance that ran     (TranslationAgent instance, …)
+    #   result   — Result struct             (output, processed, usage, model, …)
+    #
+    #   pipeline.steps.map { |name, executor, result| [name, result.output] }
+    #   pipeline.steps.to_a
+    def steps
+      return enum_for(:steps) unless block_given?
+      self.class.pipeline_config[:steps].each do |step|
+        result = @step_results[step.name]
+        next unless result
+        yield step.name, @executors[step.name], result
+      end
+      self
     end
 
     # Wraps pipeline outcome into a Result so a pipeline can be used as a step
@@ -153,7 +187,15 @@ module ActiveHarness
     end
 
     # Execute all steps sequentially. Returns self for chaining.
-    def call
+    # Accepts optional input, token, stream to match the Agent/Tribunal call interface.
+    def call(input = nil, token: nil, stream: nil)
+      if input
+        @original_input = input
+        @payload        = input
+      end
+      @token  = token  if token
+      @stream = stream if stream
+
       config = self.class.pipeline_config
       t0     = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
@@ -231,13 +273,40 @@ module ActiveHarness
     end
 
     def execute_step(step)
-      step.agent_class.new(
-        input:   @payload,
-        context: @context.dup,
-        params:  @params,
-        token:   @token,
-        stream:  @stream
-      ).call.result
+      if step.lambda?
+        execute_lambda_step(step)
+      else
+        instance         = @executors[step.name]
+        instance.context = @context.dup
+        instance.call(@payload).result
+      end
+    end
+
+    def execute_lambda_step(step)
+      lam    = step.executor
+      has_kw = lam.parameters.any? { |type, _| [:key, :keyreq, :keyrest].include?(type) }
+      result = has_kw ? lam.call(@payload, context: @context.dup, params: @params) : lam.call(@payload)
+
+      unless result.is_a?(Result)
+        raise ArgumentError,
+          "Lambda step :#{step.name} must return ActiveHarness::Result, got #{result.class}"
+      end
+
+      result
+    end
+
+    def build_executors
+      self.class.pipeline_config[:steps].each_with_object({}) do |step, hash|
+        next if step.lambda?
+
+        hash[step.name] = step.executor.new(
+          input:   @payload,
+          context: @context.dup,
+          params:  @params,
+          token:   @token,
+          stream:  @stream
+        )
+      end
     end
   end
 end

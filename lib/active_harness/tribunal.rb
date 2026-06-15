@@ -105,11 +105,17 @@ module ActiveHarness
     # Run all agents in parallel, then compute the verdict.
     # Returns self so calls can be chained: tribunal.call.verdict
     #
+    # Accepts an optional input to update payload before running — matches
+    # the Agent#call(input) interface so tribunals work as pipeline executors.
+    #
     # Behaviour on failure:
     #   - If some agents fail/timeout, their errors are in #errors and
     #     #results contains only successful results.
     #   - If ALL agents fail/timeout, raises Errors::AllAgentsFailed.
-    def call
+    def call(input = nil, token: nil, stream: nil)
+      @input  = input  if input
+      @token  = token  if token
+      @stream = stream if stream
       agents = resolve_agents
       fire(:before_call)
 

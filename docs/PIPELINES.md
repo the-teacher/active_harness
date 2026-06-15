@@ -70,25 +70,24 @@ puts pipeline.execution_time  # => total wall time across all steps
 ### 4. Inspect step results
 
 ```ruby
-pipeline.step_results.each do |name, result|
+pipeline.steps do |name, executor, result|
   puts "#{name}: #{result.output} (#{result.execution_time}s)"
 end
 
-# Access a specific step
-translation = pipeline.step_results[:translate]
-puts translation.output   # => "How are you?"
-puts translation.model    # => "mistralai/mistral-nemo"
+# Enumerator form
+pipeline.steps.map { |name, executor, result| [name, result.output] }
 ```
 
 ---
 
 ## Step Types
 
-| Type          | Definition                                 | Updates payload? | Can stop pipeline? |
-| ------------- | ------------------------------------------ | :--------------: | :----------------: |
-| **Transform** | `step :name, AgentClass`                   | yes              | no                 |
-| **Guard**     | `step :name do use …; stop_if … end`       | no               | yes                |
-| **Tribunal**  | `step :name do use TribunalClass; … end`   | no               | yes (with stop_if) |
+| Type          | Definition                                          | Updates payload? | Can stop pipeline? |
+| ------------- | --------------------------------------------------- | :--------------: | :----------------: |
+| **Transform** | `step :name, AgentClass`                            | yes              | no                 |
+| **Guard**     | `step :name do use …; stop_if … end`                | no               | yes                |
+| **Tribunal**  | `step :name do use TribunalClass; … end`            | no               | yes (with stop_if) |
+| **Lambda**    | `step :name, ->(input) { ActiveHarness::Result… }` | yes              | yes (with stop_if) |
 
 Transform steps feed `result.output` into the next step. Guard and tribunal steps leave the payload unchanged — they only inspect the result and optionally stop the pipeline.
 
@@ -142,13 +141,85 @@ end
 
 ---
 
+## Lambda Steps
+
+A step can be a plain Ruby lambda instead of an agent class. The lambda **must** return an `ActiveHarness::Result` — this is the strict contract.
+
+### Minimal form
+
+```ruby
+step :normalize, ->(input) {
+  ActiveHarness::Result.new(output: input.strip, processed: input.strip)
+}
+```
+
+### With context and params
+
+Declare `context:` and/or `params:` in the lambda signature to receive them:
+
+```ruby
+step :enrich, ->(input, context:, params:) {
+  prefix = context[:user_name] || params[:prefix] || ""
+  ActiveHarness::Result.new(output: "#{prefix}: #{input}", processed: "#{prefix}: #{input}")
+}
+```
+
+If you want the pipeline to pass keywords but don't need them all, use `**`:
+
+```ruby
+step :normalize, ->(input, **) {
+  ActiveHarness::Result.new(output: input.strip, processed: input.strip)
+}
+```
+
+### With stop_if
+
+Lambda steps support `stop_if` via the block form:
+
+```ruby
+step :length_guard do
+  use ->(input) {
+    ActiveHarness::Result.new(
+      output:    input,
+      processed: { "too_long" => input.length > 500 }
+    )
+  }
+  stop_if ->(result) { result.processed["too_long"] == true }
+end
+```
+
+> A lambda step has no model chain, no retry logic, and no hooks. It runs synchronously and its return value is used directly as the step result.
+
+---
+
+## Pre-call Executor Configuration
+
+All executor instances are created at `pipeline.new` — before `call` runs. This lets you configure model chains or params per step before execution begins.
+
+```ruby
+pipeline = SupportPipeline.new(input: "...")
+
+# Override model list for a specific step
+pipeline.executors[:translate].models.prepend(provider: :openai, model: "gpt-4.1-mini")
+
+# Override params
+pipeline.executors[:respond].params = { tone: "formal" }
+
+pipeline.call
+```
+
+`pipeline.executors` returns a hash keyed by step name. Lambda steps are not included — they have no instance to configure.
+
+---
+
 ## Context: Accessing Previous Step Results
 
 Every step result is stored in `pipeline.context` under the step name. Each agent receives the full context so it can reference earlier outputs:
 
 ```ruby
-pipeline.step_results[:translate].output  # => translated text
-pipeline.step_results[:compact].output    # => compacted text
+pipeline.steps do |name, executor, result|
+  puts result.output
+end
 
 # The context hash is also passed to each agent:
 # agent.context[:translate] => Result, agent.context[:compact] => Result
@@ -160,12 +231,12 @@ pipeline.step_results[:compact].output    # => compacted text
 
 ### Global hooks — fire on every step
 
-| Event            | Alias              | Arguments              | When it fires                       |
-| ---------------- | ------------------ | ---------------------- | ----------------------------------- |
-| `on :before_step`| `before :step`     | `step_name, payload`   | Before each step runs               |
-| `on :after_step` | `after :step`      | `step_name, result`    | After each step completes           |
-| `on :stopped`    | `callback :stopped`| `step_name, result`    | When a `stop_if` condition is met   |
-| `on :complete`   | `callback :complete`| `last_result`         | After all steps finish successfully |
+| Event             | Alias               | Arguments              | When it fires                       |
+| ----------------- | ------------------- | ---------------------- | ----------------------------------- |
+| `on :before_step` | `before :step`      | `step_name, payload`   | Before each step runs               |
+| `on :after_step`  | `after :step`       | `step_name, result`    | After each step completes           |
+| `on :stopped`     | `callback :stopped` | `step_name, result`    | When a `stop_if` condition is met   |
+| `on :complete`    | `callback :complete`| `last_result`          | After all steps finish successfully |
 
 ### Per-step hooks — fire only for the named step
 
@@ -243,7 +314,7 @@ end
 
 ## Full Example
 
-A realistic pipeline with guards, a tribunal, transforms, and hooks:
+A realistic pipeline with guards, a tribunal, transforms, a lambda step, and hooks:
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
@@ -256,22 +327,28 @@ class SupportPipeline < ActiveHarness::Pipeline
   # 2. Transform — translate to English
   step :translate, TranslationAgent
 
-  # 3. Transform — compact to key intent
+  # 3. Lambda — normalize whitespace without an LLM call
+  step :normalize, ->(input) {
+    clean = input.strip.gsub(/\s+/, " ")
+    ActiveHarness::Result.new(output: clean, processed: clean)
+  }
+
+  # 4. Transform — compact to key intent
   step :compact, CompactionAgent
 
-  # 4. Tribunal — parallel toxicity + aggression check
+  # 5. Tribunal — parallel toxicity + aggression check
   step :safety_check do
     use SafetyTribunal
     stop_if ->(result) { result.verdict == false }
   end
 
-  # 5. Guard — topic relevance
+  # 6. Guard — topic relevance
   step :relevance_guard do
     use RelevanceAgent
     stop_if ->(result) { result.processed["relevant"] == false }
   end
 
-  # 6. Transform — final answer
+  # 7. Transform — final answer
   step :respond, SupportAgent
 
   before :step do |step_name, payload|
@@ -290,11 +367,20 @@ end
 
 ```ruby
 pipeline = SupportPipeline.new(input: "What is your return policy?")
+
+# Optional: configure a step before running
+pipeline.executors[:translate].models.prepend(provider: :openai, model: "gpt-4.1-mini")
+
 pipeline.call
 
 if pipeline.stopped?
   puts "Stopped at: #{pipeline.stopped_at}"
 else
   puts pipeline.output
+end
+
+# Inspect all completed steps
+pipeline.steps do |name, executor, result|
+  puts "#{name} (#{executor.class.name}): #{result.output.to_s[0, 60]}"
 end
 ```
