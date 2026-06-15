@@ -30,6 +30,12 @@ Group related steps into reusable sub-pipelines, and compose complex workflows f
 
 <img width="100%" src="https://github.com/user-attachments/assets/10d8ce3f-89aa-4c58-8697-73c34d6067a3" alt="Nested Pipelines"/>
 
+## Compose Hybrid Pipelines!
+
+Orchestrate deterministic and AI steps together.
+
+<img  alt="Image" src="https://github.com/user-attachments/assets/9df61547-e2b5-48c0-8cf2-3ae3aae60c4a" />
+
 ## Control the Cost of Your AI Calls!
 
 With ActiveHarness you can track time, tokens, and dollars for every agent call, pipeline step, and tribunal.
@@ -64,7 +70,7 @@ Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory i
 
 <img width="100%" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
 
-## Visualise Models' Cost and Type
+## Visualize Models' Cost and Type
 
 <img width="100%" alt="Pricing" src="https://github.com/user-attachments/assets/3ddbe1da-4e9d-4e5a-9f45-27e3a849dd3f" />
 
