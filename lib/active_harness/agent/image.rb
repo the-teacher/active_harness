@@ -7,6 +7,10 @@ module ActiveHarness
       #     image true
       #     size  "1024x1024"
       #
+      #     # Optional: base style/formatting guidance, prepended to @input
+      #     # to form the final image prompt (see Agent#build_image_prompt).
+      #     system_prompt "Watercolor style, soft pastel colors, no text overlays."
+      #
       #     model do
       #       use      provider: :openrouter, model: "openai/gpt-5-image-mini"
       #       fallback provider: :openai,     model: "gpt-image-1"

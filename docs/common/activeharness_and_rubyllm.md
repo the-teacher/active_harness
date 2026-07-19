@@ -43,6 +43,7 @@ It adds an architectural layer on top of any LLM transport:
 - **Memory** — explicit conversation history injection you control
 - **Retry policy** — exponential backoff per-model or globally
 - **Streaming** — SSE token-by-token output from any step
+- **Image generation** — built-in support for OpenAI and OpenRouter image models (see [Image Generation](../agents/image_generation.md))
 
 ActiveHarness is focused on reliability and control — the architectural layer that RubyLLM happily sits underneath.
 
@@ -63,7 +64,7 @@ Thinking about the two projects side by side:
 | **Function calling**     | ❌ No                     | ✅ Yes                               |
 | **Structured output**    | Basic `:json` parse       | ✅ Typed Schema                      |
 | **Multimodal input**     | ❌ No                     | ✅ Images, audio, video, PDF         |
-| **Image generation**     | ❌ No                     | ✅ Yes                               |
+| **Image generation**     | ✅ Built-in (OpenAI, OpenRouter) | ✅ Yes                         |
 | **Embeddings**           | ❌ No                     | ✅ Yes                               |
 | **Audio transcription**  | ❌ No                     | ✅ Yes                               |
 | **Rails integration**    | Railtie + file structure  | `acts_as_chat` + DB persistence + UI |

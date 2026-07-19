@@ -50,6 +50,8 @@ Sequential chain of agents and tribunals as named steps. Each step can have a `s
 
 **Providers** (`lib/active_harness/providers/`) — One file per provider, all subclassing `Providers::Base`. Supported symbols: `:openai`, `:anthropic`, `:gemini`, `:groq`, `:openrouter`, `:xai`, `:deepseek`, `:mistral`, `:ollama`, `:perplexity`, `:gpustack`, `:azure`, `:bedrock`, `:vertexai`, `:custom`. To add a provider: subclass `Providers::Base`, implement `#call`, register in `agent/providers.rb` `PROVIDERS` hash.
 
+**Image generation** (`lib/active_harness/agent/image.rb` + `lib/active_harness/providers/images/`) — `image true`/`size "..."` class DSL switches an agent's model chain to image generation instead of chat. Only `:openai` and `:openrouter` are supported (`Agent::IMAGE_PROVIDERS`); the final prompt is `system_prompt` (if any) prepended to `@input` — image APIs take one prompt string, no role split. `result.output` is a base64 string/data-URI or HTTPS URL. See `docs/agents/image_generation.md`.
+
 **`ActiveHarness::Pricing`** — Provided by the separate `active_harness_pricing` gem dependency. Pulls pricing from `models.dev` API (cached 72h in `tmp/active_harness/models_dev_pricing.json`); on fetch/cache failure returns an empty model list (no bundled fallback file exists).
 
 ### Hooks System

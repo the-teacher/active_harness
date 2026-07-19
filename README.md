@@ -140,6 +140,7 @@ app/
 - [Custom Providers](docs/AGENTS.md#custom-providers)
 - [Streaming in the Console](docs/AGENTS.md#streaming-in-the-console)
 - [Streaming in a Rails App](docs/AGENTS.md#streaming-in-a-rails-app)
+- [Image Generation](docs/agents/image_generation.md)
 
 ## Pipeline Documentation
 

@@ -47,7 +47,7 @@ module ActiveHarness
 
     def attempt_model(entry, system_prompt)
       return attempt_via_custom_llm(entry, system_prompt) if @config[:custom_llm_backend]
-      return attempt_image_model(entry)                   if @config[:image]
+      return attempt_image_model(entry, system_prompt)     if @config[:image]
 
       provider = resolve_provider(entry[:provider])
       messages = build_messages(system_prompt, @input)
@@ -58,15 +58,24 @@ module ActiveHarness
       provider.call(**opts)
     end
 
-    def attempt_image_model(entry)
+    def attempt_image_model(entry, system_prompt)
       factory = IMAGE_PROVIDERS[entry[:provider].to_sym]
       raise ArgumentError, "Provider #{entry[:provider].inspect} does not support image generation. " \
                            "Supported image providers: #{IMAGE_PROVIDERS.keys.join(', ')}" unless factory
 
       size = entry[:size] || @config[:image_size] || "1024x1024"
-      opts = { model: entry[:model], prompt: @input.to_s, size: size }
+      opts = { model: entry[:model], prompt: build_image_prompt(system_prompt, @input.to_s), size: size }
       opts[:quality] = entry[:quality] if entry[:quality]
       factory.call.call(**opts)
+    end
+
+    # Image APIs take a single prompt string (no system/user role split), so the
+    # system prompt — e.g. base style/formatting guidance — is prepended to the
+    # user's input rather than sent as a separate message.
+    def build_image_prompt(system_prompt, input)
+      return input if system_prompt.nil? || system_prompt.to_s.strip.empty?
+
+      "#{system_prompt}\n\n#{input}"
     end
 
     def resolve_provider(name)
