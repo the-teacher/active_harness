@@ -141,6 +141,7 @@ app/
 - [Streaming in the Console](docs/AGENTS.md#streaming-in-the-console)
 - [Streaming in a Rails App](docs/AGENTS.md#streaming-in-a-rails-app)
 - [Image Generation](docs/agents/image_generation.md)
+- [Audio Transcription](docs/agents/audio_transcription.md)
 
 ## Pipeline Documentation
 

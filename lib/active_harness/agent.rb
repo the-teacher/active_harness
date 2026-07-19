@@ -213,4 +213,5 @@ require_relative "agent/output_parser"
 require_relative "agent/custom_llm_backend"
 require_relative "agent/cost"
 require_relative "agent/image"
+require_relative "agent/transcription"
 

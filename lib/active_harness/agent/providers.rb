@@ -43,11 +43,16 @@ module ActiveHarness
       openrouter:  -> { Providers::Images::OpenRouter.new }
     }.freeze
 
+    TRANSCRIPTION_PROVIDERS = {
+      openrouter:  -> { Providers::Audio::OpenRouter.new }
+    }.freeze
+
     private
 
     def attempt_model(entry, system_prompt)
       return attempt_via_custom_llm(entry, system_prompt) if @config[:custom_llm_backend]
       return attempt_image_model(entry, system_prompt)     if @config[:image]
+      return attempt_transcription_model(entry)            if @config[:transcribe]
 
       provider = resolve_provider(entry[:provider])
       messages = build_messages(system_prompt, @input)
@@ -76,6 +81,24 @@ module ActiveHarness
       return input if system_prompt.nil? || system_prompt.to_s.strip.empty?
 
       "#{system_prompt}\n\n#{input}"
+    end
+
+    def attempt_transcription_model(entry)
+      factory = TRANSCRIPTION_PROVIDERS[entry[:provider].to_sym]
+      raise ArgumentError, "Provider #{entry[:provider].inspect} does not support audio transcription. " \
+                           "Supported transcription providers: #{TRANSCRIPTION_PROVIDERS.keys.join(', ')}" unless factory
+
+      path = @input.to_s
+      raise ArgumentError, "#{self.class.name}: audio file not found: #{path.inspect}" unless File.exist?(path)
+
+      format = File.extname(path).delete_prefix(".").downcase
+      raise ArgumentError, "#{self.class.name}: cannot determine audio format from #{path.inspect} " \
+                           "— expected a file extension like .mp3/.wav/.flac/.m4a/.ogg/.webm/.aac" if format.empty?
+
+      opts = { model: entry[:model], audio_data: File.binread(path), audio_format: format }
+      language = entry[:language] || @config[:transcribe_language]
+      opts[:language] = language if language
+      factory.call.call(**opts)
     end
 
     def resolve_provider(name)
