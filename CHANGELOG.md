@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.2.40 — 2026-07-19
+
+### Image generation agents now respect `system_prompt`
+
+Previously, `system_prompt` on an `image true` agent was resolved but silently discarded — only `@input` was sent as the image prompt. It is now prepended to `@input` (joined by a blank line) to form the final prompt, so a base style/format guidance can be layered under the user's specific request:
+
+```ruby
+class ImageAgent < ActiveHarness::Agent
+  image true
+  system_prompt "Watercolor style, soft pastel colors, no text overlays."
+
+  model do
+    use provider: :openrouter, model: "openai/gpt-5-image-mini"
+  end
+end
+
+ImageAgent.call(input: "A fox in a snowy forest")
+# prompt sent to provider:
+#   "Watercolor style, soft pastel colors, no text overlays.
+#
+#   A fox in a snowy forest"
+```
+
+`system_prompt` accepts a String, a Prompt class, or a lambda here too — same as text agents. Agents without a `system_prompt` are unaffected — `@input` is still sent as-is.
+
+### New: Image Generation docs
+
+Added `docs/agents/image_generation.md` — the `image true`/`size` DSL, supported providers (`:openai`, `:openrouter`), per-model `size:`/`quality:` overrides, model validation against the Pricing registry, error mapping, and usage/cost caveats. This capability existed since earlier versions but was previously undocumented.
+
+### Documentation accuracy pass
+
+A full audit of `docs/` against the current source turned up and fixed roughly twenty stale or incorrect references, including:
+
+- `docs/agents/pricing.md` — corrected cache TTL (72h, not 24h) and cache file path, removed a nonexistent bundled-fallback-file claim and a nonexistent public `Pricing.update` method
+- `docs/PIPELINES.md`, `docs/NESTED_PIPLINES.md`, `docs/pipelines/pipeline_hooks.md`, `docs/agents/execution_time.md`, `lib/active_harness/pipeline/README.md` — replaced remaining `pipeline.step_results` references (removed in v0.2.39, see below) with the `pipeline.steps` enumerator
+- `docs/agents/examples/014_guards_and_validation.md` — rewritten; it described a `guard`/`ActiveHarness::GuardError` DSL that never existed in the gem, replaced with real `before_call`/`raise` hook usage
+- Corrected several examples' access to `Result#usage`/`#attempts` fields, a broken `result.verdict` reference in a Pipeline `stop_if` example, and a handful of dead cross-links
+- `docs/common/activeharness_and_rubyllm.md` — corrected the comparison table, which claimed ActiveHarness had no image generation support
+- Removed `docs/images/README.md`, a stale duplicate of the pre-restructure root `README.md` left behind after images moved into their own folder
+
+---
+
 ## v0.2.39 — 2026-06-15
 
 ### Pipeline: lambda steps, `executors` accessor, `steps` iterator, unified `call` interface

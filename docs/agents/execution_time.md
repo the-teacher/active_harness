@@ -16,7 +16,7 @@ pipeline.call
 puts pipeline.execution_time        # => 3.12
 
 # Per step
-pipeline.step_results.each do |step_name, result|
+pipeline.steps.each do |step_name, _executor, result|
   puts "#{step_name}: #{result.execution_time}s"
 end
 ```

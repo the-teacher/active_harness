@@ -104,5 +104,5 @@ after    :step, :step_name  do |result|  ... end
 
 - `:stopped` and `:complete` are mutually exclusive — only one fires per pipeline run.
 - `pipeline.stopped?`, `pipeline.stopped_at`, and `pipeline.output` are available after `call`.
-- `pipeline.step_results` is a Hash keyed by step name Symbol.
+- `pipeline.steps` is an enumerator yielding `(step_name, executor, result)` for every step that ran — use `.each`, `.map`, `.find`, or `.to_a`.
 - `pipeline.execution_time` is the total wall time across all steps that ran.

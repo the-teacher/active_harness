@@ -38,7 +38,7 @@ Single LLM call with a model chain, system prompt, hooks, retry policy, and opti
 Runs multiple agents in parallel via `concurrent-ruby`'s `Concurrent::Future`. Computes a verdict from all successful results using either a `:unanimous`/`:majority` built-in strategy or a custom `process { |results| ... }` block. Tolerates partial failure via `may_fail: N`. Returns `self`; verdict is on `tribunal.verdict`.
 
 **`ActiveHarness::Pipeline`** (`lib/active_harness/pipeline.rb` + subdirs)
-Sequential chain of agents and tribunals as named steps. Each step can have a `stop_if` lambda; when it fires, `pipeline.stopped?` becomes true and subsequent steps are skipped. Step results accumulate in `pipeline.step_results` and are also forwarded as `context[step_name]` to downstream steps. Each step's output replaces the payload only when `step.transform?` is true (i.e., a `use` agent rather than a tribunal that only produces a verdict).
+Sequential chain of agents, tribunals, and lambdas as named steps. Each step can have a `stop_if` lambda; when it fires, `pipeline.stopped?` becomes true and subsequent steps are skipped. Step results are readable via the `pipeline.steps` enumerator (yields `step_name, executor, result`) and are also forwarded as `context[step_name]` to downstream steps. Each step's output replaces the payload only when `step.transform?` is true (i.e., a `use` agent rather than a tribunal that only produces a verdict).
 
 ### Supporting Components
 

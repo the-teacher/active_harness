@@ -98,7 +98,7 @@ pipeline.stopped_at  # => :guard
 pipeline.output      # => nil
 
 # Which inner step triggered the stop:
-pipeline.step_results[:guard].processed
+pipeline.steps.find { |name, _executor, _result| name == :guard }&.last&.processed
 # => { "stopped" => true, "stopped_at" => "injection" }
 ```
 
@@ -161,18 +161,18 @@ end
 
 ## Accessing Inner Results from the Outer Context
 
-Every step result — including a nested pipeline step — is stored in `step_results` and in `context`. Downstream steps can read it:
+Every step result — including a nested pipeline step — is available via the `steps` enumerator and in `context`. Downstream steps can read it:
 
 ```ruby
-pipeline.step_results[:guard]
+guard_result = pipeline.steps.find { |name, _executor, _result| name == :guard }&.last
 # => #<struct ActiveHarness::Result
 #       output="How do I configure retries?",
 #       processed={"stopped"=>false, "stopped_at"=>nil},
 #       execution_time=1.24>
 
-pipeline.step_results[:guard].processed["stopped"]    # => false
-pipeline.step_results[:guard].processed["stopped_at"] # => nil
-pipeline.step_results[:guard].output                  # => "How do I configure retries?"
+guard_result.processed["stopped"]    # => false
+guard_result.processed["stopped_at"] # => nil
+guard_result.output                  # => "How do I configure retries?"
 ```
 
 Agents in subsequent steps receive the outer `context` hash, which includes the nested pipeline's result under its step name:

@@ -25,7 +25,7 @@ pipeline.call
 
 pipeline.output       # => final payload string (nil if stopped)
 pipeline.stopped?     # => false
-pipeline.step_results # => { translate: <Result>, injection_guard: <Result>, ... }
+pipeline.steps.to_a   # => [[:translate, <TranslationAgent>, <Result>], [:injection_guard, <InjectionGuardAgent>, <Result>], ...]
 ```
 
 ## Step types
