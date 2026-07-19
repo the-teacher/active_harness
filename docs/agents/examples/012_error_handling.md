@@ -43,8 +43,8 @@ class RobustAgent < ActiveHarness::Agent
   on :failure do |attempts|
     puts "[FAILURE] All models exhausted:"
     attempts.each_with_index do |attempt, i|
-      puts "  #{i + 1}. #{attempt[:entry][:model]}"
-      puts "     Error: #{attempt[:error].message}"
+      puts "  #{i + 1}. #{attempt[:model]}"
+      puts "     Error: #{attempt[:error]}"
     end
   end
 
@@ -132,7 +132,7 @@ class LoggingAgent < ActiveHarness::Agent
     puts "[SUCCESS] Completed in #{elapsed.round(2)}s"
     puts "  Model: #{result.model.name}"
     puts "  Tokens: #{result.usage.tokens.total}"
-    puts "  Cost: $#{result.usage.cost}"
+    puts "  Cost: $#{result.usage.cost.total}"
   end
 
   on :retry do |entry, error|

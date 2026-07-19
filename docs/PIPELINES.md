@@ -87,9 +87,11 @@ pipeline.steps.map { |name, executor, result| [name, result.output] }
 | **Transform** | `step :name, AgentClass`                            | yes              | no                 |
 | **Guard**     | `step :name do use …; stop_if … end`                | no               | yes                |
 | **Tribunal**  | `step :name do use TribunalClass; … end`            | no               | yes (with stop_if) |
-| **Lambda**    | `step :name, ->(input) { ActiveHarness::Result… }` | yes              | yes (with stop_if) |
+| **Lambda**    | `step :name, ->(input) { ActiveHarness::Result… }` | yes*             | yes (with stop_if) |
 
 Transform steps feed `result.output` into the next step. Guard and tribunal steps leave the payload unchanged — they only inspect the result and optionally stop the pipeline.
+
+\* A lambda step only updates the payload by default. Adding `stop_if` to it *without* an explicit `transform` block switches it into guard behavior — the payload stops updating, just like Guard/Tribunal steps.
 
 ---
 
@@ -130,7 +132,7 @@ class SupportPipeline < ActiveHarness::Pipeline
 
   step :safety_check do
     use SafetyTribunal
-    stop_if ->(result) { result.verdict == false }
+    stop_if ->(result) { result.processed["verdict"] == false }
   end
 
   step :respond, SupportAgent
@@ -155,7 +157,7 @@ step :normalize, ->(input) {
 
 ### With context and params
 
-Declare `context:` and/or `params:` in the lambda signature to receive them:
+If the lambda accepts keyword arguments at all, it is always called with both `context:` and `params:` — declare both (or capture them with `**`), not just one:
 
 ```ruby
 step :enrich, ->(input, context:, params:) {
@@ -339,7 +341,7 @@ class SupportPipeline < ActiveHarness::Pipeline
   # 5. Tribunal — parallel toxicity + aggression check
   step :safety_check do
     use SafetyTribunal
-    stop_if ->(result) { result.verdict == false }
+    stop_if ->(result) { result.processed["verdict"] == false }
   end
 
   # 6. Guard — topic relevance

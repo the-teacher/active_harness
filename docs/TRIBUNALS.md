@@ -388,9 +388,9 @@ puts tribunal.verdict
 | Event                | Alias                   | Arguments          | When it fires                                   |
 | -------------------- | ----------------------- | ------------------ | ----------------------------------------------- |
 | `on :before_call`    | `before :call`          | —                  | Before any agent is dispatched                  |
-| `on :before_agent`   | `before :agent`         | `agent`            | Before each agent future is launched            |
-| `on :after_agent`    | `after :agent`          | `result`           | After each agent completes successfully         |
-| `on :agent_error`    | `callback :agent_error` | `name, error`      | When an agent fails or times out                |
+| `on :before_agent`   | `before :agent`         | `agent, index`     | Before each agent future is launched            |
+| `on :after_agent`    | `after :agent`          | `result, index`    | After each agent completes successfully         |
+| `on :agent_error`    | `callback :agent_error` | `name, error, index` | When an agent fails or times out              |
 | `on :after_call`     | `after :call`           | `results, errors`  | After all agents finish, before verdict         |
 | `on :before_verdict` | `before :verdict`       | `results`          | Before verdict — transform hook                 |
 | `on :after_verdict`  | `after :verdict`        | `verdict`          | After verdict is computed                       |

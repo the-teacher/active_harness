@@ -53,7 +53,7 @@ class MonitoredAgent < ActiveHarness::Agent
       input_tokens: result.usage.tokens.input,
       output_tokens: result.usage.tokens.output,
       total_tokens: result.usage.tokens.total,
-      cost: result.usage.cost,
+      cost: result.usage.cost.total,
       output_length: result.output.length
     })
 
@@ -132,12 +132,12 @@ class DatabaseMonitoredAgent < ActiveHarness::Agent
       input: @input,
       input_length: @input.length,
       success: success,
-      model: result&.model,
+      model: result&.model&.name,
       execution_time: result&.execution_time,
-      input_tokens: result&.usage&.dig(:input_tokens),
-      output_tokens: result&.usage&.dig(:output_tokens),
-      total_tokens: result&.usage&.dig(:total_tokens),
-      cost: result&.cost,
+      input_tokens: result&.usage&.tokens&.input,
+      output_tokens: result&.usage&.tokens&.output,
+      total_tokens: result&.usage&.tokens&.total,
+      cost: result&.usage&.cost&.total,
       output_length: result&.output&.length,
       retry_count: attempts&.size || 0,
       timestamp: Time.now
@@ -263,7 +263,7 @@ class PrometheusAgent < ActiveHarness::Agent
 
     @@execution_time.observe(result.execution_time, labels: labels)
     @@tokens_used.increment(result.usage.tokens.total, labels: labels)
-    @@cost.increment(result.usage.cost, labels: labels)
+    @@cost.increment(result.usage.cost.total, labels: labels)
   end
 
   on :retry do |entry, error|
@@ -301,7 +301,7 @@ class SentryAgent < ActiveHarness::Agent
       model: result.model.name,
       execution_time: result.execution_time,
       tokens: result.usage.tokens.total,
-      cost: result.usage.cost
+      cost: result.usage.cost.total
     })
   end
 
@@ -325,7 +325,7 @@ class SentryAgent < ActiveHarness::Agent
 
   def failure_messages(attempts)
     attempts.map do |a|
-      a[:error].message
+      a[:error]
     end
   end
 end

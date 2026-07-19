@@ -163,11 +163,10 @@ Prompt classes receive the same instance context as hooks, so `@memory` is acces
 
 ## Context window and history budgeting
 
-Every agent automatically looks up the context window size for its primary model from `ActiveHarness::Pricing` at initialization time. The value is stored as `@context_window` (an integer, or `nil` if the model is not in the registry) and is:
+Every agent automatically looks up the context window size for its primary (first) model from `ActiveHarness::Pricing` while resolving the system prompt. The value is stored as `@context_window` (an integer, or `nil` if the model is not in the registry) and is:
 
-- available in all hook blocks (`on :before_call`, etc.)
-- injected into prompt class instances alongside `@input`, `@memory`, etc.
-- stored on `result.model.context_window` after a successful call (reflects the model that actually ran, including fallbacks)
+- injected into **prompt class instances** alongside `@input`, `@memory`, etc. — **not** into the agent itself, so it is not available in agent-level hooks (`on :before_call`, etc.)
+- stored on `result.model.context_window` after a successful call (reflects the model that actually ran, including fallbacks — unlike `@context_window`, which is always looked up from the first model in the chain)
 
 ### Trimming history to fit the context window
 
@@ -176,7 +175,8 @@ Pass `token_budget:` to `to_messages`. The budget is measured in *tokens* using 
 ```ruby
 class ChatPrompt
   def call
-    budget   = @context_window ? (@context_window * 0.25).to_i : nil
+    fraction = @params[:history_fraction] || 0.25
+    budget   = @context_window ? (@context_window * fraction).to_i : nil
     messages = @memory&.to_messages(token_budget: budget) || []
     history  = messages.map { |m| m[:content] }.join("\n")
 
@@ -192,9 +192,7 @@ class ChatPrompt
 end
 ```
 
-`0.25` reserves 25% of the context window for conversation history. Adjust the fraction to leave headroom for the system prompt, current input, and the model's output.
-
-The fraction can be overridden per-call via `params:` without changing the prompt class:
+`0.25` (the default) reserves 25% of the context window for conversation history. Adjust the fraction to leave headroom for the system prompt, current input, and the model's output. Reading `@params[:history_fraction]` (as shown above) is what makes the fraction overridable per-call — this is prompt-class code you write yourself, not built-in behavior.
 
 ```ruby
 # default — 25%
@@ -209,14 +207,15 @@ ChatAgent.call(input: "Hello", memory: mem, params: { history_fraction: 0.05 })
 
 See [006 — System Prompts](006_system_prompts.md) for the full list of variables available in prompt classes (`@input`, `@context`, `@params`, `@memory`, `@context_window`).
 
-### Checking the context window in a hook
+### Checking the context window
+
+`@context_window` is only injected into prompt class instances — an agent-level hook such as `on :before_call` runs on the agent itself and will always see `@context_window` as `nil`. Log it from inside the prompt class instead:
 
 ```ruby
-class ChatAgent < ActiveHarness::Agent
-  include AgentMemory
-
-  on :before_call do
+class ChatPrompt
+  def call
     Rails.logger.info "Context window: #{@context_window || 'unknown'}"
+    # ...
   end
 end
 ```

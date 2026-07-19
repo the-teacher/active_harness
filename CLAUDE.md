@@ -12,9 +12,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install dependencies (gem has no Gemfile — use bundler in consuming apps)
 bundle install
 
-# Run all tests
-bundle exec rake test
-
 # Build gem artifact
 make build
 
@@ -28,7 +25,7 @@ make up/minor
 make up/major
 ```
 
-Tests live in `test/active_harness/` and use Minitest. There is no linter. Ruby 2.6+ compatibility is required — no endless `def`, no numbered block params.
+There is no automated test suite in this repo yet (no `test/` directory, no `Rakefile`) and no linter. Ruby 2.6+ compatibility is required — no endless `def`, no numbered block params.
 
 ## Architecture
 
@@ -47,13 +44,13 @@ Sequential chain of agents and tribunals as named steps. Each step can have a `s
 
 **Prompt classes** (`app/ai/prompts/` in Rails) — Plain Ruby objects with `#call` (or `#text`) that return strings. Agent injects `@input`, `@context`, `@params`, `@memory`, `@context_window`, and `@config` into prompt instances before calling them. Also accepts inline strings or lambdas.
 
-**`ActiveHarness::Memory`** (`lib/active_harness/memory.rb`) — Conversation history storage. Must be subclassed (`Memory::JsonFile`, `Memory::Postgresql`, `Memory::Sqlite`). Records turns automatically after each successful agent/pipeline call. **Memory is never auto-injected into LLM messages** — always inject manually via a hook, prompt class, or `before_call` block.
+**`ActiveHarness::Memory`** (`lib/active_harness/memory.rb`) — Conversation history storage. Must be subclassed (`Memory::JsonFile`, `Memory::Postgresql`, `Memory::Sqlite`). `Pipeline` records turns automatically after a successful run; a bare `Agent.call(memory:)` does **not** — load/record for a standalone agent is entirely manual (hooks or explicit `memory.load`/`memory.record` calls). **Memory is never auto-injected into LLM messages** — always inject manually via a hook, prompt class, or `before_call` block.
 
 **`ActiveHarness::Result`** — `Struct` wrapping: `input`, `output`, `processed`, `system_prompt`, `model` (a `ModelInfo` struct with `.name`, `.provider`, `.temperature`, `.context_window`, `.pricing`), `model_list`, `attempts`, `execution_time`, `usage` (a `UsageInfo` struct with `.tokens.{input,output,total}` and `.cost.{input,output,total}`). For `format :json` agents, `processed` is a parsed Ruby Hash/Array; for `:text` it's the raw string.
 
 **Providers** (`lib/active_harness/providers/`) — One file per provider, all subclassing `Providers::Base`. Supported symbols: `:openai`, `:anthropic`, `:gemini`, `:groq`, `:openrouter`, `:xai`, `:deepseek`, `:mistral`, `:ollama`, `:perplexity`, `:gpustack`, `:azure`, `:bedrock`, `:vertexai`, `:custom`. To add a provider: subclass `Providers::Base`, implement `#call`, register in `agent/providers.rb` `PROVIDERS` hash.
 
-**`ActiveHarness::Pricing`** — Pulls pricing from `models.dev` API (cached 24h in `tmp/active_harness/pricing.json`), falls back to bundled `lib/active_harness/data/models.json`.
+**`ActiveHarness::Pricing`** — Provided by the separate `active_harness_pricing` gem dependency. Pulls pricing from `models.dev` API (cached 72h in `tmp/active_harness/models_dev_pricing.json`); on fetch/cache failure returns an empty model list (no bundled fallback file exists).
 
 ### Hooks System
 
@@ -117,5 +114,5 @@ Generators: `rails g active_harness:install`, `rails g active_harness:agent NAME
 
 - **`Memory` is abstract** — cannot be instantiated directly; use `Memory::JsonFile`, `Memory::Postgresql`, or `Memory::Sqlite`.
 - **Each subclass gets its own isolated config** via `inherited` hooks — never share config across agent/tribunal/pipeline classes at the class level.
-- **No Gemfile in this repo** — it is a gem, not an application. Tests are run via Rake.
-- **Single runtime dependency**: `concurrent-ruby` (for `Tribunal`). Keep new dependencies minimal and justified.
+- **No Gemfile in this repo** — it is a gem, not an application.
+- **Runtime dependencies**: `concurrent-ruby` (for `Tribunal`) and `active_harness_pricing` (for `Pricing`). Keep new dependencies minimal and justified.

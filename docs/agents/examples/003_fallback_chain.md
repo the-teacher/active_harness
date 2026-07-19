@@ -48,7 +48,7 @@ class ResilientAgent < ActiveHarness::Agent
   on :failure do |attempts|
     puts "[FAILURE] All #{attempts.size} models failed:"
     attempts.each_with_index do |attempt, i|
-      puts "  #{i + 1}. #{attempt[:entry][:model]} — #{attempt[:error].message}"
+      puts "  #{i + 1}. #{attempt[:model]} — #{attempt[:error]}"
     end
   end
 end

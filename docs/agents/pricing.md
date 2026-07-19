@@ -33,14 +33,15 @@ All values are in **USD**, rounded to 8 decimal places.
 
 ## Pricing Registry
 
-ActiveHarness ships with a bundled pricing snapshot (`lib/active_harness/data/models.json`).  
-The registry is refreshed automatically once per day and cached to `{project_root}/tmp/active_harness/pricing.json`.
+Pricing data is provided by the separate `active_harness_pricing` gem (a runtime dependency of ActiveHarness, `require "active_harness_pricing"` — not code that lives in this repo). It fetches model data from [models.dev](https://models.dev) and caches it to `{project_root}/tmp/active_harness/models_dev_pricing.json`. The cache (and the in-memory copy) is considered fresh for 72 hours; once stale, the next lookup triggers a background refetch automatically.
 
-**Fetch fresh data manually:**
+**Force a refresh manually:**
 
 ```ruby
-ActiveHarness::Pricing.update   # downloads from models.dev and saves to tmp/
+ActiveHarness::Pricing.preload!   # re-fetches from models.dev; network failures are silently ignored
 ```
+
+There is no public `ActiveHarness::Pricing.update` — that method only exists on the internal `ActiveHarness::Pricing::ModelsDev` source (`ActiveHarness::Pricing::ModelsDev.update`), which raises on failure instead of swallowing it.
 
 **Look up a model:**
 
@@ -80,7 +81,6 @@ ActiveHarness::Pricing.all                   # => all models from all supported 
 
 The cost module is designed to never raise or interrupt an agent call:
 
-- If the cache file is corrupted, the bundled snapshot is used as fallback.
-- If the bundled snapshot is also unavailable, an empty registry is returned.
-- If `models.dev` is unreachable during auto-refresh, the existing cache (or bundled data) is used silently.
+- There is no bundled pricing snapshot in this gem — if the cache file is missing or corrupted and `models.dev` cannot be reached, the registry is simply empty (`Pricing.all` returns `[]`, `Pricing.find` returns `nil`).
+- If `models.dev` is unreachable during auto-refresh, the existing (possibly stale) cache is used silently instead.
 - Any unexpected error inside `calculate_cost` returns `nil` — the agent continues normally.

@@ -11,12 +11,7 @@ class MyAgent < ActiveHarness::Agent
 end
 ```
 
-Instance-level registration overrides class-level:
-
-```ruby
-agent = MyAgent.new
-agent.on(:after_call) { |result| puts result.model.name }
-```
+Hooks are only registered at the **class level**. There is no instance-level hook API — `agent.on(...)` does not exist on an `Agent` instance and raises `NoMethodError`. Multiple class-level registrations for the same event **accumulate** (they don't override each other); all fire in the order they were registered, including hooks contributed by included modules.
 
 ---
 
@@ -28,7 +23,7 @@ agent.on(:after_call) { |result| puts result.model.name }
 | `:before_call`          | `before :call`          | —               | After setup, before the first HTTP request is made. Use to modify `@input` or `@context`.                                                         |
 | `:after_call`           | `after :call`           | `result`        | After a successful response. `result` is a `Result` object.                                                                                       |
 | `:retry`                | `callback :retry`       | `entry, error`  | After each failed model attempt before trying the next fallback. `entry` is the model hash `{provider:, model:, ...}`, `error` is the exception.  |
-| `:failure`              | `callback :failure`     | `attempts`      | After all models in the chain have failed. `attempts` is an array of hashes `[{entry:, error:}, ...]`.                                            |
+| `:failure`              | `callback :failure`     | `attempts`      | After all models in the chain have failed. `attempts` is an array of flat hashes `{provider:, model:, error:, error_code:, execution_time:}` (one per attempt). |
 | `:before_system_prompt` | `before :system_prompt` | —               | Before the prompt class `call` is invoked. Use to mutate `@context` before the prompt reads it.                                                   |
 | `:after_system_prompt`  | `after :system_prompt`  | `prompt`        | After the prompt string is built. Return value is **ignored** — use `before_system_prompt` to mutate context, or a prompt class for full control. |
 | `:before_parse`         | `before :parse`         | `raw`           | Before the raw LLM string is parsed (e.g. JSON). **Transform hook** — the block's return value replaces `raw`.                                    |

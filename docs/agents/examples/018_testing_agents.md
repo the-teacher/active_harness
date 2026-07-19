@@ -30,11 +30,9 @@ RSpec.describe SupportAgent do
         agent = SupportAgent.new(input: "Question")
         agent.call
 
-        expect(agent.result.usage).to include(
-          :input_tokens,
-          :output_tokens,
-          :total_tokens
-        )
+        expect(agent.result.usage.tokens.input).to be_present
+        expect(agent.result.usage.tokens.output).to be_present
+        expect(agent.result.usage.tokens.total).to be_present
       end
     end
 
@@ -42,7 +40,7 @@ RSpec.describe SupportAgent do
       it 'raises an error' do
         agent = SupportAgent.new(input: "")
 
-        expect { agent.call }.to raise_error(ActiveHarness::GuardError)
+        expect { agent.call }.to raise_error(ValidationError)
       end
     end
 
@@ -288,7 +286,7 @@ RSpec.describe SupportAgent do
       agent = SupportAgent.new(input: "Question")
       agent.call
 
-      expect(agent.result.usage.cost).to be < 0.01
+      expect(agent.result.usage.cost.total).to be < 0.01
     end
   end
 end

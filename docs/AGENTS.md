@@ -99,8 +99,8 @@ Both `use` and `fallback` accept the same set of options:
 | `provider:`       | Symbol  | —       | Provider key (`:openrouter`, `:anthropic`, …)  |
 | `model:`          | String  | —       | Model identifier string                        |
 | `temperature:`    | Float   | nil     | Sampling temperature (provider default if nil) |
-| `retry_attempts:` | Integer | 3       | How many times to retry this model on failure  |
-| `retry_delay:`    | Float   | 1.0     | Base delay in seconds between retries          |
+| `retry_attempts:` | Integer | nil     | How many times to retry this model on failure. When left `nil`, falls back to the global `Configuration#retry_default_attempts` (3) |
+| `retry_delay:`    | Float   | nil     | Base delay in seconds between retries. When left `nil`, falls back to the global `Configuration#retry_default_delay` (1.0)         |
 
 ```ruby
 model do

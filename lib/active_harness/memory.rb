@@ -10,14 +10,21 @@ module ActiveHarness
   # It does NOT automatically inject history into LLM messages.
   # Injection is always manual — you control when and how context is used.
   #
-  # --- Recording (automatic) ---
+  # --- Recording ---
   #
-  # When a Memory object is passed to an agent, the agent automatically
-  # saves each successful turn (request + response) after the call.
+  # Passing a Memory object to Agent.call(memory:) does NOT by itself save
+  # anything — Agent never calls #load or #record on it. Loading and
+  # recording turns for a bare agent call is entirely manual (e.g. via
+  # before_call/after_call hooks calling @memory.load / @memory.record).
+  #
+  # Pipeline is the one place recording is automatic: when a Memory is
+  # passed to Pipeline#call, the pipeline itself calls #load before running
+  # steps and #record after a successful run — independent of any hooks the
+  # individual agents define.
   #
   #   memory = ActiveHarness::Memory.new(session_id: "u42", depth: 8)
   #   SupportAgent.call(input: "Hello", memory: memory)
-  #   # => turn is saved to storage/ai/memory/u42.json
+  #   # => nothing is saved unless SupportAgent's own hooks record it
   #
   # --- Manual injection patterns ---
   #

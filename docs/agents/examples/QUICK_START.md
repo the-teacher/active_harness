@@ -17,7 +17,7 @@ end
 ### 2. Create a prompt
 
 ```ruby
-class MyPrompt < ActiveHarness::Prompt
+class MyPrompt
   def call
     "You are a helpful assistant."
   end
@@ -37,7 +37,7 @@ puts agent.result.output
 | Concept     | Description                       | Example                                   |
 | ----------- | --------------------------------- | ----------------------------------------- |
 | **Agent**   | Class that processes requests     | `class MyAgent < ActiveHarness::Agent`    |
-| **Prompt**  | System instructions for the LLM   | `class MyPrompt < ActiveHarness::Prompt`  |
+| **Prompt**  | System instructions for the LLM   | `class MyPrompt; def call; ...; end; end` |
 | **Model**   | LLM model configuration           | `use provider: :openrouter, model: "..."` |
 | **Context** | Parameters passed to the agent    | `context: { language: "English" }`        |
 | **Result**  | Agent output                      | `agent.result.output`                     |
@@ -130,7 +130,9 @@ docs/agents/examples/
 ├── 015_pipelines_orchestration.md
 ├── 016_caching_and_optimization.md
 ├── 017_monitoring_and_metrics.md
-└── 018_testing_agents.md
+├── 018_testing_agents.md
+├── 019_memory_postgresql.md
+└── 020_memory_sqlite.md
 ```
 
 ## Next Steps

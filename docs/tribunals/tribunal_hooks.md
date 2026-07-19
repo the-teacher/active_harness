@@ -10,7 +10,7 @@ class MyTribunal < ActiveHarness::Tribunal
 end
 ```
 
-Instance-level registration overrides class-level:
+Hooks accumulate — instance-level registration adds another handler alongside class-level ones (both fire, in registration order); it does not replace them:
 
 ```ruby
 tribunal = MyTribunal.new(input: "...")

@@ -43,6 +43,8 @@ Each example includes:
 | №       | Title                                                   | Topic                                        |
 | ------- | ------------------------------------------------------- | -------------------------------------------- |
 | **011** | [Memory and History](./011_memory_and_history.md)       | Save conversation history and context        |
+| **019** | [Memory (PostgreSQL)](./019_memory_postgresql.md)        | Persist conversation history in PostgreSQL   |
+| **020** | [Memory (SQLite)](./020_memory_sqlite.md)                | Persist conversation history in SQLite       |
 
 ### Reliability and Error Handling
 
@@ -121,7 +123,7 @@ result.input          # input data
 result.output         # model response
 result.system_prompt  # system prompt
 result.usage          # token statistics
-result.usage.cost           # request cost
+result.usage.cost.total     # request cost
 result.execution_time # execution time
 ```
 
@@ -175,7 +177,7 @@ end
 - [Error handling documentation](../agent_error_processing.md)
 - [Retry policy documentation](../retry_policy.md)
 - [Token usage documentation](../token_usage.md)
-- [Cost documentation](../costs.md)
+- [Cost documentation](../pricing.md)
 
 ## Help
 

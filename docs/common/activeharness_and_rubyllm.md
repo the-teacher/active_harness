@@ -68,7 +68,7 @@ Thinking about the two projects side by side:
 | **Audio transcription**  | ❌ No                     | ✅ Yes                               |
 | **Rails integration**    | Railtie + file structure  | `acts_as_chat` + DB persistence + UI |
 | **Model registry**       | No                        | 800+ models with metadata            |
-| **Dependencies**         | 1 (`concurrent-ruby`)     | 3 (`faraday`, `zeitwerk`, `marcel`)  |
+| **Dependencies**         | 2 (`concurrent-ruby`, `active_harness_pricing`) | 3 (`faraday`, `zeitwerk`, `marcel`)  |
 | **Status**               | WIP, API unstable         | Production-ready                     |
 
 ---

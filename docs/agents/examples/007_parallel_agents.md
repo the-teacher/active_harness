@@ -8,6 +8,8 @@ How to run multiple agents simultaneously to process different tasks in parallel
 
 Parallel execution speeds up processing when you need results from multiple agents. For example, analyzing text from different perspectives at the same time.
 
+> This example builds parallel execution by hand with plain `Thread`/`concurrent-ruby` primitives. For a production-ready mechanism — running agents in parallel and computing a verdict from their results, with built-in error tolerance — use `ActiveHarness::Tribunal` instead; see [TRIBUNALS.md](../../TRIBUNALS.md).
+
 ## Example
 
 ```ruby

@@ -55,7 +55,7 @@ puts pipeline.output
 # => "How can I help?"
 ```
 
-The `transform` block is required whenever the step should update the payload. Without it the step behaves as a guard — the payload stays unchanged after it runs.
+A `transform` block is only required to update the payload when the step also sets `stop_if` (or wraps a tribunal-only step) — that combination otherwise leaves the payload unchanged, guard-style. With neither `stop_if` nor `transform`, `result.output` flows downstream automatically (legacy default; see the note below).
 
 ---
 
@@ -284,7 +284,7 @@ Keep nesting shallow in practice. Two levels cover most real use-cases. Three or
 ```ruby
 step :name do
   use InnerPipelineClass            # required
-  transform { |result| result.output }  # required to update payload
+  transform { |result| result.output }  # required to update payload when stop_if is also set
   stop_if ->(result) { result.processed["stopped"] == true }  # optional
 end
 ```

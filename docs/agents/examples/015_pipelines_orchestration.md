@@ -8,6 +8,8 @@ How to build pipelines for sequential or parallel execution of multiple agents.
 
 Pipelines let you combine multiple agents to solve complex tasks. For example: analyze text → translate → format.
 
+> The examples below show manual orchestration in plain Ruby, for illustration. For a real sequential-step orchestrator with built-in hooks, `stop_if`, and context propagation between steps, use `ActiveHarness::Pipeline` instead; see [PIPELINES.md](../../PIPELINES.md).
+
 ## Sequential Pipeline
 
 First, define the prompt classes and agents:

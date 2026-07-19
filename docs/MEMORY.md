@@ -305,7 +305,9 @@ pipeline = SupportPipeline.new(input: params[:input], memory: memory)
 pipeline.call
 ```
 
-Load and record logic still lives in each agent's hooks.
+Unlike a bare `Agent.call(memory:)`, the pipeline itself automatically calls `memory.load` before running its steps and `memory.record` after a successful run — this happens regardless of what hooks the individual agents define.
+
+**Pitfall:** if an agent inside the pipeline also registers its own `load`/`record` hooks (as shown above for standalone agents), you will get a double-recorded turn — one from the agent's hook, one from the pipeline itself. When using Memory at the pipeline level, don't also wire manual load/record hooks into the agents that run inside it.
 
 ---
 

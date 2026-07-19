@@ -23,6 +23,8 @@ open and push events as `text/event-stream` (SSE).
 
 ---
 
+> **Note:** every lifecycle hook (`:before_call`, `:before_agent`, `:after_agent`, `:agent_error`, `:after_call`, `:after_verdict`) already pushes its *own* raw event through `stream:` automatically — `fire(:before_agent, agent, index)` internally calls `@stream&.call(:tribunal, :before_agent, agent, index)` even if you never touch `stream:` yourself inside a hook body. The hooks below are not re-emitting those same events; they add their own, differently-named events (`:agent_start`, `:agent_done`, …) on top. If you listen for `:before_agent` on the consumer side, you'll already see it without this step — use Step 1 only when you want a custom event name/payload instead of (or in addition to) the automatic one.
+
 ## Step 1 — Add stream hooks to the Tribunal
 
 ```ruby

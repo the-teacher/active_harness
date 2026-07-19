@@ -8,6 +8,8 @@ How to use guards to validate input data and results, and to enforce safety.
 
 Guards protect the agent from invalid input, malicious content, and ensure output quality. Critical for production applications.
 
+> ActiveHarness has no dedicated `guard` DSL. The examples below implement the same idea with the regular `on(:before_call)` / `on(:after_call)` hooks (see [agent_hooks.md](../agent_hooks.md)) plus a plain Ruby error class you define yourself.
+
 ## Example
 
 First, define the prompt class:
@@ -23,6 +25,8 @@ end
 Then define the agent:
 
 ```ruby
+class ValidationError < StandardError; end
+
 class GuardedAgent < ActiveHarness::Agent
   system_prompt GuardedPrompt
 
@@ -30,31 +34,31 @@ class GuardedAgent < ActiveHarness::Agent
     use provider: :openrouter, model: "mistralai/mistral-nemo"
   end
 
-  # guard for input validation
-  guard :input_validation do
+  # input validation — runs before the model is called
+  on :before_call do
     if @input.blank?
-      raise ActiveHarness::GuardError, "Input cannot be empty"
+      raise ValidationError, "Input cannot be empty"
     end
 
     if @input.length > 5000
-      raise ActiveHarness::GuardError, "Input is too long (max 5000 characters)"
+      raise ValidationError, "Input is too long (max 5000 characters)"
     end
 
     if contains_malicious_content?(@input)
-      raise ActiveHarness::GuardError, "Input contains malicious content"
+      raise ValidationError, "Input contains malicious content"
     end
   end
 
-  # guard for output validation
-  guard :output_validation do
-    output = @result.output
+  # output validation — runs after a successful call, before the result is returned
+  on :after_call do |result|
+    output = result.output
 
     if output.blank?
-      raise ActiveHarness::GuardError, "Output is empty"
+      raise ValidationError, "Output is empty"
     end
 
     if @context[:expect_json] && !valid_json?(output)
-      raise ActiveHarness::GuardError, "Output is not valid JSON"
+      raise ValidationError, "Output is not valid JSON"
     end
   end
 
@@ -76,7 +80,7 @@ class GuardedAgent < ActiveHarness::Agent
   def valid_json?(text)
     JSON.parse(text)
     true
-  rescue JSON.ParserError
+  rescue JSON::ParserError
     false
   end
 end
@@ -91,7 +95,7 @@ begin
   result = agent.result
   puts "✓ Result: #{result.output}"
 
-rescue ActiveHarness::GuardError => e
+rescue ValidationError => e
   puts "✗ Guard rejected: #{e.message}"
 end
 ```
@@ -108,21 +112,19 @@ class InputGuardedAgent < ActiveHarness::Agent
     use provider: :openrouter, model: "mistralai/mistral-nemo"
   end
 
-  guard :input_length do
-    if @input.length < 3
-      raise ActiveHarness::GuardError, "Input too short"
-    end
+  on :before_call do
+    raise ValidationError, "Input too short" if @input.length < 3
   end
 
-  guard :input_language do
+  on :before_call do
     unless russian?(@input) || english?(@input)
-      raise ActiveHarness::GuardError, "Only Russian or English supported"
+      raise ValidationError, "Only Russian or English supported"
     end
   end
 
-  guard :input_format do
+  on :before_call do
     if @context[:expect_email] && !valid_email?(@input)
-      raise ActiveHarness::GuardError, "Invalid email format"
+      raise ValidationError, "Invalid email format"
     end
   end
 
@@ -152,22 +154,20 @@ class OutputGuardedAgent < ActiveHarness::Agent
     use provider: :openrouter, model: "mistralai/mistral-nemo"
   end
 
-  guard :output_length do
-    if @result.output.length > 10000
-      raise ActiveHarness::GuardError, "Output too long"
+  on :after_call do |result|
+    raise ValidationError, "Output too long" if result.output.length > 10000
+  end
+
+  on :after_call do |result|
+    if contains_harmful_content?(result.output)
+      raise ValidationError, "Output contains harmful content"
     end
   end
 
-  guard :output_safety do
-    if contains_harmful_content?(@result.output)
-      raise ActiveHarness::GuardError, "Output contains harmful content"
-    end
-  end
-
-  guard :output_format do
+  on :after_call do |result|
     if @context[:expect_json]
-      unless valid_json?(@result.output)
-        raise ActiveHarness::GuardError, "Output is not valid JSON"
+      unless valid_json?(result.output)
+        raise ValidationError, "Output is not valid JSON"
       end
     end
   end
@@ -188,7 +188,7 @@ class OutputGuardedAgent < ActiveHarness::Agent
   def valid_json?(text)
     JSON.parse(text)
     true
-  rescue JSON.ParserError
+  rescue JSON::ParserError
     false
   end
 end
@@ -204,16 +204,16 @@ class ContextGuardedAgent < ActiveHarness::Agent
     use provider: :openrouter, model: "mistralai/mistral-nemo"
   end
 
-  guard :context_validation do
+  on :before_call do
     required_params = [:user_id, :language]
     missing = required_params - @context.keys
 
     if missing.any?
-      raise ActiveHarness::GuardError, "Missing context: #{missing.join(', ')}"
+      raise ValidationError, "Missing context: #{missing.join(', ')}"
     end
 
     unless [:Russian, :English].include?(@context[:language])
-      raise ActiveHarness::GuardError, "Invalid language"
+      raise ValidationError, "Invalid language"
     end
   end
 end
@@ -226,7 +226,7 @@ begin
   agent = GuardedAgent.new(input: "")
   agent.call
 
-rescue ActiveHarness::GuardError => e
+rescue ValidationError => e
   puts "Guard error: #{e.message}"
   Rails.logger.warn("Guard rejected: #{e.message}")
 
@@ -257,7 +257,7 @@ class Ai::AgentsController < ApplicationController
         output: result.output
       }
 
-    rescue ActiveHarness::GuardError => e
+    rescue ValidationError => e
       render json: {
         success: false,
         error: "Validation failed",
@@ -285,16 +285,16 @@ class ComprehensiveAgent < ActiveHarness::Agent
     fallback provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free"
   end
 
-  guard :input_validation do
+  on :before_call do
     validate_input!
   end
 
-  guard :context_validation do
+  on :before_call do
     validate_context!
   end
 
-  guard :output_validation do
-    validate_output!
+  on :after_call do |result|
+    validate_output!(result)
   end
 
   on :retry do |entry, error|
@@ -304,16 +304,16 @@ class ComprehensiveAgent < ActiveHarness::Agent
   private
 
   def validate_input!
-    raise ActiveHarness::GuardError, "Empty input" if @input.blank?
-    raise ActiveHarness::GuardError, "Input too long" if @input.length > 5000
+    raise ValidationError, "Empty input" if @input.blank?
+    raise ValidationError, "Input too long" if @input.length > 5000
   end
 
   def validate_context!
-    raise ActiveHarness::GuardError, "Missing user_id" unless @context[:user_id]
+    raise ValidationError, "Missing user_id" unless @context[:user_id]
   end
 
-  def validate_output!
-    raise ActiveHarness::GuardError, "Empty output" if @result.output.blank?
+  def validate_output!(result)
+    raise ValidationError, "Empty output" if result.output.blank?
   end
 end
 ```
