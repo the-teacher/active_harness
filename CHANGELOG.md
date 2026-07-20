@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.2.41 — 2026-07-20
+
+### New: audio transcription agents
+
+Agents can now transcribe audio natively via OpenRouter's speech-to-text endpoint — no `custom_llm_backend`/RubyLLM required:
+
+```ruby
+class TranscriptionAgent < ActiveHarness::Agent
+  transcribe true
+
+  model do
+    use      provider: :openrouter, model: "openai/whisper-1"
+    fallback provider: :openrouter, model: "deepgram/nova-3"
+  end
+end
+
+result = TranscriptionAgent.call(input: "/path/to/recording.mp3")
+result.output # => "Hello, this is a test recording."
+```
+
+- `transcribe true` / `language "en"` class DSL (`lib/active_harness/agent/transcription.rb`), mirroring the existing `image true` pattern.
+- `@input` is a path to a local audio file, not free text — the format (`.mp3`/`.wav`/`.flac`/`.m4a`/`.ogg`/`.webm`/`.aac`) is auto-detected from the extension, and `normalize_input` is automatically skipped since a path shouldn't have its whitespace collapsed.
+- Only `:openrouter` is supported for now (`Agent::TRANSCRIPTION_PROVIDERS`); models are validated against the `Pricing` registry's `"transcription"` category, same validation pattern as image generation.
+- `system_prompt` has no effect here — OpenRouter's transcription endpoint accepts a `prompt` field for OpenAI-SDK compatibility but silently ignores it, unlike image generation where `system_prompt` is prepended to the prompt.
+- Synchronous call, no job id/polling — but upstream providers time out around 60s per request, so long recordings need to be split by the caller before transcribing.
+- Cost tracking uses the provider's own reported `usage.cost` directly (most transcription models are priced by duration, not tokens, so `result.usage.tokens` is typically all zeros while `result.usage.cost.total` is still accurate).
+- New `docs/agents/audio_transcription.md`, including a documented caveat: some models (observed with `google/chirp-3`) can return an empty `text` and `cost: 0` instead of an error when they don't detect speech — treat that as "no speech detected," not a failure.
+
+---
+
 ## v0.2.40 — 2026-07-19
 
 ### Image generation agents now respect `system_prompt`

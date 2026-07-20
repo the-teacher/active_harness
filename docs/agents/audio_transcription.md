@@ -1,13 +1,13 @@
 # Audio Transcription Agents
 
-ActiveHarness agents can transcribe audio natively via OpenRouter's speech-to-text endpoint. Enable it with `transcribe true` and use the same `model`/fallback DSL as any other agent.
+ActiveHarness agents can transcribe audio natively via OpenAI's or OpenRouter's speech-to-text endpoints. Enable it with `transcribe true` and use the same `model`/fallback DSL as any other agent.
 
 ```ruby
 class TranscriptionAgent < ActiveHarness::Agent
   transcribe true
 
   model do
-    use      provider: :openrouter, model: "openai/whisper-1"
+    use      provider: :openai,     model: "whisper-1"
     fallback provider: :openrouter, model: "deepgram/nova-3"
   end
 end
@@ -20,11 +20,20 @@ result.output      # => "Hello, this is a test recording."
 result.processed   # => same as output (default format is :text)
 ```
 
-`@input` is a **path to a local audio file** — not free text. The audio format is auto-detected from the file extension (`.mp3`, `.wav`, `.flac`, `.m4a`, `.ogg`, `.webm`, `.aac`), read from disk, and base64-encoded before being sent. `normalize_input` (whitespace stripping) is automatically skipped for transcription agents, since `@input` is a path, not text.
+`@input` is a **path to a local audio file** — not free text. The audio format is auto-detected from the file extension, read from disk, and sent to the provider. `normalize_input` (whitespace stripping) is automatically skipped for transcription agents, since `@input` is a path, not text.
 
 ## Supported Providers
 
-Only `:openrouter` is currently supported (`Agent::TRANSCRIPTION_PROVIDERS`). Any other provider in the model chain raises `ArgumentError: Provider ... does not support audio transcription` at call time. Example model IDs (see [OpenRouter's speech-to-text collection](https://openrouter.ai/collections/speech-to-text-models) for the full, current list): `openai/whisper-1`, `openai/whisper-large-v3`, `openai/gpt-4o-transcribe`, `deepgram/nova-3`, `google/chirp-3`, `nvidia/parakeet-tdt-0.6b-v3`, `mistralai/voxtral-mini-transcribe`, `qwen/qwen3-asr-flash-*`.
+`:openai` and `:openrouter` are supported (`Agent::TRANSCRIPTION_PROVIDERS`). Any other provider in the model chain raises `ArgumentError: Provider ... does not support audio transcription` at call time.
+
+| Provider     | Class                       | Request format                          | Accepted extensions                                    | Example models |
+| ------------ | ---------------------------- | ---------------------------------------- | -------------------------------------------------------- | --------------- |
+| `:openai`     | `Providers::Audio::OpenAI`   | `multipart/form-data` (only mode)        | `.mp3`, `.mp4`, `.mpeg`, `.mpga`, `.m4a`, `.wav`, `.webm` | `"whisper-1"`, `"gpt-4o-transcribe"`, `"gpt-4o-mini-transcribe"` |
+| `:openrouter` | `Providers::Audio::OpenRouter` | base64-encoded JSON                    | `.mp3`, `.wav`, `.flac`, `.m4a`, `.ogg`, `.webm`, `.aac`  | `"openai/whisper-1"`, `"deepgram/nova-3"`, `"google/chirp-3"`, `"nvidia/parakeet-tdt-0.6b-v3"`, `"mistralai/voxtral-mini-transcribe"`, `"qwen/qwen3-asr-flash-*"` — see [OpenRouter's speech-to-text collection](https://openrouter.ai/collections/speech-to-text-models) for the full, current list |
+
+Note the two providers use genuinely different HTTP request formats (multipart vs. base64 JSON) — this is handled internally per-provider, you don't need to do anything differently in the DSL. `:openai` also accepts a narrower set of file extensions than `:openrouter`; a file extension `:openai` doesn't support raises `InvalidRequestError` (retryable — the chain moves to the next fallback) before any network call is made.
+
+**Testing status:** both providers have been verified end-to-end with real audio and a real API key. `:openrouter` — successful transcription with correct cost. `:openai` — successful transcription with `whisper-1` (duration-billed, `result.usage` is `nil` as documented above) and with `gpt-4o-mini-transcribe` (token-billed, `result.usage.tokens` populated correctly, `result.usage.cost` `nil` since the `Pricing` registry has no rate for this model) — both matching the behavior documented in this file. Error paths were also verified against real OpenAI responses: an invalid key produced `InvalidApiKeyError`, and an account with no billing enabled produced `InvalidRequestError` (`insufficient_quota`).
 
 ## Language Hint
 
@@ -49,11 +58,14 @@ When `transcribe true` is set, every model in the chain is checked against the `
 
 ## No `system_prompt` Support
 
-Unlike [image generation](image_generation.md), a `system_prompt` on a transcription agent is resolved but has no effect — OpenRouter's transcription endpoint accepts a `prompt` field for OpenAI-SDK compatibility but silently ignores it. There is currently no supported way to bias or guide the transcription output.
+Unlike [image generation](image_generation.md), a `system_prompt` on a transcription agent is currently resolved but **not sent to either provider** — there is no supported way yet to bias or guide the transcription output through ActiveHarness. Note the two providers differ here at the API level: OpenAI's native endpoint has a real, functional `prompt` parameter (useful for biasing spelling of names/terms); OpenRouter's transcription endpoint accepts a `prompt` field for OpenAI-SDK compatibility but silently ignores it. Wiring `system_prompt` through to OpenAI's `prompt` parameter would be a reasonable future addition, but isn't implemented today.
 
 ## Errors, Retry and Fallback
 
-Transcription calls go through the same retry/fallback chain as text and image agents — see [Retry Policy](retry_policy.md). Error mapping is HTTP-status based: `401` → `InvalidApiKeyError`, `402`/`429` → `RateLimitError`, `500`-`504` → `ProviderUnavailableError`, anything else → `InvalidRequestError`.
+Transcription calls go through the same retry/fallback chain as text and image agents — see [Retry Policy](retry_policy.md). Error mapping is HTTP-status/error-code based and differs slightly per provider (matching each provider's own error payload shape):
+
+- `:openai` — `invalid_api_key`/`unauthorized` → `InvalidApiKeyError`, `rate_limit_exceeded` → `RateLimitError`, `content_filter` → `SafetyBlockedError`, server errors → `ServerError`, anything else → `InvalidRequestError`.
+- `:openrouter` — HTTP-style codes `401` → `InvalidApiKeyError`, `402`/`429` → `RateLimitError`, `500`-`504` → `ProviderUnavailableError`, anything else → `InvalidRequestError`.
 
 ## Synchronous — No Job ID / Polling
 
@@ -61,7 +73,10 @@ The transcription call is **synchronous**: the HTTP response contains the finish
 
 ## Usage and Cost
 
-Most transcription models are priced by audio duration, not by token count, so `result.usage.tokens` is typically all zeros. `result.usage.cost.total` is populated directly from the provider's own reported cost (OpenRouter returns a `usage.cost` field in its response), not computed from a per-token rate — this is generally accurate as long as the provider reports it.
+Most transcription models are priced by audio duration, not by token count, so `result.usage.tokens` is typically all zeros. Cost reporting differs by provider:
+
+- `:openrouter` returns a `usage.cost` field directly in its response, and `result.usage.cost.total` is populated from that — generally accurate as long as the provider reports it.
+- `:openai` does **not** return a dollar cost in its response. `whisper-1` reports `{type: "duration", seconds: N}` (no tokens at all); `gpt-4o-transcribe`/`gpt-4o-mini-transcribe` report `{type: "tokens", input_tokens:, output_tokens:, total_tokens:}`. ActiveHarness maps the token-based shape into `result.usage.tokens`, but `result.usage.cost` will be `nil` for `:openai` transcription unless the model has a token-based rate in the `Pricing` registry — for `whisper-1` specifically (duration-billed), cost is not computed at all.
 
 ## Known Caveat: Empty Transcripts
 

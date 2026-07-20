@@ -44,6 +44,7 @@ module ActiveHarness
     }.freeze
 
     TRANSCRIPTION_PROVIDERS = {
+      openai:      -> { Providers::Audio::OpenAI.new },
       openrouter:  -> { Providers::Audio::OpenRouter.new }
     }.freeze
 
