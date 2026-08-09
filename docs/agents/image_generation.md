@@ -70,6 +70,12 @@ end
 
 Resolution order for size: per-model `size:` → class-level `size` → `"1024x1024"` default.
 
+For OpenRouter, image-only models use the dedicated `/api/v1/images` endpoint.
+Models that output both image and text continue to use the chat-completions
+endpoint for backward compatibility. Configure a custom Images endpoint with
+`config.openrouter_images_api_url` or `OPENROUTER_IMAGES_API_URL`. Dedicated API
+responses are returned as Base64 through `result.output`.
+
 ## Model Validation
 
 When `image true` is set, every model in the chain is checked against the `Pricing` registry: if the model is known, it must have `"imggen"` in its `categories`, otherwise `ArgumentError` is raised (with the model's `output_modalities` in the message) at model-list resolution time. Models the registry doesn't recognize (new or private models) are assumed valid and skipped — see [Pricing](pricing.md) for how the registry itself is populated.

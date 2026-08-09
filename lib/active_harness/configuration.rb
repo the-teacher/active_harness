@@ -52,6 +52,7 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     attr_accessor :openrouter_api_key
     attr_accessor :openrouter_api_url
+    attr_accessor :openrouter_images_api_url
     attr_accessor :openrouter_http_referer
 
     # -------------------------------------------------------------------------
@@ -144,6 +145,7 @@ module ActiveHarness
 
       @openrouter_api_key      = ENV["OPENROUTER_API_KEY"]
       @openrouter_api_url      = "https://openrouter.ai/api/v1/chat/completions"
+      @openrouter_images_api_url = ENV.fetch("OPENROUTER_IMAGES_API_URL", "https://openrouter.ai/api/v1/images")
       @openrouter_http_referer = "https://github.com/the-teacher/ActiveHarness"
 
       @xai_api_key = ENV["XAI_API_KEY"]

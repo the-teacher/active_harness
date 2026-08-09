@@ -103,6 +103,7 @@ ActiveHarness.configure do |config|
   # OpenRouter
   config.openrouter_api_key = Rails.application.credentials.openrouter_api_key
   # config.openrouter_api_url      = "https://openrouter.ai/api/v1/chat/completions"
+  # config.openrouter_images_api_url = "https://openrouter.ai/api/v1/images"
   config.openrouter_http_referer   = "https://your-app.com"
 
   # xAI (Grok)
