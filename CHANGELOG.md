@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.2.42 — 2026-07-20
+
+### New: native OpenAI provider for audio transcription
+
+`transcribe true` agents can now use `provider: :openai` directly, alongside the existing `:openrouter` support:
+
+```ruby
+class TranscriptionAgent < ActiveHarness::Agent
+  transcribe true
+
+  model do
+    use      provider: :openai,     model: "whisper-1"
+    fallback provider: :openrouter, model: "deepgram/nova-3"
+  end
+end
+```
+
+- New `Providers::Audio::OpenAI` (`lib/active_harness/providers/audio/openai.rb`), registered in `Agent::TRANSCRIPTION_PROVIDERS`.
+- OpenAI's native transcription endpoint is **multipart/form-data only** — no base64/JSON mode like OpenRouter's. The multipart body is hand-built (no new gem dependency) and was validated byte-for-byte against Rack's own multipart parser before any live testing.
+- Accepted file extensions differ per provider: `:openai` only takes `.mp3`/`.mp4`/`.mpeg`/`.mpga`/`.m4a`/`.wav`/`.webm` (no `.flac`/`.ogg`/`.aac`); an unsupported extension raises `InvalidRequestError` before any network call — retryable, so the chain falls through to the next model.
+- Unlike OpenRouter, OpenAI's response never includes a direct dollar cost. `whisper-1` reports duration-based usage (`{type: "duration", seconds:}`) with no token counts at all — `result.usage` is `nil` for it. `gpt-4o-transcribe`/`gpt-4o-mini-transcribe` report token-based usage, which is mapped to `result.usage.tokens`, but `result.usage.cost` is still `nil` unless the `Pricing` registry has a token rate for that model.
+- `system_prompt` still has no effect on transcription agents on either provider (documented as a known gap — OpenAI's endpoint does have a real `prompt` bias parameter that isn't wired up yet).
+- Verified end-to-end with a real (billed) API key: `whisper-1` (duration-billed, `usage: nil` as expected) and `gpt-4o-mini-transcribe` (token-billed, `usage.tokens` populated, `usage.cost: nil` as expected) both transcribed real audio correctly. Error paths were verified against real OpenAI responses too — invalid key → `InvalidApiKeyError`, no billing configured → `InvalidRequestError` (`insufficient_quota`).
+- `docs/agents/audio_transcription.md` updated with a per-provider comparison table and the verification notes above.
+
+---
+
 ## v0.2.41 — 2026-07-20
 
 ### New: audio transcription agents
