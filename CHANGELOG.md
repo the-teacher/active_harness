@@ -1,8 +1,10 @@
 # Changelog
 
-## v0.3.0 — 2026-09-25
+## Unreleased
 
-- TERMINOLOGY CHANGE — `ActiveHarness::Agent` is now `ActiveHarness::Request`
+- Docs: added a Jev/TypeSafe AI evaluation section to `README.md` (feature highlight + link to `docs/JEV.md`), no code changes.
+
+## v0.3.1 — 2026-09-25
 
 ### New: Vercel AI Gateway provider — Jev / TypeSafe AI evaluation models
 
@@ -29,11 +31,7 @@ end
 
 ---
 
-# ⚠️ TERMINOLOGY CHANGE — `ActiveHarness::Agent` is now `ActiveHarness::Request`
-
----
-
-## Unreleased
+## v0.3.0 — 2026-09-25
 
 ### Breaking: `Agent` renamed to `Request` across the whole gem
 
@@ -50,7 +48,7 @@ What moved, in brief:
 - Generator `active_harness:agent` → `active_harness:request`; `app/ai/agents/` → `app/ai/requests/`
 - `docs/agents/` → `docs/requests/`, `docs/AGENTS.md` → `docs/REQUESTS.md`
 
-See [`docs/AGENT2REQUEST_MIGRATIOM.md`](docs/AGENT2REQUEST_MIGRATIOM.md) for the full migration checklist, including every file touched.
+See the bullet list above for what moved; check `git log` around this release for the full file-by-file diff if needed.
 
 ---
 

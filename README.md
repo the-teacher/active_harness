@@ -8,6 +8,8 @@
 
 > **⚠️ Work in progress.** The API is under active development and may change between versions without notice.
 
+> **📛 Naming note.** As of `v0.3.0`, `ActiveHarness::Agent` was renamed to `ActiveHarness::Request` — it's a single resilient LLM call (model chain, fallback, retry, hooks), not an autonomous entity, and `Request` describes that more accurately. The `Agent` name is reserved for a future, separate abstraction — something that *uses* a model to decide and take actions — which doesn't exist in this gem yet.
+
 Running a single LLM call is easy. Running a _reliable, observable, cost-controlled AI system_ is not.
 
 **ActiveHarness** is a Ruby framework for building production-grade LLM pipelines — with deep observability, consensus-based decisions, automatic fallbacks, and real-time cost and timing control. Made for Rails, works in plain Ruby too.
@@ -80,6 +82,14 @@ Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory i
 | ---------------------------------------- | --------------------------------------- |
 | ![Streaming](docs/images/streaming2.gif) | ![Streaming](docs/images/streaming.gif) |
 
+## Evaluate & Moderate Content with Jev!
+
+Not every request needs a chat model. Use `provider: :vercel` to reach Jev, TypeSafe AI's "System One" evaluation model, via Vercel AI Gateway — ask typed `score`/`choice`/`noul` questions in one call and get back typed, probabilistic answers instead of free text. A natural fit for classification, routing, and content moderation.
+
+<img width="100%" alt="Jev Evaluation Demo" src="https://github.com/user-attachments/assets/131c3ba2-d575-424b-a51a-49b9ed33dc84" />
+
+See [`docs/JEV.md`](docs/JEV.md) for the full request/response schema and use-case examples (ticket triage, refund detection, tool-call risk gating, content moderation).
+
 ## Key Capabilities
 
 | Capability                              | What it means                                                                                               |
@@ -142,6 +152,7 @@ app/
 - [Streaming in a Rails App](docs/REQUESTS.md#streaming-in-a-rails-app)
 - [Image Generation](docs/requests/image_generation.md)
 - [Audio Transcription](docs/requests/audio_transcription.md)
+- [Jev / TypeSafe AI Evaluation (Vercel AI Gateway)](docs/JEV.md)
 
 ## Pipeline Documentation
 
