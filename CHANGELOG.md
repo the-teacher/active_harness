@@ -4,6 +4,29 @@
 
 - TERMINOLOGY CHANGE — `ActiveHarness::Agent` is now `ActiveHarness::Request`
 
+### New: Vercel AI Gateway provider — Jev / TypeSafe AI evaluation models
+
+New `provider: :vercel` for Jev, TypeSafe AI's "System One" evaluation model, reached through Vercel AI Gateway:
+
+```ruby
+class ModerationRequest < ActiveHarness::Request
+  format :json
+
+  model do
+    use provider: :vercel, model: "typesafe-ai/jev", questions: {
+      harmful: { type: "noul", instructions: "Does this contain hate speech, threats, or dangerous content?" }
+    }
+  end
+end
+```
+
+- Jev is fundamentally unlike every other provider here: it doesn't take free-form chat messages and doesn't return free text. It evaluates a single `state` string against typed `questions` (`noul` = 0..1 probability, `choice` = pick one named option, `score` = position on an ordered scale) and returns typed answers, not prose.
+- New `questions:` option on `use`/`fallback` in the model-chain DSL (`ModelConfig#use`, `lib/active_harness/request/models.rb`) — accepts a Hash already in the API's own shape, one entry per named question. Omit it and the provider falls back to a single default `noul` question built from the system prompt (`instructions`) and `@input` (`state`) — the simplest case, since `noul` is the only question type that needs no `criteria`.
+- With `format :json`, `result.processed` is the raw `answers` object as a parsed Ruby Hash — no interpretation of `choice`/`score`/probabilities happens inside the gem.
+- New `Providers::Vercel` (`lib/active_harness/providers/vercel.rb`), config via `vercel_api_key`/`vercel_api_url` (`ENV["VERCEL_API_KEY"]` by default). Handles two distinct error shapes seen in practice: flat TypeSafe request-validation errors and nested, OpenAI-style Gateway/billing errors (e.g. no payment method on file).
+- Does not support token streaming (raises `InvalidRequestError` if `stream:` is used) or structured (non-string) `state` — `state` is always the last user message's string content.
+- See [`docs/JEV.md`](docs/JEV.md) for the full request/response schema, real fields observed in practice but missing from Vercel's own docs (`confidence`, `legend`), and use-case examples (ticket triage, refund detection, tool-call risk gating, content moderation).
+
 ---
 
 # ⚠️ TERMINOLOGY CHANGE — `ActiveHarness::Agent` is now `ActiveHarness::Request`

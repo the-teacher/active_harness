@@ -100,6 +100,12 @@ module ActiveHarness
     attr_accessor :azure_api_version    # e.g. "2024-05-01-preview"
 
     # -------------------------------------------------------------------------
+    # Vercel AI Gateway — TypeSafe-compatible evaluation endpoint (Jev)
+    # -------------------------------------------------------------------------
+    attr_accessor :vercel_api_key
+    attr_accessor :vercel_api_url
+
+    # -------------------------------------------------------------------------
     # Custom providers
     #
     # Register any OpenAI-compatible endpoint under an arbitrary name:
@@ -170,6 +176,9 @@ module ActiveHarness
       @azure_ai_auth_token = ENV["AZURE_AI_AUTH_TOKEN"]
       @azure_api_base      = ENV["AZURE_API_BASE"]
       @azure_api_version   = ENV.fetch("AZURE_API_VERSION", "2024-05-01-preview")
+
+      @vercel_api_key = ENV["VERCEL_API_KEY"]
+      @vercel_api_url = "https://ai-gateway.vercel.sh/typesafe/v1/systemone"
     end
   end
 end

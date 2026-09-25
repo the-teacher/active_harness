@@ -35,7 +35,8 @@ module ActiveHarness
       azure:       -> { Providers::Azure.new },
       bedrock:     -> { Providers::Bedrock.new },
       vertexai:    -> { Providers::VertexAI.new },
-      custom:      -> { Providers::Custom.new }
+      custom:      -> { Providers::Custom.new },
+      vercel:      -> { Providers::Vercel.new }
     }.freeze
 
     IMAGE_PROVIDERS = {
@@ -61,6 +62,7 @@ module ActiveHarness
       opts[:temperature] = entry[:temperature] if entry[:temperature]
       opts[:stream]      = @token               if @token
       opts[:name]        = entry[:name]        if entry[:name]
+      opts[:questions]   = entry[:questions]   if entry[:questions]
       provider.call(**opts)
     end
 
