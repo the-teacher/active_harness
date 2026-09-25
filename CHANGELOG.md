@@ -1,9 +1,12 @@
 # Changelog
 
-## Unreleased
+## v0.3.3 — 2026-09-25
 
-- Docs: added a Jev/TypeSafe AI evaluation section to `README.md` (feature highlight + link to `docs/JEV.md`), no code changes.
 - `questions:` (Vercel/Jev provider) now also accepts a `Proc`, resolved via `instance_exec` with no arguments — same convention as `system_prompt` — so the question set can be built per call (e.g. from `params:`) instead of only as a static Hash on the class. Plain Hash usage is unaffected. See `docs/JEV.md#passing-questions-dynamically-per-call`.
+
+## v0.3.2 — 2026-09-25
+
+- Docs only, no code changes: added a Jev/TypeSafe AI evaluation feature section to `README.md` (with a link to `docs/JEV.md`), and a "Naming note" callout near the top explaining the `v0.3.0` `Agent` → `Request` rename.
 
 ## v0.3.1 — 2026-09-25
 
