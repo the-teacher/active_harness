@@ -43,11 +43,11 @@ module ActiveHarness
       def inject_routes
         route <<~ROUTES.strip
           # ActiveHarness — AI support endpoints
-          post "ai/agent",        to: "ai_support#agent"
-          post "ai/agent_memory", to: "ai_support#agent_memory"
-          post "ai/tribunal",     to: "ai_support#tribunal"
-          post "ai/pipeline",     to: "ai_support#pipeline"
-          get  "ai/agent_stream", to: "ai_support#agent_stream"
+          post "ai/agent",          to: "ai_support#agent" # not "request" — would override ActionController::Base#request
+          post "ai/request_memory", to: "ai_support#request_memory"
+          post "ai/tribunal",       to: "ai_support#tribunal"
+          post "ai/pipeline",       to: "ai_support#pipeline"
+          get  "ai/request_stream", to: "ai_support#request_stream"
         ROUTES
       end
 

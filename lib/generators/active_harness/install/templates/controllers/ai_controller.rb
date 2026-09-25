@@ -6,6 +6,10 @@ class AiSupportController < ApplicationController
   # ---------------------------------------------------------------------------
   # POST /ai/agent
   # body: { input: "What is your return policy?" }
+  #
+  # Kept named "agent" (not "request") — defining a #request method on a Rails
+  # controller would override ActionController::Base#request and break
+  # request.env / CSRF / anything else that relies on the real HTTP request.
   # ---------------------------------------------------------------------------
   def agent
     result = SupportRequest.call(input: params.require(:input))
@@ -18,13 +22,13 @@ class AiSupportController < ApplicationController
   end
 
   # ---------------------------------------------------------------------------
-  # POST /ai/agent_memory
+  # POST /ai/request_memory
   # body: { input: "Does that apply to accessories?", session_id: "user_42" }
   #
   # Uses AppMemory so the same session keeps conversational context
   # across multiple requests.
   # ---------------------------------------------------------------------------
-  def agent_memory
+  def request_memory
     memory = AppMemory.new(session_id: params.require(:session_id))
     result = SupportRequest.call(input: params.require(:input), memory: memory)
 
@@ -71,21 +75,21 @@ class AiSupportController < ApplicationController
   end
 
   # ---------------------------------------------------------------------------
-  # GET /ai/agent_stream?input=What+is+your+return+policy%3F
+  # GET /ai/request_stream?input=What+is+your+return+policy%3F
   #
   # Streams the response token by token using Server-Sent Events.
   # Each token arrives as:   data: {"token":"..."}
   # End of stream is marked: data: {"done":true}
   #
   # JavaScript client example:
-  #   const es = new EventSource('/ai/agent_stream?input=Hello');
+  #   const es = new EventSource('/ai/request_stream?input=Hello');
   #   es.onmessage = ({ data }) => {
   #     const { token, done } = JSON.parse(data);
   #     if (done) { es.close(); return; }
   #     document.querySelector('#output').insertAdjacentText('beforeend', token);
   #   };
   # ---------------------------------------------------------------------------
-  def agent_stream
+  def request_stream
     input = params.require(:input)
 
     response.headers["Content-Type"]  = "text/event-stream"
