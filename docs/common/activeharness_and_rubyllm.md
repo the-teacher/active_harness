@@ -37,13 +37,13 @@ ActiveHarness answers the question: _"how do I organize complex AI flows reliabl
 It adds an architectural layer on top of any LLM transport:
 
 - **Fallback chains** — try this model; if it fails, automatically move to the next one
-- **Tribunals** — run multiple agents in parallel and only accept a verdict when all (or most) agree
-- **Pipelines** — chain agents and tribunals into sequential flows with guard steps and early-stop conditions
-- **Lifecycle hooks** — observe and modify every stage of the agent call (setup, before, after, retry, failure)
+- **Tribunals** — run multiple requests in parallel and only accept a verdict when all (or most) agree
+- **Pipelines** — chain requests and tribunals into sequential flows with guard steps and early-stop conditions
+- **Lifecycle hooks** — observe and modify every stage of the request call (setup, before, after, retry, failure)
 - **Memory** — explicit conversation history injection you control
 - **Retry policy** — exponential backoff per-model or globally
 - **Streaming** — SSE token-by-token output from any step
-- **Image generation** — built-in support for OpenAI and OpenRouter image models (see [Image Generation](../agents/image_generation.md))
+- **Image generation** — built-in support for OpenAI and OpenRouter image models (see [Image Generation](../requests/image_generation.md))
 
 ActiveHarness is focused on reliability and control — the architectural layer that RubyLLM happily sits underneath.
 
@@ -87,7 +87,7 @@ RubyLLM.configure do |c|
   c.openrouter_api_key = ENV["OPENROUTER_API_KEY"]
 end
 
-class SupportAgent < ActiveHarness::Agent
+class SupportRequest < ActiveHarness::Request
   system_prompt SupportPrompt
 
   model do

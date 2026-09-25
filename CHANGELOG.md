@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.3.0 — 2026-09-25
+
+- TERMINOLOGY CHANGE — `ActiveHarness::Agent` is now `ActiveHarness::Request`
+
+---
+
+# ⚠️ TERMINOLOGY CHANGE — `ActiveHarness::Agent` is now `ActiveHarness::Request`
+
+---
+
+## Unreleased
+
+### Breaking: `Agent` renamed to `Request` across the whole gem
+
+`ActiveHarness::Agent` — the single resilient LLM call (model chain, fallback, retry policy, hooks, streaming, output parsing) — has been renamed to `ActiveHarness::Request`. This is a deliberate, gem-wide terminology change, not a cosmetic one: the name `Agent` is being reserved for a _future_, different abstraction — an entity that uses a model to decide and take actions — which does not exist yet in this gem. Today's class has never had any notion of tool use or autonomous action; `Request` describes what it actually does.
+
+This is a **breaking change with no backward-compatible alias**. There is no `ActiveHarness::Agent = ActiveHarness::Request` shim — code depending on the old name must be updated.
+
+What moved, in brief:
+
+- `ActiveHarness::Agent` → `ActiveHarness::Request` (`lib/active_harness/agent.rb` → `lib/active_harness/request.rb`, `lib/active_harness/agent/` → `lib/active_harness/request/`)
+- `Tribunal`'s `agents`/`agents:`/`agent_execution_times` DSL and `:before_agent`/`:after_agent`/`:agent_error` hooks → `requests`/`requests:`/`request_execution_times` and `:before_request`/`:after_request`/`:request_error`
+- `Errors::AllAgentsFailed` → `Errors::AllRequestsFailed` (`Errors::AllModelsFailed` is unrelated and unchanged)
+- `Pipeline`'s `on_agent_event` → `on_request_event`, and the `:agent` stream source symbol → `:request`
+- Generator `active_harness:agent` → `active_harness:request`; `app/ai/agents/` → `app/ai/requests/`
+- `docs/agents/` → `docs/requests/`, `docs/AGENTS.md` → `docs/REQUESTS.md`
+
+See [`docs/AGENT2REQUEST_MIGRATIOM.md`](docs/AGENT2REQUEST_MIGRATIOM.md) for the full migration checklist, including every file touched.
+
+---
+
 ## v0.2.42 — 2026-07-20
 
 ### New: native OpenAI provider for audio transcription
@@ -207,9 +238,9 @@ To add pricing support for a new provider, add an entry to `PROVIDER_PRICING_SOU
 
 The four-key `streams: { token:, agent:, tribunal:, pipeline: }` hash is removed in favour of two flat keyword params:
 
-| Param | Signature | Purpose |
-|---|---|---|
-| `token:` | `->(chunk) {}` | Raw token-by-token streaming from the LLM provider. Controls HTTP streaming mode. |
+| Param     | Signature                     | Purpose                                                                             |
+| --------- | ----------------------------- | ----------------------------------------------------------------------------------- |
+| `token:`  | `->(chunk) {}`                | Raw token-by-token streaming from the LLM provider. Controls HTTP streaming mode.   |
 | `stream:` | `->(source, event, *args) {}` | Lifecycle events from any layer. `source` is `:agent`, `:tribunal`, or `:pipeline`. |
 
 All three abstractions — `Agent`, `Tribunal`, `Pipeline` — now accept `token:` and `stream:` as top-level keyword arguments. The `stream:` lambda flows automatically through the entire chain: Pipeline → Tribunal → Agent. Each layer prefixes its events with the appropriate source symbol, so a single lambda handles all event types at the call site:
@@ -267,15 +298,16 @@ Merge strategy: models seen in multiple endpoints are deduplicated by id; pricin
 
 Five new fields added to the `ModelPrice` struct (all `keyword_init:`):
 
-| field | unit | notes |
-|---|---|---|
-| `image_input_per_million` | USD / 1M image tokens | vision models (maps from `p[:image]`) |
-| `image_output_per_million` | USD / 1M image tokens | imggen models (from `/endpoints`) |
-| `audio_input_per_million` | USD / 1M or per-min | audio/transcription input |
-| `audio_output_per_million` | USD / 1M audio tokens | TTS models (from `/endpoints`) |
-| `web_search_per_request` | USD flat | per web-search call |
+| field                      | unit                  | notes                                 |
+| -------------------------- | --------------------- | ------------------------------------- |
+| `image_input_per_million`  | USD / 1M image tokens | vision models (maps from `p[:image]`) |
+| `image_output_per_million` | USD / 1M image tokens | imggen models (from `/endpoints`)     |
+| `audio_input_per_million`  | USD / 1M or per-min   | audio/transcription input             |
+| `audio_output_per_million` | USD / 1M audio tokens | TTS models (from `/endpoints`)        |
+| `web_search_per_request`   | USD flat              | per web-search call                   |
 
 `categories` method updated:
+
 - `"speech"` — `output_modalities.include?("speech")`
 - `"transcription"` — `output_modalities.include?("transcription")`
 - `"rerank"` — `output_modalities.include?("rerank")`

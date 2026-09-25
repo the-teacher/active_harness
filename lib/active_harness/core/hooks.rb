@@ -1,13 +1,13 @@
 module ActiveHarness
   module Core
-    # Shared hook execution logic included by Agent, Tribunal, and Pipeline.
+    # Shared hook execution logic included by Request, Tribunal, and Pipeline.
     #
     # Hooks are stored in arrays so multiple +on+/+before+/+after+/+callback+
     # calls with the same event name accumulate — later registrations append
     # rather than overwrite. This lets modules register default hooks without
     # blocking user-defined hooks on the same event.
     #
-    #   class MyAgent < ActiveHarness::Agent
+    #   class MyRequest < ActiveHarness::Request
     #     include SomeTracingConcern   # registers before(:call) internally
     #     before(:call) { ... }        # appends — both hooks run in order
     #   end

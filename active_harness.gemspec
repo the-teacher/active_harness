@@ -1,10 +1,10 @@
 Gem::Specification.new do |spec|
   spec.name          = "active_harness"
-  spec.version       = "0.2.43"
+  spec.version       = "0.3.0"
   spec.authors       = ["the-teacher"]
   spec.email         = ["the-teacher@github.com"]
   spec.homepage      = "https://github.com/the-teacher/active_harness"
-  spec.summary       = "DSL for describing and running AI agents with safety layers"
+  spec.summary       = "DSL for describing and running resilient LLM requests with safety layers"
   spec.license       = "MIT"
 
   spec.files         = Dir["lib/**/*"]

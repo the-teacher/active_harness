@@ -35,7 +35,7 @@ This creates:
 
 ```
 app/ai/
-├── agents/       ← SupportAgent example
+├── requests/       ← SupportRequest example
 ├── prompts/      ← SupportPrompt example
 ├── tribunals/    ← SupportGuardTribunal example
 ├── pipelines/    ← SupportPipeline example
@@ -48,11 +48,11 @@ app/controllers/ai_support_controller.rb
 Routes are also injected into `config/routes.rb`:
 
 ```ruby
-post "ai/agent",        to: "ai_support#agent"
-post "ai/agent_memory", to: "ai_support#agent_memory"
+post "ai/request",        to: "ai_support#request"
+post "ai/request_memory", to: "ai_support#request_memory"
 post "ai/tribunal",     to: "ai_support#tribunal"
 post "ai/pipeline",     to: "ai_support#pipeline"
-get  "ai/agent_stream", to: "ai_support#agent_stream"
+get  "ai/request_stream", to: "ai_support#request_stream"
 ```
 
 All directories under `app/ai/` are autoloaded by Rails — no `require` needed.
@@ -146,7 +146,7 @@ ActiveHarness.configure do |config|
   # config.gpustack_api_key  = ENV["GPUSTACK_API_KEY"]
 
   # ── Azure OpenAI Service ─────────────────────────────────────────────────────
-  # The `model:` in your agent is the deployment name, not the model name.
+  # The `model:` in your request is the deployment name, not the model name.
   # config.azure_api_base      = ENV["AZURE_API_BASE"]         # "https://my-resource.openai.azure.com"
   # config.azure_api_key       = ENV["AZURE_API_KEY"]          # resource API key (preferred)
   # config.azure_ai_auth_token = ENV["AZURE_AI_AUTH_TOKEN"]    # OAuth bearer (alternative)
@@ -193,7 +193,7 @@ end
 | `retry_default_attempts` | `3`     | Retries per model before moving to the next fallback |
 | `retry_default_delay`    | `1.0`   | Base delay in seconds for exponential backoff        |
 
-Per-model values set via `retry_attempts:` and `retry_delay:` in the agent DSL override these globals.
+Per-model values set via `retry_attempts:` and `retry_delay:` in the request DSL override these globals.
 
 Set `retry_default_attempts` to `1` to disable retries entirely.
 
@@ -204,7 +204,7 @@ Set `retry_default_attempts` to `1` to disable retries entirely.
 | Command                                   | What it creates                                           |
 | ----------------------------------------- | --------------------------------------------------------- |
 | `rails g active_harness:install`          | Full `app/ai/` structure, initializer, controller, routes |
-| `rails g active_harness:agent NAME`       | `app/ai/agents/name_agent.rb`                             |
+| `rails g active_harness:request NAME`       | `app/ai/requests/name_request.rb`                             |
 | `rails g active_harness:prompt NAME`      | `app/ai/prompts/name_prompt.rb`                           |
 | `rails g active_harness:tribunal NAME`    | `app/ai/tribunals/name_tribunal.rb`                       |
 | `rails g active_harness:pipeline NAME`    | `app/ai/pipelines/name_pipeline.rb`                       |

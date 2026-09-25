@@ -2,7 +2,7 @@
 
 ## How It Works
 
-Every agent, tribunal, and pipeline exposes lifecycle hooks. You attach handlers to those hooks — either to log to `Rails.logger`, or to create OpenTelemetry spans that appear in Jaeger, Datadog, Honeycomb, or any OTLP-compatible backend.
+Every request, tribunal, and pipeline exposes lifecycle hooks. You attach handlers to those hooks — either to log to `Rails.logger`, or to create OpenTelemetry spans that appear in Jaeger, Datadog, Honeycomb, or any OTLP-compatible backend.
 
 The pattern is always the same:
 
@@ -19,7 +19,7 @@ No monkey-patching, no auto-instrumentation. You control exactly what is recorde
 No dependencies needed. Use lifecycle hooks directly with `Rails.logger`:
 
 ```ruby
-class SupportAgent < ActiveHarness::Agent
+class SupportRequest < ActiveHarness::Request
   system_prompt SupportPrompt
 
   model do
@@ -47,11 +47,11 @@ class SupportAgent < ActiveHarness::Agent
 end
 ```
 
-Move these hooks into a concern to reuse across agents:
+Move these hooks into a concern to reuse across requests:
 
 ```ruby
-# app/ai/concerns/agent_logging.rb
-module AgentLogging
+# app/ai/concerns/request_logging.rb
+module RequestLogging
   def self.included(base)
     base.before(:call) do
       Rails.logger.info "[#{self.class.name}] calling..."
@@ -76,8 +76,8 @@ end
 ```
 
 ```ruby
-class SupportAgent < ActiveHarness::Agent
-  include AgentLogging
+class SupportRequest < ActiveHarness::Request
+  include RequestLogging
 
   system_prompt SupportPrompt
 
@@ -195,18 +195,18 @@ end
 
 ---
 
-## AgentTracing Concern
+## RequestTracing Concern
 
-Wraps every agent call in a span. Fires events for each lifecycle step, records model, execution time, and tokens on close.
+Wraps every request call in a span. Fires events for each lifecycle step, records model, execution time, and tokens on close.
 
 ```ruby
-# app/ai/concerns/agent_tracing.rb
-module AgentTracing
+# app/ai/concerns/request_tracing.rb
+module RequestTracing
   def self.included(base)
     base.before(:call) do
       @tracer_span = AiTracer.start_span(
         tracing_span_name,
-        attributes: { "agent.class" => self.class.name },
+        attributes: { "request.class" => self.class.name },
         parent_ctx:  @params[:tracer_ctx]
       )
       @tracer_span.event("before_call")
@@ -267,8 +267,8 @@ end
 ### Usage
 
 ```ruby
-class InjectionGuardAgent < ActiveHarness::Agent
-  include AgentTracing
+class InjectionGuardRequest < ActiveHarness::Request
+  include RequestTracing
 
   system_prompt InjectionGuardPrompt
   format :json
@@ -288,7 +288,7 @@ end
 
 ## TribunalTracing Concern
 
-Wraps the tribunal in a span and propagates it as the parent context to all agent spans running inside — so the trace shows the full parent → child hierarchy.
+Wraps the tribunal in a span and propagates it as the parent context to all request spans running inside — so the trace shows the full parent → child hierarchy.
 
 ```ruby
 # app/ai/concerns/tribunal_tracing.rb
@@ -300,19 +300,19 @@ module TribunalTracing
         attributes: { "tribunal.class" => self.class.name },
         parent_ctx:  @params[:tracer_ctx]
       )
-      # Propagate tribunal span so all child agents become its children in the trace
+      # Propagate tribunal span so all child requests become its children in the trace
       @params[:tracer_ctx] = AiTracer.span_context(@tracer_span)
     end
 
-    base.on(:after_agent) do |result, index|
-      @tracer_span&.event("agent_done",
-        agent: { index: index },
+    base.on(:after_request) do |result, index|
+      @tracer_span&.event("request_done",
+        request: { index: index },
         llm:   { model: result.model.name, time_s: result.execution_time }
       )
     end
 
-    base.on(:agent_error) do |name, error, _index|
-      @tracer_span&.event("agent_error", agent: { class: name }, error: error&.message)
+    base.on(:request_error) do |name, error, _index|
+      @tracer_span&.event("request_error", request: { class: name }, error: error&.message)
     end
 
     base.on(:after_verdict) do |verdict|
@@ -335,7 +335,7 @@ end
 class SafetyTribunal < ActiveHarness::Tribunal
   include TribunalTracing
 
-  agents ToxicityAgent, AggressionAgent
+  requests ToxicityRequest, AggressionRequest
 end
 ```
 
@@ -343,7 +343,7 @@ end
 
 ## PipelineTracing Concern
 
-Creates a root pipeline span and a child span for each step. The step span is passed down to agents and tribunals as `@params[:tracer_ctx]`, so the full tree is visible in one trace.
+Creates a root pipeline span and a child span for each step. The step span is passed down to requests and tribunals as `@params[:tracer_ctx]`, so the full tree is visible in one trace.
 
 ```ruby
 # app/ai/concerns/pipeline_tracing.rb
@@ -404,7 +404,7 @@ class SupportPipeline < ActiveHarness::Pipeline
   include PipelineTracing
 
   step :injection_guard do
-    use InjectionGuardAgent
+    use InjectionGuardRequest
     stop_if ->(result) { result.processed["detected"] == true }
   end
 
@@ -413,7 +413,7 @@ class SupportPipeline < ActiveHarness::Pipeline
     stop_if ->(result) { result.verdict == false }
   end
 
-  step :respond, SupportAgent
+  step :respond, SupportRequest
 end
 ```
 
@@ -426,19 +426,19 @@ When all three concerns are used together, every call produces a nested trace:
 ```
 SupportPipeline
 ├── injection_guard
-│   └── InjectionGuardAgent
+│   └── InjectionGuardRequest
 │       ├── event: before_call
 │       ├── event: after_system_prompt  (prompt.chars)
 │       └── event: after_call           (llm.model, llm.time_s, llm.tokens, guard.detected)
 ├── safety_check
 │   └── SafetyTribunal
-│       ├── ToxicityAgent               (child of tribunal span)
+│       ├── ToxicityRequest               (child of tribunal span)
 │       │   └── event: after_call
-│       ├── AggressionAgent             (child of tribunal span)
+│       ├── AggressionRequest             (child of tribunal span)
 │       │   └── event: after_call
 │       └── event: after_verdict        (tribunal.verdict, tribunal.time_s)
 └── respond
-    └── SupportAgent
+    └── SupportRequest
         └── event: after_call
 ```
 

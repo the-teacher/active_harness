@@ -1,12 +1,12 @@
 module ActiveHarness
   class Tribunal
     class << self
-      # Declare agents at the class level.
+      # Declare requests at the class level.
       #
-      #   agents PolitenessAgent, ConstructivenessAgent
-      #   agents [PolitenessAgent, ConstructivenessAgent]
-      def agents(*list)
-        tribunal_config[:agents] = list.flatten
+      #   requests PolitenessRequest, ConstructivenessRequest
+      #   requests [PolitenessRequest, ConstructivenessRequest]
+      def requests(*list)
+        tribunal_config[:requests] = list.flatten
       end
 
       # Class-level process block — defines how to compute the verdict from all results.
@@ -25,8 +25,8 @@ module ActiveHarness
       #   :majority   — verdict true when more than half of successful results evaluate to true
       #
       # Options:
-      #   may_fail: N — tolerate up to N agent errors before raising AllAgentsFailed
-      #                 (default: nil — raise only when all agents fail, preserving legacy behavior)
+      #   may_fail: N — tolerate up to N request errors before raising AllRequestsFailed
+      #                 (default: nil — raise only when all requests fail, preserving legacy behavior)
       #
       # The block receives a single Result and must return a truthy/falsy value.
       #

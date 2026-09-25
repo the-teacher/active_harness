@@ -131,7 +131,7 @@ ActiveHarness.configure do |config|
   # config.gpustack_api_key  = Rails.application.credentials.gpustack_api_key
 
   # Azure OpenAI Service
-  # Note: `model:` in agent config is the deployment name, not the model name.
+  # Note: `model:` in request config is the deployment name, not the model name.
   # config.azure_api_base      = Rails.application.credentials.azure_api_base
   # config.azure_api_key       = Rails.application.credentials.azure_api_key
   # config.azure_ai_auth_token = Rails.application.credentials.azure_ai_auth_token
@@ -149,7 +149,7 @@ ActiveHarness.configure do |config|
 end
 ```
 
-**Use in an agent:**
+**Use in a request:**
 
 ```ruby
 model do

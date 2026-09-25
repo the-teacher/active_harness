@@ -4,7 +4,7 @@ module ActiveHarness
     #
     # Vertex AI requires Google Cloud OAuth2 authentication via Service Account
     # credentials (googleauth gem) or Application Default Credentials.
-    # This stub raises a clear error so that the agent falls through to the
+    # This stub raises a clear error so that the request falls through to the
     # next model in its fallback chain.
     #
     # To use Vertex AI in production, please look for a dedicated gem, for example:
@@ -13,7 +13,7 @@ module ActiveHarness
     # For most use cases, consider using the built-in :gemini provider instead:
     # it accesses Google's Gemini models via a simple API key (no OAuth needed).
     #
-    # Example agent config (will fall through to the next fallback):
+    # Example request config (will fall through to the next fallback):
     #   model do
     #     use      provider: :vertexai, model: "gemini-2.0-flash"
     #     fallback provider: :gemini,   model: "gemini-2.0-flash"

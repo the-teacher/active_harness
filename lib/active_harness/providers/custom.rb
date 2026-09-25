@@ -14,7 +14,7 @@ module ActiveHarness
     #     config.custom["SecondProvider"]["api_key"] = ENV["SECOND_API_KEY"]
     #   end
     #
-    # Use in an agent:
+    # Use in a request:
     #
     #   model do
     #     use      provider: :custom, name: "MyLocal",        model: "llama3.2"

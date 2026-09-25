@@ -50,5 +50,5 @@ raise Errors::RateLimitError.new(msg, error_code: code, metadata: metadata)
 | `InvalidApiKeyError`       | no        | Missing or invalid API key       |
 | `SafetyBlockedError`       | no        | Content policy violation         |
 
-Retryable errors cause the agent to move to the next model in the chain.
+Retryable errors cause the request to move to the next model in the chain.
 Non-retryable errors abort the chain immediately and are re-raised.

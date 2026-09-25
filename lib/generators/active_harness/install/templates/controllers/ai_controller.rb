@@ -8,7 +8,7 @@ class AiSupportController < ApplicationController
   # body: { input: "What is your return policy?" }
   # ---------------------------------------------------------------------------
   def agent
-    result = SupportAgent.call(input: params.require(:input))
+    result = SupportRequest.call(input: params.require(:input))
 
     render json: {
       output: result.output,
@@ -26,7 +26,7 @@ class AiSupportController < ApplicationController
   # ---------------------------------------------------------------------------
   def agent_memory
     memory = AppMemory.new(session_id: params.require(:session_id))
-    result = SupportAgent.call(input: params.require(:input), memory: memory)
+    result = SupportRequest.call(input: params.require(:input), memory: memory)
 
     render json: {
       output: result.output,
@@ -94,7 +94,7 @@ class AiSupportController < ApplicationController
 
     sse = ActionController::Live::SSE.new(response.stream, event: "message")
 
-    SupportAgent.call(
+    SupportRequest.call(
       input:  input,
       stream: ->(token) { sse.write({ token: token }.to_json) }
     )

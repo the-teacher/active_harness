@@ -6,13 +6,13 @@ A pipeline can be used as a step inside another pipeline. This lets you group re
 
 ## How It Works
 
-`Pipeline` exposes a `#result` method that returns the same `Result` struct that agents and tribunals return. This means a pipeline is just another callable that satisfies the step interface:
+`Pipeline` exposes a `#result` method that returns the same `Result` struct that requests and tribunals return. This means a pipeline is just another callable that satisfies the step interface:
 
 ```
 step calls  .new(input:, context:, params:, token:, stream:).call.result
 ```
 
-Agents, tribunals, and pipelines all respond to that call chain. The outer pipeline does not know or care which one it is running.
+Requests, tribunals, and pipelines all respond to that call chain. The outer pipeline does not know or care which one it is running.
 
 The `Result` from a nested pipeline carries:
 
@@ -31,8 +31,8 @@ The simplest nested pipeline: two cleanup steps grouped into one reusable unit.
 
 ```ruby
 class CleanupPipeline < ActiveHarness::Pipeline
-  step :strip,   StripTagsAgent    # removes HTML tags
-  step :compact, CompactAgent      # trims verbose phrasing
+  step :strip,   StripTagsRequest    # removes HTML tags
+  step :compact, CompactRequest      # trims verbose phrasing
 end
 ```
 
@@ -43,7 +43,7 @@ class SupportPipeline < ActiveHarness::Pipeline
     transform { |result| result.output }  # pass cleaned text downstream
   end
 
-  step :respond, SupportAgent
+  step :respond, SupportRequest
 end
 ```
 
@@ -66,12 +66,12 @@ An inner pipeline can stop itself. The outer pipeline can then read the stop fla
 ```ruby
 class GuardPipeline < ActiveHarness::Pipeline
   step :injection do
-    use InjectionGuardAgent
+    use InjectionGuardRequest
     stop_if ->(result) { result.processed["detected"] == true }
   end
 
   step :toxicity do
-    use ToxicityAgent
+    use ToxicityRequest
     stop_if ->(result) { result.processed["toxic"] == true }
   end
 end
@@ -85,7 +85,7 @@ class SupportPipeline < ActiveHarness::Pipeline
     stop_if   ->(result) { result.processed["stopped"] == true }
   end
 
-  step :respond, SupportAgent
+  step :respond, SupportRequest
 end
 ```
 
@@ -175,10 +175,10 @@ guard_result.processed["stopped_at"] # => nil
 guard_result.output                  # => "How do I configure retries?"
 ```
 
-Agents in subsequent steps receive the outer `context` hash, which includes the nested pipeline's result under its step name:
+Requests in subsequent steps receive the outer `context` hash, which includes the nested pipeline's result under its step name:
 
 ```ruby
-class SupportAgent < ActiveHarness::Agent
+class SupportRequest < ActiveHarness::Request
   system_prompt do
     guard_result = @context[:guard]
     "Answer the question. Input was cleaned in #{guard_result.execution_time}s."
@@ -200,7 +200,7 @@ class SupportPipeline < ActiveHarness::Pipeline
     stop_if   ->(result) { result.processed["stopped"] == true }
   end
 
-  step :respond, SupportAgent
+  step :respond, SupportRequest
 
   on_pipeline_event do |event, step_name, data|
     # fires for outer steps AND inner GuardPipeline steps
@@ -234,8 +234,8 @@ Nesting is unlimited. Each level propagates the stream further inward.
 
 ```ruby
 class SanitizePipeline < ActiveHarness::Pipeline
-  step :strip,   StripTagsAgent
-  step :compact, CompactAgent
+  step :strip,   StripTagsRequest
+  step :compact, CompactRequest
 end
 
 class GuardPipeline < ActiveHarness::Pipeline
@@ -245,7 +245,7 @@ class GuardPipeline < ActiveHarness::Pipeline
   end
 
   step :injection do
-    use InjectionGuardAgent
+    use InjectionGuardRequest
     stop_if ->(result) { result.processed["detected"] == true }
   end
 end
@@ -257,7 +257,7 @@ class SupportPipeline < ActiveHarness::Pipeline
     stop_if   ->(result) { result.processed["stopped"] == true }
   end
 
-  step :respond, SupportAgent
+  step :respond, SupportRequest
 end
 ```
 
@@ -304,6 +304,6 @@ end
 | Situation | What happens | Fix |
 | --- | --- | --- |
 | No `transform` block, no `stop_if` | `result.output` flows downstream (may be `nil` if stopped) | Add explicit `transform` |
-| `result.output` when inner pipeline stopped | `nil` — passing it downstream breaks agents | Add `stop_if ->(r) { r.processed["stopped"] }` |
+| `result.output` when inner pipeline stopped | `nil` — passing it downstream breaks requests | Add `stop_if ->(r) { r.processed["stopped"] }` |
 | Hooks defined in inner pipeline | Fire only inside the inner pipeline — outer pipeline does not see them | Use `on_pipeline_event` on the outer class to observe all events |
 | Shared state between runs | Each `SupportPipeline.new` creates a fresh instance — no shared state | Nothing to do — this is correct by design |

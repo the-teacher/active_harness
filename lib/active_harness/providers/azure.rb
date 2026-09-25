@@ -20,7 +20,7 @@ module ActiveHarness
     #   POST {azure_api_base}/openai/deployments/{deployment}/chat/completions
     #        ?api-version={azure_api_version}
     #
-    # Example agent config:
+    # Example request config:
     #   model do
     #     use provider: :azure, model: "my-gpt4o-deployment", temperature: 0.7
     #   end

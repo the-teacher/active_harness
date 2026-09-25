@@ -1,6 +1,6 @@
 # Tribunal Verdict Strategies
 
-A tribunal collects results from all agents and then computes a single verdict.
+A tribunal collects results from all requests and then computes a single verdict.
 There are three ways to define how that computation works:
 
 1. **`verdict :strategy`** — declarative, built-in aggregation
@@ -14,7 +14,7 @@ for the most common patterns.
 
 ## Built-in Strategies
 
-### `:unanimous` — every agent must agree
+### `:unanimous` — every request must agree
 
 Verdict is `true` only when **all** successful results evaluate to `true`.
 
@@ -24,7 +24,7 @@ verdict :unanimous do |result|
   result.processed["result"] == true
 end
 
-# without evaluator — true when all agents completed
+# without evaluator — true when all requests completed
 verdict :unanimous
 ```
 
@@ -48,7 +48,7 @@ verdict :majority do |result|
   result.processed["result"] == true
 end
 
-# without evaluator — true when >50% of agents completed
+# without evaluator — true when >50% of requests completed
 verdict :majority
 ```
 
@@ -61,15 +61,15 @@ process do |results|
 end
 ```
 
-With 3 agents: 2 positive → true, 1 positive → false.
-With 4 agents: 3 positive → true, 2 positive → false.
+With 3 requests: 2 positive → true, 1 positive → false.
+With 4 requests: 3 positive → true, 2 positive → false.
 
 ---
 
-## `may_fail:` — tolerate agent errors
+## `may_fail:` — tolerate request errors
 
-By default, the tribunal raises `AllAgentsFailed` only when every agent errors out.
-`may_fail: N` lowers that threshold: raise as soon as more than N agents fail.
+By default, the tribunal raises `AllRequestsFailed` only when every request errors out.
+`may_fail: N` lowers that threshold: raise as soon as more than N requests fail.
 
 ```ruby
 # with a custom evaluator block
@@ -81,9 +81,9 @@ end
 verdict :majority, may_fail: 1
 ```
 
-Without a block the evaluator defaults to "did this agent return any result?":
+Without a block the evaluator defaults to "did this request return any result?":
 
-- `verdict :unanimous` → true if all agents completed without error
+- `verdict :unanimous` → true if all requests completed without error
 - `verdict :majority, may_fail: 1` → true if >50% completed, up to 1 error tolerated
 
 The same can be expressed with a `process` block, but `may_fail:` still needs to be
@@ -92,7 +92,7 @@ passed separately because the threshold check happens before `process` runs:
 ```ruby
 class MyTribunal < ActiveHarness::Tribunal
   def initialize(input:)
-    super(input: input, agents: [...], may_fail: 1)
+    super(input: input, requests: [...], may_fail: 1)
   end
 
   process do |results|
@@ -105,7 +105,7 @@ end
 Or inline when constructing a tribunal directly:
 
 ```ruby
-tribunal = ActiveHarness::Tribunal.new(input: input, agents: agents, may_fail: 1)
+tribunal = ActiveHarness::Tribunal.new(input: input, requests: requests, may_fail: 1)
 tribunal.process { |results| results.count { |r| r.processed["result"] == true } > 1 }
 tribunal.call
 ```
@@ -132,7 +132,7 @@ end
 | Evaluates on          | one result           | one result     | full results array        |
 | Logic                 | all positive         | >50% positive  | fully custom              |
 | Block required        | no                   | no             | yes                       |
-| Default (no block)    | all agents completed | >50% completed | —                         |
+| Default (no block)    | all requests completed | >50% completed | —                         |
 | `may_fail:`           | ✓ via option         | ✓ via option   | ✓ via constructor / super |
 | Custom threshold      | —                    | —              | ✓                         |
 | Named for readability | ✓                    | ✓              | —                         |
@@ -142,7 +142,7 @@ end
 ## Complete Examples
 
 ```ruby
-# All 3 agents must agree — use for high-stakes decisions
+# All 3 requests must agree — use for high-stakes decisions
 class StrictTribunal < ActiveHarness::Tribunal
   verdict :unanimous do |result|
     result.processed["safe"] == true

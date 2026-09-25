@@ -4,7 +4,7 @@ require_relative "memory/adapter/postgresql"
 require_relative "memory/adapter/sqlite"
 
 module ActiveHarness
-  # Conversational memory for agents.
+  # Conversational memory for requests.
   #
   # Memory only records the history of request/response turns.
   # It does NOT automatically inject history into LLM messages.
@@ -12,19 +12,19 @@ module ActiveHarness
   #
   # --- Recording ---
   #
-  # Passing a Memory object to Agent.call(memory:) does NOT by itself save
-  # anything — Agent never calls #load or #record on it. Loading and
-  # recording turns for a bare agent call is entirely manual (e.g. via
+  # Passing a Memory object to Request.call(memory:) does NOT by itself save
+  # anything — Request never calls #load or #record on it. Loading and
+  # recording turns for a bare request call is entirely manual (e.g. via
   # before_call/after_call hooks calling @memory.load / @memory.record).
   #
   # Pipeline is the one place recording is automatic: when a Memory is
   # passed to Pipeline#call, the pipeline itself calls #load before running
   # steps and #record after a successful run — independent of any hooks the
-  # individual agents define.
+  # individual requests define.
   #
   #   memory = ActiveHarness::Memory.new(session_id: "u42", depth: 8)
-  #   SupportAgent.call(input: "Hello", memory: memory)
-  #   # => nothing is saved unless SupportAgent's own hooks record it
+  #   SupportRequest.call(input: "Hello", memory: memory)
+  #   # => nothing is saved unless SupportRequest's own hooks record it
   #
   # --- Manual injection patterns ---
   #
@@ -76,7 +76,7 @@ module ActiveHarness
     #   adapter          — :json_file (default), or an adapter instance
     #   enabled          — false disables all reads and writes (no-op mode)
     #   read_only        — true: load history but never write new turns
-    #   namespace        — isolates history per-agent within a session
+    #   namespace        — isolates history per-request within a session
     #   on_trim          — Proc called with trimmed turns on storage trim
     #   async            — write to adapter in a background thread
     #   **adapter_opts   — forwarded to the adapter (path, storage_size, etc.)
@@ -117,7 +117,7 @@ module ActiveHarness
     # -------------------------------------------------------------------------
 
     # Load history from storage into RAM.
-    # Called automatically by the agent at the start of #call.
+    # Called automatically by the request at the start of #call.
     # After loading, history is available via #turns and #to_messages
     # for manual injection in hooks or prompt classes.
     def load
@@ -129,7 +129,7 @@ module ActiveHarness
       @loaded = true
     end
 
-    # Record a turn after a successful agent call.
+    # Record a turn after a successful request call.
     def record(request:, response:, **meta)
       return unless @enabled
       return if @read_only
@@ -151,7 +151,7 @@ module ActiveHarness
 
     # Returns messages array for LLM consumption, respecting depth.
     # Optional filters:
-    #   filter:       ->(turn) { turn[:agent] == "SupportAgent" }
+    #   filter:       ->(turn) { turn[:request_class] == "SupportRequest" }
     #   since:        Time.now - 3600
     #   token_budget: 4000  # rough limit (chars / 4 estimate); trims oldest turns first
     def to_messages(filter: nil, since: nil, token_budget: nil)

@@ -224,7 +224,7 @@ use provider: :azure, model: "my-gpt4o-deployment"
 ## Stub Providers
 
 These providers require external dependencies that are not bundled with ActiveHarness.
-When used, they raise `ProviderUnavailableError` and the agent automatically falls through to the next fallback in the chain.
+When used, they raise `ProviderUnavailableError` and the request automatically falls through to the next fallback in the chain.
 
 ### AWS Bedrock
 

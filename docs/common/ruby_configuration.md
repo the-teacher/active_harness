@@ -2,7 +2,7 @@
 
 ## Setup
 
-After `require "active_harness"`, call `ActiveHarness.configure` once before using any agents.
+After `require "active_harness"`, call `ActiveHarness.configure` once before using any requests.
 If you skip `configure`, all values are read from the corresponding ENV variables automatically.
 
 ```ruby
@@ -37,8 +37,8 @@ my_project/
   .env
   config.rb        ← require + configure here
   app/
-    agents/
-      support_agent.rb
+    requests/
+      support_request.rb
   main.rb
 ```
 
@@ -55,9 +55,9 @@ end
 ```ruby
 # main.rb
 require_relative "config"
-require_relative "app/agents/support_agent"
+require_relative "app/requests/support_request"
 
-result = SupportAgent.call(input: "Hello")
+result = SupportRequest.call(input: "Hello")
 puts result.output
 ```
 
@@ -117,7 +117,7 @@ ActiveHarness.configure do |config|
   # config.gpustack_api_key  = ENV["GPUSTACK_API_KEY"]
 
   # Azure OpenAI Service
-  # Note: `model:` in agent config is the deployment name, not the model name.
+  # Note: `model:` in request config is the deployment name, not the model name.
   # config.azure_api_base      = ENV["AZURE_API_BASE"]
   # config.azure_api_key       = ENV["AZURE_API_KEY"]
   # config.azure_ai_auth_token = ENV["AZURE_AI_AUTH_TOKEN"]  # alternative to api_key
@@ -135,7 +135,7 @@ ActiveHarness.configure do |config|
 end
 ```
 
-**Use in an agent:**
+**Use in a request:**
 
 ```ruby
 model do

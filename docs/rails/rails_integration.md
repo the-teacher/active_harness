@@ -52,9 +52,9 @@ Files are only created if they don't already exist — running the generator on 
 ```
 app/
 └── ai/
-    ├── agents/
-    │   ├── support_agent.rb
-    │   └── support_guard_agent.rb
+    ├── requests/
+    │   ├── support_request.rb
+    │   └── support_guard_request.rb
     ├── prompts/
     │   ├── support_prompt.rb
     │   └── support_guard_prompt.rb
@@ -71,17 +71,17 @@ app/controllers/
 Routes injected into `config/routes.rb`:
 
 ```
-POST /ai/agent          — single agent call
-POST /ai/agent_memory   — agent call with session memory
+POST /ai/request          — single request call
+POST /ai/request_memory   — request call with session memory
 POST /ai/tribunal       — content moderation check
 POST /ai/pipeline       — full pipeline run
-GET  /ai/agent_stream   — streaming response (SSE)
+GET  /ai/request_stream   — streaming response (SSE)
 ```
 
 ## 4. Try it
 
 ```bash
-curl -s -X POST http://localhost:3000/ai/agent \
+curl -s -X POST http://localhost:3000/ai/request \
   -H "Content-Type: application/json" \
   -d '{"input": "Hello!"}'
 
@@ -94,7 +94,7 @@ Generate individual components by name:
 
 ```
 rails generate active_harness:prompt   Support
-rails generate active_harness:agent    Support
+rails generate active_harness:request    Support
 rails generate active_harness:tribunal Politeness
 rails generate active_harness:pipeline Support
 rails generate active_harness:memory   App
@@ -103,7 +103,7 @@ rails generate active_harness:memory   App
 | Command                        | File created                        |
 | ------------------------------ | ----------------------------------- |
 | `active_harness:prompt Name`   | `app/ai/prompts/name_prompt.rb`     |
-| `active_harness:agent Name`    | `app/ai/agents/name_agent.rb`       |
+| `active_harness:request Name`    | `app/ai/requests/name_request.rb`       |
 | `active_harness:tribunal Name` | `app/ai/tribunals/name_tribunal.rb` |
 | `active_harness:pipeline Name` | `app/ai/pipelines/name_pipeline.rb` |
 | `active_harness:memory Name`   | `app/ai/memory/name_memory.rb`      |

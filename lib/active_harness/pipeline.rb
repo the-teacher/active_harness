@@ -1,16 +1,16 @@
 module ActiveHarness
-  # Sequential pipeline that chains agents and tribunals.
+  # Sequential pipeline that chains requests and tribunals.
   # Each step receives the current payload and can transform it or stop the pipeline.
   #
   # Usage (subclass with DSL):
   #
   #   class SupportPipeline < ActiveHarness::Pipeline
   #     step :injection_guard do
-  #       use InjectionGuardAgent
+  #       use InjectionGuardRequest
   #       stop_if ->(result) { result.processed["detected"] == true }
   #     end
   #
-  #     step :translate, TranslationAgent   # shorthand — no stop_if
+  #     step :translate, TranslationRequest   # shorthand — no stop_if
   #
   #     step :safety_tribunal do
   #       use SafetyTribunal
@@ -38,12 +38,12 @@ module ActiveHarness
     class << self
       # Define a step in the pipeline.
       #
-      # Shorthand (agent only, no stop_if):
-      #   step :translate, TranslationAgent
+      # Shorthand (request only, no stop_if):
+      #   step :translate, TranslationRequest
       #
       # Full block form:
       #   step :injection_guard do
-      #     use InjectionGuardAgent
+      #     use InjectionGuardRequest
       #     stop_if ->(result) { result.processed["detected"] == true }
       #   end
       def step(name, executor = nil, &block)
@@ -63,13 +63,13 @@ module ActiveHarness
       end
 
       # Class-level event stream handlers — fired for every matching event from
-      # any agent or tribunal executed within this pipeline (including agents
+      # any request or tribunal executed within this pipeline (including requests
       # running inside tribunals). Multiple blocks can be registered; all fire.
       #
       # The handler receives (event, *args) — already scoped to the source.
       #
-      #   on_agent_event do |event, result|
-      #     Rails.logger.info "[Agent #{event}] #{result.model}" if event == :after_call
+      #   on_request_event do |event, result|
+      #     Rails.logger.info "[Request #{event}] #{result.model}" if event == :after_call
       #   end
       #
       #   on_tribunal_event do |event, verdict|
@@ -79,8 +79,8 @@ module ActiveHarness
       #   on_pipeline_event do |event, step_name, _data|
       #     Rails.logger.info "[Pipeline #{event}] step=#{step_name}"
       #   end
-      def on_agent_event(&block)
-        (pipeline_config[:streams][:agent] ||= []) << block
+      def on_request_event(&block)
+        (pipeline_config[:streams][:request] ||= []) << block
       end
 
       def on_tribunal_event(&block)
@@ -157,7 +157,7 @@ module ActiveHarness
     #   pipeline.steps { |name, executor, result| }
     #
     #   name     — step name symbol          (:translate, :guard, …)
-    #   executor — the instance that ran     (TranslationAgent instance, …)
+    #   executor — the instance that ran     (TranslationRequest instance, …)
     #   result   — Result struct             (output, processed, usage, model, …)
     #
     #   pipeline.steps.map { |name, executor, result| [name, result.output] }
@@ -173,7 +173,7 @@ module ActiveHarness
     end
 
     # Wraps pipeline outcome into a Result so a pipeline can be used as a step
-    # inside another pipeline, matching the same interface as Agent and Tribunal.
+    # inside another pipeline, matching the same interface as Request and Tribunal.
     #
     # output    — final payload (nil when stopped)
     # processed — { "stopped" => bool, "stopped_at" => step_name_string_or_nil }
@@ -187,7 +187,7 @@ module ActiveHarness
     end
 
     # Execute all steps sequentially. Returns self for chaining.
-    # Accepts optional input, token, stream to match the Agent/Tribunal call interface.
+    # Accepts optional input, token, stream to match the Request/Tribunal call interface.
     def call(input = nil, token: nil, stream: nil)
       if input
         @original_input = input
@@ -245,24 +245,24 @@ module ActiveHarness
     private
 
     # Combines a runtime-passed stream lambda with class-level handler blocks
-    # registered via on_agent_event / on_tribunal_event / on_pipeline_event.
+    # registered via on_request_event / on_tribunal_event / on_pipeline_event.
     # Returns nil when there are no handlers at all.
     #
     # Class-level handlers receive (event, *args) — already scoped to source.
     # Runtime lambda receives (source, event, *args).
     # instance_exec lets class-level blocks access pipeline instance variables.
     def merge_stream(passed_in, class_handlers)
-      agent_handlers    = Array(class_handlers[:agent]).compact
+      request_handlers  = Array(class_handlers[:request]).compact
       tribunal_handlers = Array(class_handlers[:tribunal]).compact
       pipeline_handlers = Array(class_handlers[:pipeline]).compact
 
-      has_class_handlers = agent_handlers.any? || tribunal_handlers.any? || pipeline_handlers.any?
+      has_class_handlers = request_handlers.any? || tribunal_handlers.any? || pipeline_handlers.any?
       return passed_in unless has_class_handlers
 
       pipeline_instance = self
       ->(source, event, *args) {
         handlers = case source
-                   when :agent    then agent_handlers
+                   when :request  then request_handlers
                    when :tribunal then tribunal_handlers
                    when :pipeline then pipeline_handlers
                    else                []

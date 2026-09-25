@@ -10,7 +10,7 @@ module ActiveHarness
         instance_eval(&block) if block_given?
       end
 
-      # DSL: use TranslationAgent / SafetyTribunal / NestedPipeline
+      # DSL: use TranslationRequest / SafetyTribunal / NestedPipeline
       def use(klass)
         @executor = klass
       end

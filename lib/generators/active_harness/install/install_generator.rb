@@ -7,7 +7,7 @@ module ActiveHarness
 
       source_root File.expand_path("templates", __dir__)
 
-      APP_AI_DIRS = %w[agents prompts tribunals pipelines memory].freeze
+      APP_AI_DIRS = %w[requests prompts tribunals pipelines memory].freeze
 
       def create_structure
         APP_AI_DIRS.each do |dir|

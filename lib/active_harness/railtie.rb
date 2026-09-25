@@ -1,6 +1,6 @@
 module ActiveHarness
   class Railtie < Rails::Railtie
-    APP_AI_DIRS = %w[agents prompts tribunals pipelines memory].freeze
+    APP_AI_DIRS = %w[requests prompts tribunals pipelines memory].freeze
 
     initializer "active_harness.autoload_paths", before: :set_autoload_paths do |app|
       APP_AI_DIRS.each do |dir|

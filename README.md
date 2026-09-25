@@ -12,11 +12,11 @@ Running a single LLM call is easy. Running a _reliable, observable, cost-control
 
 **ActiveHarness** is a Ruby framework for building production-grade LLM pipelines — with deep observability, consensus-based decisions, automatic fallbacks, and real-time cost and timing control. Made for Rails, works in plain Ruby too.
 
-ActiveHarness gem gives you the scaffolding to build multi-step pipelines where every agent is under full control: its inputs are directed, its outputs are observed, its errors are retried, and its cost is tracked. You define the logic; ActiveHarness handles the infrastructure.
+ActiveHarness gem gives you the scaffolding to build multi-step pipelines where every request is under full control: its inputs are directed, its outputs are observed, its errors are retried, and its cost is tracked. You define the logic; ActiveHarness handles the infrastructure.
 
 ## What is a "Harness"?
 
-A **harness** in software is scaffolding that keeps a component under control — directing its inputs, observing its outputs, and enforcing rules around it. **ActiveHarness** does exactly that for LLM agents.
+A **harness** in software is scaffolding that keeps a component under control — directing its inputs, observing its outputs, and enforcing rules around it. **ActiveHarness** does exactly that for LLM requests.
 
 ## Build AI-Based Pipelines!
 
@@ -38,7 +38,7 @@ Orchestrate deterministic and AI steps together.
 
 ## Control the Cost of Your AI Calls!
 
-With ActiveHarness you can track time, tokens, and dollars for every agent call, pipeline step, and tribunal.
+With ActiveHarness you can track time, tokens, and dollars for every request call, pipeline step, and tribunal.
 
 <img width="100%"  src="https://github.com/user-attachments/assets/ec0905f0-3118-4f49-95c1-1c216f5a037c" alt="Cost Control" />
 
@@ -48,7 +48,7 @@ With ActiveHarness you can track time, tokens, and dollars for every agent call,
 
 ## Use Consensus-Based Decisions!
 
-Use `Tribunals` to run multiple agents in parallel and make `Verdicts` based on their agreement — improving **reliability** and reducing **biases** and **hallucinations**.
+Use `Tribunals` to run multiple requests in parallel and make `Verdicts` based on their agreement — improving **reliability** and reducing **biases** and **hallucinations**.
 
 <img width="100%" src="docs/images/tribunals.png" alt="Tribunal Diagram"/>
 
@@ -56,7 +56,7 @@ Use `Tribunals` to run multiple agents in parallel and make `Verdicts` based on 
 
 ## Provide Event Tracing & Observability!
 
-Use power of event hooks to log and trace every step of your AI flows, from individual agent calls to multi-step pipelines and parallel tribunals.
+Use power of event hooks to log and trace every step of your AI flows, from individual request calls to multi-step pipelines and parallel tribunals.
 
 | Event Tracing Architecture                      | Grafana Dashboard                           |
 | ----------------------------------------------- | ------------------------------------------- |
@@ -64,9 +64,9 @@ Use power of event hooks to log and trace every step of your AI flows, from indi
 
 **Backend Agnostic** — Built on OpenTelemetry, ready for any collector (Jaeger, Datadog, Honeycomb, or custom).
 
-## Use Memory to make your agents stateful!
+## Use Memory to make your requests stateful!
 
-Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory into prompts to make agents that remember past interactions.
+Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory into prompts to make requests that remember past interactions.
 
 <img width="100%" alt="Memory" src="https://github.com/user-attachments/assets/30ca27a5-5c7a-4123-ba7d-dbf6da0b077d" />
 
@@ -84,22 +84,22 @@ Store conversation history in `JSON`, `SQLite` and `PostgreSQL`. Inject memory i
 
 | Capability                              | What it means                                                                                               |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Multi-step&nbsp;Pipelines**           | Chain agents sequentially, with per-step stop conditions and context forwarding                             |
-| **Tribunal&nbsp;Consensus**             | Run multiple agents in parallel and accept the result only if they agree (unanimous, majority, or custom)   |
+| **Multi-step&nbsp;Pipelines**           | Chain requests sequentially, with per-step stop conditions and context forwarding                             |
+| **Tribunal&nbsp;Consensus**             | Run multiple requests in parallel and accept the result only if they agree (unanimous, majority, or custom)   |
 | **Automatic&nbsp;Fallbacks**            | If a model fails, the next one in the chain takes over — zero extra code                                    |
-| **Retry&nbsp;Policy**                   | Exponential backoff per model, globally configurable or per-agent                                           |
-| **Full&nbsp;Observability**             | Lifecycle hooks on every agent event: `before_call`, `after_call`, `retry`, `failure` — log, stream, or act |
-| **Real-time&nbsp;Streaming**            | SSE-ready token streaming from any agent into your Rails response                                           |
-| **Execution&nbsp;Time&nbsp;Tracking**   | Per-agent and per-pipeline timing built in                                                                  |
+| **Retry&nbsp;Policy**                   | Exponential backoff per model, globally configurable or per-request                                           |
+| **Full&nbsp;Observability**             | Lifecycle hooks on every request event: `before_call`, `after_call`, `retry`, `failure` — log, stream, or act |
+| **Real-time&nbsp;Streaming**            | SSE-ready token streaming from any request into your Rails response                                           |
+| **Execution&nbsp;Time&nbsp;Tracking**   | Per-request and per-pipeline timing built in                                                                  |
 | **Token&nbsp;&nbsp;Cost&nbsp;Tracking** | Know exactly what each call cost in tokens and dollars                                                      |
 | **Rails-native&nbsp;DSL**               | Clean file structure, Railtie integration, generator support                                                |
-| **Event&nbsp;Tracing**                  | OpenTelemetry integration for distributed tracing of agents, tribunals, and pipelines                       |
+| **Event&nbsp;Tracing**                  | OpenTelemetry integration for distributed tracing of requests, tribunals, and pipelines                       |
 
 ## File Structure
 
 File structure for Ruby and Ruby on Rails applications:
 
-Place all of your AI-related code in `app/ai` to keep it organized and separate from your core application logic. You can further organize it into subdirectories for prompts, agents, tribunals, pipelines, and memory.
+Place all of your AI-related code in `app/ai` to keep it organized and separate from your core application logic. You can further organize it into subdirectories for prompts, requests, tribunals, pipelines, and memory.
 
 ```
 app/
@@ -108,7 +108,7 @@ app/
 ├── views/
 └── ai/
     ├── prompts/      # system prompt classes
-    ├── agents/       # agent classes
+    ├── requests/       # request classes
     ├── tribunals/    # parallel verdict panels
     ├── pipelines/    # multi-step pipelines
     └── memory/       # custom memory classes
@@ -127,21 +127,21 @@ app/
 - [Respecting @context_window](docs/PROMPTS.md#respecting-context_window)
 - [Generator](docs/PROMPTS.md#generator)
 
-## Agent Documentation
+## Request Documentation
 
-- [How to Create Your First Agent in 5 Minutes](docs/AGENTS.md#how-to-create-your-first-agent-in-5-minutes)
-- [How to Provide Fallbacks](docs/AGENTS.md#how-to-provide-fallbacks)
-- [Model Options](docs/AGENTS.md#model-options)
-- [Modifying the Model Chain at Runtime](docs/AGENTS.md#modifying-the-model-chain-at-runtime)
-- [How to Track Retries and Failures](docs/AGENTS.md#how-to-track-retries-and-failures)
-- [How to Use with RubyLLM](docs/AGENTS.md#how-to-use-with-rubyllm)
-- [JSON Output and Parsing](docs/AGENTS.md#json-output-and-parsing)
-- [Lifecycle Events](docs/AGENTS.md#lifecycle-events)
-- [Custom Providers](docs/AGENTS.md#custom-providers)
-- [Streaming in the Console](docs/AGENTS.md#streaming-in-the-console)
-- [Streaming in a Rails App](docs/AGENTS.md#streaming-in-a-rails-app)
-- [Image Generation](docs/agents/image_generation.md)
-- [Audio Transcription](docs/agents/audio_transcription.md)
+- [How to Create Your First Request in 5 Minutes](docs/REQUESTS.md#how-to-create-your-first-request-in-5-minutes)
+- [How to Provide Fallbacks](docs/REQUESTS.md#how-to-provide-fallbacks)
+- [Model Options](docs/REQUESTS.md#model-options)
+- [Modifying the Model Chain at Runtime](docs/REQUESTS.md#modifying-the-model-chain-at-runtime)
+- [How to Track Retries and Failures](docs/REQUESTS.md#how-to-track-retries-and-failures)
+- [How to Use with RubyLLM](docs/REQUESTS.md#how-to-use-with-rubyllm)
+- [JSON Output and Parsing](docs/REQUESTS.md#json-output-and-parsing)
+- [Lifecycle Events](docs/REQUESTS.md#lifecycle-events)
+- [Custom Providers](docs/REQUESTS.md#custom-providers)
+- [Streaming in the Console](docs/REQUESTS.md#streaming-in-the-console)
+- [Streaming in a Rails App](docs/REQUESTS.md#streaming-in-a-rails-app)
+- [Image Generation](docs/requests/image_generation.md)
+- [Audio Transcription](docs/requests/audio_transcription.md)
 
 ## Pipeline Documentation
 
@@ -168,12 +168,12 @@ app/
 ## Tribunal Documentation
 
 - [How to Create Your First Tribunal in 5 Minutes](docs/TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes)
-- [Tribunal from Different Agents](docs/TRIBUNALS.md#tribunal-from-different-agents)
+- [Tribunal from Different Requests](docs/TRIBUNALS.md#tribunal-from-different-requests)
 - [Verdict Strategies](docs/TRIBUNALS.md#verdict-strategies)
 - [Custom Verdict Logic](docs/TRIBUNALS.md#custom-verdict-logic)
 - [Tolerating Partial Failures](docs/TRIBUNALS.md#tolerating-partial-failures)
-- [Same Agent, Different Models](docs/TRIBUNALS.md#same-agent-different-models)
-- [Runtime Model Prepend per Agent](docs/TRIBUNALS.md#runtime-model-prepend-per-agent)
+- [Same Request, Different Models](docs/TRIBUNALS.md#same-request-different-models)
+- [Runtime Model Prepend per Request](docs/TRIBUNALS.md#runtime-model-prepend-per-request)
 - [Direct Usage](docs/TRIBUNALS.md#direct-usage)
 - [Lifecycle Events](docs/TRIBUNALS.md#lifecycle-events)
 
@@ -182,7 +182,7 @@ app/
 - [How Memory Works](docs/MEMORY.md#how-memory-works)
 - [JsonFile Memory](docs/MEMORY.md#jsonfile-memory)
 - [Custom Memory Class](docs/MEMORY.md#custom-memory-class)
-- [Managing Memory via Agent Callbacks](docs/MEMORY.md#managing-memory-via-agent-callbacks)
+- [Managing Memory via Request Callbacks](docs/MEMORY.md#managing-memory-via-request-callbacks)
 - [Injection Patterns](docs/MEMORY.md#injection-patterns)
 - [Filtering History with to_messages](docs/MEMORY.md#filtering-history-with-to_messages)
 - [Memory API Reference](docs/MEMORY.md#memory-api-reference)
@@ -206,7 +206,7 @@ app/
 - [How It Works](docs/TRACING.md#how-it-works)
 - [Simple Logging with Hooks](docs/TRACING.md#simple-logging-with-hooks)
 - [OpenTelemetry Setup](docs/TRACING.md#opentelemetry-setup)
-- [AgentTracing Concern](docs/TRACING.md#agenttracing-concern)
+- [RequestTracing Concern](docs/TRACING.md#requesttracing-concern)
 - [TribunalTracing Concern](docs/TRACING.md#tribunaltracing-concern)
 - [PipelineTracing Concern](docs/TRACING.md#pipelinetracing-concern)
 - [Span Hierarchy](docs/TRACING.md#span-hierarchy)

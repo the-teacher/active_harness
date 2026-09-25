@@ -2,7 +2,7 @@
 
 ## How to Create Your First Pipeline in 5 Minutes
 
-A Pipeline runs agents **sequentially**. Each step receives the output of the previous one as its input.
+A Pipeline runs requests **sequentially**. Each step receives the output of the previous one as its input.
 
 ### 1. Define prompts
 
@@ -25,10 +25,10 @@ class SupportPrompt
 end
 ```
 
-### 2. Define agents
+### 2. Define requests
 
 ```ruby
-class TranslationAgent < ActiveHarness::Agent
+class TranslationRequest < ActiveHarness::Request
   system_prompt TranslationPrompt
 
   model do
@@ -36,7 +36,7 @@ class TranslationAgent < ActiveHarness::Agent
   end
 end
 
-class SupportAgent < ActiveHarness::Agent
+class SupportRequest < ActiveHarness::Request
   system_prompt SupportPrompt
 
   model do
@@ -50,10 +50,10 @@ end
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
   # Step 1 — translate the input to English
-  step :translate, TranslationAgent
+  step :translate, TranslationRequest
 
   # Step 2 — answer the translated question
-  step :respond, SupportAgent
+  step :respond, SupportRequest
 end
 ```
 
@@ -84,7 +84,7 @@ pipeline.steps.map { |name, executor, result| [name, result.output] }
 
 | Type          | Definition                                          | Updates payload? | Can stop pipeline? |
 | ------------- | --------------------------------------------------- | :--------------: | :----------------: |
-| **Transform** | `step :name, AgentClass`                            | yes              | no                 |
+| **Transform** | `step :name, RequestClass`                            | yes              | no                 |
 | **Guard**     | `step :name do use …; stop_if … end`                | no               | yes                |
 | **Tribunal**  | `step :name do use TribunalClass; … end`            | no               | yes (with stop_if) |
 | **Lambda**    | `step :name, ->(input) { ActiveHarness::Result… }` | yes*             | yes (with stop_if) |
@@ -102,12 +102,12 @@ Add `stop_if` inside a step block to halt the pipeline when a condition is met:
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
   step :injection_guard do
-    use InjectionGuardAgent
+    use InjectionGuardRequest
     stop_if ->(result) { result.processed["detected"] == true }
   end
 
-  step :translate, TranslationAgent
-  step :respond,   SupportAgent
+  step :translate, TranslationRequest
+  step :respond,   SupportRequest
 end
 ```
 
@@ -128,14 +128,14 @@ Use a tribunal as a step to run parallel consensus checks inline:
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
-  step :translate, TranslationAgent
+  step :translate, TranslationRequest
 
   step :safety_check do
     use SafetyTribunal
     stop_if ->(result) { result.processed["verdict"] == false }
   end
 
-  step :respond, SupportAgent
+  step :respond, SupportRequest
 end
 ```
 
@@ -145,7 +145,7 @@ end
 
 ## Lambda Steps
 
-A step can be a plain Ruby lambda instead of an agent class. The lambda **must** return an `ActiveHarness::Result` — this is the strict contract.
+A step can be a plain Ruby lambda instead of a request class. The lambda **must** return an `ActiveHarness::Result` — this is the strict contract.
 
 ### Minimal form
 
@@ -216,15 +216,15 @@ pipeline.call
 
 ## Context: Accessing Previous Step Results
 
-Every step result is stored in `pipeline.context` under the step name. Each agent receives the full context so it can reference earlier outputs:
+Every step result is stored in `pipeline.context` under the step name. Each request receives the full context so it can reference earlier outputs:
 
 ```ruby
 pipeline.steps do |name, executor, result|
   puts result.output
 end
 
-# The context hash is also passed to each agent:
-# agent.context[:translate] => Result, agent.context[:compact] => Result
+# The context hash is also passed to each request:
+# request.context[:translate] => Result, request.context[:compact] => Result
 ```
 
 ---
@@ -253,8 +253,8 @@ Per-step hooks receive only `payload` or `result` — the step name is not passe
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
-  step :translate, TranslationAgent
-  step :respond,   SupportAgent
+  step :translate, TranslationRequest
+  step :respond,   SupportRequest
 
   # Global — fires before every step
   before :step do |step_name, payload|
@@ -287,20 +287,20 @@ end
 
 ## Event Streams
 
-Subscribe to events from agents, tribunals, or the pipeline itself using class-level stream handlers:
+Subscribe to events from requests, tribunals, or the pipeline itself using class-level stream handlers:
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
-  step :translate, TranslationAgent
-  step :respond,   SupportAgent
+  step :translate, TranslationRequest
+  step :respond,   SupportRequest
 
-  # Fires for every agent event inside this pipeline (setup, before_call, after_call, retry, …)
-  on_agent_event do |event, *args|
+  # Fires for every request event inside this pipeline (setup, before_call, after_call, retry, …)
+  on_request_event do |event, *args|
     result = args[0]
-    Rails.logger.info("[agent #{event}] #{result.model.name} #{result.execution_time}s") if event == :after_call
+    Rails.logger.info("[request #{event}] #{result.model.name} #{result.execution_time}s") if event == :after_call
   end
 
-  # Fires for every tribunal event (before_call, after_agent, after_verdict, …)
+  # Fires for every tribunal event (before_call, after_request, after_verdict, …)
   on_tribunal_event do |event, *args|
     Rails.logger.info("[tribunal #{event}]") if event == :after_verdict
   end
@@ -322,12 +322,12 @@ A realistic pipeline with guards, a tribunal, transforms, a lambda step, and hoo
 class SupportPipeline < ActiveHarness::Pipeline
   # 1. Guard — stop on prompt injection
   step :injection_guard do
-    use InjectionGuardAgent
+    use InjectionGuardRequest
     stop_if ->(result) { result.processed["detected"] == true }
   end
 
   # 2. Transform — translate to English
-  step :translate, TranslationAgent
+  step :translate, TranslationRequest
 
   # 3. Lambda — normalize whitespace without an LLM call
   step :normalize, ->(input) {
@@ -336,7 +336,7 @@ class SupportPipeline < ActiveHarness::Pipeline
   }
 
   # 4. Transform — compact to key intent
-  step :compact, CompactionAgent
+  step :compact, CompactionRequest
 
   # 5. Tribunal — parallel toxicity + aggression check
   step :safety_check do
@@ -346,12 +346,12 @@ class SupportPipeline < ActiveHarness::Pipeline
 
   # 6. Guard — topic relevance
   step :relevance_guard do
-    use RelevanceAgent
+    use RelevanceRequest
     stop_if ->(result) { result.processed["relevant"] == false }
   end
 
   # 7. Transform — final answer
-  step :respond, SupportAgent
+  step :respond, SupportRequest
 
   before :step do |step_name, payload|
     Rails.logger.info("[pipeline] → :#{step_name}")

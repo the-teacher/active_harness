@@ -4,8 +4,8 @@ Pipelines support two kinds of hooks: **global** (fire on every step) and **per-
 
 ```ruby
 class MyPipeline < ActiveHarness::Pipeline
-  step :translate, TranslationAgent
-  step :respond,   SupportAgent
+  step :translate, TranslationRequest
+  step :respond,   SupportRequest
 
   # ~~~ Global hooks ~~~
 

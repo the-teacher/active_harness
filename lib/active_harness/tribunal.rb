@@ -11,19 +11,19 @@ module ActiveHarness
   #
   # Direct usage:
   #   tribunal = ActiveHarness::Tribunal.new(
-  #     input:   "Is this message toxic?",
-  #     context: { user_id: 42 },
-  #     agents:  [ToxicityAgent, BiasAgent, SpamAgent],
-  #     timeout: 7
+  #     input:    "Is this message toxic?",
+  #     context:  { user_id: 42 },
+  #     requests: [ToxicityRequest, BiasRequest, SpamRequest],
+  #     timeout:  7
   #   )
-  #   tribunal.on(:after_agent) { |result| puts result.model }
+  #   tribunal.on(:after_request) { |result| puts result.model }
   #   tribunal.process { |results| results.all? { |r| r.processed["result"] == true } }
   #   tribunal.call
   #
   # Subclass with DSL:
   #   class ContentQualityTribunal < ActiveHarness::Tribunal
-  #     agents PolitenessAgent, ConstructivenessAgent
-  #     on(:after_agent) { |result| puts result.model }
+  #     requests PolitenessRequest, ConstructivenessRequest
+  #     on(:after_request) { |result| puts result.model }
   #     process { |results| results.all? { |r| r.processed["result"] == true } }
   #   end
   #   ContentQualityTribunal.new(input: "...").call
@@ -35,11 +35,11 @@ module ActiveHarness
     class << self
       # Each subclass gets its own isolated config hash.
       def tribunal_config
-        @tribunal_config ||= { agents: [], hooks: {} }
+        @tribunal_config ||= { requests: [], hooks: {} }
       end
 
       def inherited(subclass)
-        subclass.instance_variable_set(:@tribunal_config, { agents: [], hooks: {} })
+        subclass.instance_variable_set(:@tribunal_config, { requests: [], hooks: {} })
       end
     end
 
@@ -54,7 +54,7 @@ module ActiveHarness
                   :errors,
                   :verdict,
                   :execution_time,
-                  :agent_execution_times,
+                  :request_execution_times,
                   :token,
                   :stream
 
@@ -63,7 +63,7 @@ module ActiveHarness
       context:  {},
       params:   {},
       memory:   nil,
-      agents:   nil,
+      requests: nil,
       timeout:  7,
       token:    nil,
       stream:   nil,
@@ -71,28 +71,28 @@ module ActiveHarness
     )
       config = self.class.tribunal_config
 
-      @input                 = input
-      @context               = context
-      @params                = params
-      @memory                = memory
-      @agents                = agents || config[:agents]
-      @timeout               = timeout
-      @process_block         = config[:process]
-      @strategy              = config[:strategy]
-      @evaluate_block        = config[:evaluate_block]
-      @may_fail              = may_fail == :_unset ? config[:may_fail] : may_fail
-      @hooks                 = config[:hooks].transform_values { |v| Array(v).dup }
-      @token                 = token
-      @stream                = stream
-      @results               = []
-      @errors                = []
-      @verdict               = nil
-      @execution_time        = nil
-      @agent_execution_times = []
+      @input                   = input
+      @context                 = context
+      @params                  = params
+      @memory                  = memory
+      @requests                = requests || config[:requests]
+      @timeout                 = timeout
+      @process_block           = config[:process]
+      @strategy                = config[:strategy]
+      @evaluate_block          = config[:evaluate_block]
+      @may_fail                = may_fail == :_unset ? config[:may_fail] : may_fail
+      @hooks                   = config[:hooks].transform_values { |v| Array(v).dup }
+      @token                   = token
+      @stream                  = stream
+      @results                 = []
+      @errors                  = []
+      @verdict                 = nil
+      @execution_time          = nil
+      @request_execution_times = []
     end
 
     # Returns a Result with processed: { "verdict" => @verdict } so the pipeline
-    # can handle agents and tribunals through the same interface.
+    # can handle requests and tribunals through the same interface.
     def result
       Result.new(
         input:          @input,
@@ -102,55 +102,55 @@ module ActiveHarness
       )
     end
 
-    # Run all agents in parallel, then compute the verdict.
+    # Run all requests in parallel, then compute the verdict.
     # Returns self so calls can be chained: tribunal.call.verdict
     #
     # Accepts an optional input to update payload before running — matches
-    # the Agent#call(input) interface so tribunals work as pipeline executors.
+    # the Request#call(input) interface so tribunals work as pipeline executors.
     #
     # Behaviour on failure:
-    #   - If some agents fail/timeout, their errors are in #errors and
+    #   - If some requests fail/timeout, their errors are in #errors and
     #     #results contains only successful results.
-    #   - If ALL agents fail/timeout, raises Errors::AllAgentsFailed.
+    #   - If ALL requests fail/timeout, raises Errors::AllRequestsFailed.
     def call(input = nil, token: nil, stream: nil)
       @input  = input  if input
       @token  = token  if token
       @stream = stream if stream
-      agents = resolve_agents
+      requests = resolve_requests
       fire(:before_call)
 
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
-      futures = agents.each_with_index.map do |agent, index|
-        fire(:before_agent, agent, index)
+      futures = requests.each_with_index.map do |request, index|
+        fire(:before_request, request, index)
         t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        future = Concurrent::Future.execute { agent.call }
+        future = Concurrent::Future.execute { request.call }
         [future, t0]
       end
 
-      @results               = []
-      @errors                = []
-      @agent_execution_times = []
+      @results                 = []
+      @errors                  = []
+      @request_execution_times = []
 
       futures.each_with_index do |(future, t0), index|
         future.wait(@timeout)
         elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(3)
-        @agent_execution_times << { agent: agents[index].class.name, time: elapsed }
+        @request_execution_times << { request: requests[index].class.name, time: elapsed }
 
         if future.fulfilled?
           value  = future.value
-          result = value.is_a?(ActiveHarness::Agent) ? value.result : value
+          result = value.is_a?(ActiveHarness::Request) ? value.result : value
           @results << result
-          fire(:after_agent, result, index)
+          fire(:after_request, result, index)
         elsif future.incomplete?
           error = Errors::TimeoutError.new(
-            "Agent #{agents[index].class.name} timed out after #{@timeout}s"
+            "Request #{requests[index].class.name} timed out after #{@timeout}s"
           )
-          @errors << { agent: agents[index].class.name, error: error }
-          fire(:agent_error, agents[index].class.name, error, index)
+          @errors << { request: requests[index].class.name, error: error }
+          fire(:request_error, requests[index].class.name, error, index)
         else
-          @errors << { agent: agents[index].class.name, error: future.reason }
-          fire(:agent_error, agents[index].class.name, future.reason, index)
+          @errors << { request: requests[index].class.name, error: future.reason }
+          fire(:request_error, requests[index].class.name, future.reason, index)
         end
       end
 
@@ -158,7 +158,7 @@ module ActiveHarness
 
       fire(:after_call, @results, @errors)
 
-      # If all agents failed, raise an exception.
+      # If all requests failed, raise an exception.
       # Otherwise, compute the verdict based on successful results.
       check_failure_threshold!
 
@@ -174,26 +174,26 @@ module ActiveHarness
 
     def check_failure_threshold!
       if !@may_fail.nil? && @errors.size > @may_fail
-        raise Errors::AllAgentsFailed,
-          "Too many agents failed (#{@errors.size} > may_fail: #{@may_fail}) — #{error_summary}"
+        raise Errors::AllRequestsFailed,
+          "Too many requests failed (#{@errors.size} > may_fail: #{@may_fail}) — #{error_summary}"
       elsif @results.empty?
-        raise Errors::AllAgentsFailed, "All agents failed — #{error_summary}"
+        raise Errors::AllRequestsFailed, "All requests failed — #{error_summary}"
       end
     end
 
     def error_summary
-      @errors.map { |e| "#{e[:agent]}: #{e[:error].message}" }.join("; ")
+      @errors.map { |e| "#{e[:request]}: #{e[:error].message}" }.join("; ")
     end
 
-    def resolve_agents
-      @agents.map do |agent|
-        if agent.is_a?(Class)
-          agent.new(input: @input, context: @context.dup, params: @params, token: @token, stream: @stream)
+    def resolve_requests
+      @requests.map do |request|
+        if request.is_a?(Class)
+          request.new(input: @input, context: @context.dup, params: @params, token: @token, stream: @stream)
         else
-          agent.input = @input if @input
-          agent.instance_variable_set(:@token,  @token)  if @token
-          agent.instance_variable_set(:@stream, @stream) if @stream
-          agent
+          request.input = @input if @input
+          request.instance_variable_set(:@token,  @token)  if @token
+          request.instance_variable_set(:@stream, @stream) if @stream
+          request
         end
       end
     end

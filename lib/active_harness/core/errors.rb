@@ -5,8 +5,8 @@ module ActiveHarness
     # Raised when all models in the chain fail
     AllModelsFailed = Class.new(Error)
 
-    # Raised by Tribunal when every agent fails or times out
-    AllAgentsFailed = Class.new(Error)
+    # Raised by Tribunal when every request fails or times out
+    AllRequestsFailed = Class.new(Error)
 
     # Base for all provider-level failures — carries an optional error_code and metadata
     class ProviderError < Error

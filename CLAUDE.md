@@ -31,43 +31,43 @@ There is no automated test suite in this repo yet (no `test/` directory, no `Rak
 
 ### Three Primary Abstractions
 
-**`ActiveHarness::Agent`** (`lib/active_harness/agent.rb` + `lib/active_harness/agent/`)
-Single LLM call with a model chain, system prompt, hooks, retry policy, and optional streaming. Call pattern: `MyAgent.call(input: "...", context: {}, params: {}, memory: nil, models: nil, token: nil, stream: nil)`. Returns `self`; result is on `agent.result` (a `Result` struct). Can also be instantiated and called inline: `agent.call("new input")`.
+**`ActiveHarness::Request`** (`lib/active_harness/request.rb` + `lib/active_harness/request/`)
+Single LLM call with a model chain, system prompt, hooks, retry policy, and optional streaming. Call pattern: `MyRequest.call(input: "...", context: {}, params: {}, memory: nil, models: nil, token: nil, stream: nil)`. Returns `self`; result is on `request.result` (a `Result` struct). Can also be instantiated and called inline: `request.call("new input")`.
 
 **`ActiveHarness::Tribunal`** (`lib/active_harness/tribunal.rb` + subdirs)
-Runs multiple agents in parallel via `concurrent-ruby`'s `Concurrent::Future`. Computes a verdict from all successful results using either a `:unanimous`/`:majority` built-in strategy or a custom `process { |results| ... }` block. Tolerates partial failure via `may_fail: N`. Returns `self`; verdict is on `tribunal.verdict`.
+Runs multiple requests in parallel via `concurrent-ruby`'s `Concurrent::Future`. Computes a verdict from all successful results using either a `:unanimous`/`:majority` built-in strategy or a custom `process { |results| ... }` block. Tolerates partial failure via `may_fail: N`. Returns `self`; verdict is on `tribunal.verdict`.
 
 **`ActiveHarness::Pipeline`** (`lib/active_harness/pipeline.rb` + subdirs)
-Sequential chain of agents, tribunals, and lambdas as named steps. Each step can have a `stop_if` lambda; when it fires, `pipeline.stopped?` becomes true and subsequent steps are skipped. Step results are readable via the `pipeline.steps` enumerator (yields `step_name, executor, result`) and are also forwarded as `context[step_name]` to downstream steps. Each step's output replaces the payload only when `step.transform?` is true (i.e., a `use` agent rather than a tribunal that only produces a verdict).
+Sequential chain of requests, tribunals, and lambdas as named steps. Each step can have a `stop_if` lambda; when it fires, `pipeline.stopped?` becomes true and subsequent steps are skipped. Step results are readable via the `pipeline.steps` enumerator (yields `step_name, executor, result`) and are also forwarded as `context[step_name]` to downstream steps. Each step's output replaces the payload only when `step.transform?` is true (i.e., a `use` request rather than a tribunal that only produces a verdict).
 
 ### Supporting Components
 
-**Prompt classes** (`app/ai/prompts/` in Rails) — Plain Ruby objects with `#call` (or `#text`) that return strings. Agent injects `@input`, `@context`, `@params`, `@memory`, `@context_window`, and `@config` into prompt instances before calling them. Also accepts inline strings or lambdas.
+**Prompt classes** (`app/ai/prompts/` in Rails) — Plain Ruby objects with `#call` (or `#text`) that return strings. Request injects `@input`, `@context`, `@params`, `@memory`, `@context_window`, and `@config` into prompt instances before calling them. Also accepts inline strings or lambdas.
 
-**`ActiveHarness::Memory`** (`lib/active_harness/memory.rb`) — Conversation history storage. Must be subclassed (`Memory::JsonFile`, `Memory::Postgresql`, `Memory::Sqlite`). `Pipeline` records turns automatically after a successful run; a bare `Agent.call(memory:)` does **not** — load/record for a standalone agent is entirely manual (hooks or explicit `memory.load`/`memory.record` calls). **Memory is never auto-injected into LLM messages** — always inject manually via a hook, prompt class, or `before_call` block.
+**`ActiveHarness::Memory`** (`lib/active_harness/memory.rb`) — Conversation history storage. Must be subclassed (`Memory::JsonFile`, `Memory::Postgresql`, `Memory::Sqlite`). `Pipeline` records turns automatically after a successful run; a bare `Request.call(memory:)` does **not** — load/record for a standalone request is entirely manual (hooks or explicit `memory.load`/`memory.record` calls). **Memory is never auto-injected into LLM messages** — always inject manually via a hook, prompt class, or `before_call` block.
 
-**`ActiveHarness::Result`** — `Struct` wrapping: `input`, `output`, `processed`, `system_prompt`, `model` (a `ModelInfo` struct with `.name`, `.provider`, `.temperature`, `.context_window`, `.pricing`), `model_list`, `attempts`, `execution_time`, `usage` (a `UsageInfo` struct with `.tokens.{input,output,total}` and `.cost.{input,output,total}`). For `format :json` agents, `processed` is a parsed Ruby Hash/Array; for `:text` it's the raw string.
+**`ActiveHarness::Result`** — `Struct` wrapping: `input`, `output`, `processed`, `system_prompt`, `model` (a `ModelInfo` struct with `.name`, `.provider`, `.temperature`, `.context_window`, `.pricing`), `model_list`, `attempts`, `execution_time`, `usage` (a `UsageInfo` struct with `.tokens.{input,output,total}` and `.cost.{input,output,total}`). For `format :json` requests, `processed` is a parsed Ruby Hash/Array; for `:text` it's the raw string.
 
-**Providers** (`lib/active_harness/providers/`) — One file per provider, all subclassing `Providers::Base`. Supported symbols: `:openai`, `:anthropic`, `:gemini`, `:groq`, `:openrouter`, `:xai`, `:deepseek`, `:mistral`, `:ollama`, `:perplexity`, `:gpustack`, `:azure`, `:bedrock`, `:vertexai`, `:custom`. To add a provider: subclass `Providers::Base`, implement `#call`, register in `agent/providers.rb` `PROVIDERS` hash.
+**Providers** (`lib/active_harness/providers/`) — One file per provider, all subclassing `Providers::Base`. Supported symbols: `:openai`, `:anthropic`, `:gemini`, `:groq`, `:openrouter`, `:xai`, `:deepseek`, `:mistral`, `:ollama`, `:perplexity`, `:gpustack`, `:azure`, `:bedrock`, `:vertexai`, `:custom`. To add a provider: subclass `Providers::Base`, implement `#call`, register in `request/providers.rb` `PROVIDERS` hash.
 
-**Image generation** (`lib/active_harness/agent/image.rb` + `lib/active_harness/providers/images/`) — `image true`/`size "..."` class DSL switches an agent's model chain to image generation instead of chat. Only `:openai` and `:openrouter` are supported (`Agent::IMAGE_PROVIDERS`); the final prompt is `system_prompt` (if any) prepended to `@input` — image APIs take one prompt string, no role split. `result.output` is a base64 string/data-URI or HTTPS URL. See `docs/agents/image_generation.md`.
+**Image generation** (`lib/active_harness/request/image.rb` + `lib/active_harness/providers/images/`) — `image true`/`size "..."` class DSL switches a request's model chain to image generation instead of chat. Only `:openai` and `:openrouter` are supported (`Request::IMAGE_PROVIDERS`); the final prompt is `system_prompt` (if any) prepended to `@input` — image APIs take one prompt string, no role split. `result.output` is a base64 string/data-URI or HTTPS URL. See `docs/requests/image_generation.md`.
 
-**Audio transcription** (`lib/active_harness/agent/transcription.rb` + `lib/active_harness/providers/audio/`) — `transcribe true`/`language "..."` class DSL switches an agent's model chain to audio transcription. `:openai` and `:openrouter` are supported (`Agent::TRANSCRIPTION_PROVIDERS`) — genuinely different request formats (multipart vs. base64 JSON) and accepted file extensions per provider. `@input` is a path to a local audio file (format auto-detected from its extension), not free text — `normalize_input` is skipped automatically. `system_prompt` currently has no effect on either provider. Synchronous, no job id/polling; upstream ~60s timeout means long recordings must be chunked by the caller. See `docs/agents/audio_transcription.md`.
+**Audio transcription** (`lib/active_harness/request/transcription.rb` + `lib/active_harness/providers/audio/`) — `transcribe true`/`language "..."` class DSL switches a request's model chain to audio transcription. `:openai` and `:openrouter` are supported (`Request::TRANSCRIPTION_PROVIDERS`) — genuinely different request formats (multipart vs. base64 JSON) and accepted file extensions per provider. `@input` is a path to a local audio file (format auto-detected from its extension), not free text — `normalize_input` is skipped automatically. `system_prompt` currently has no effect on either provider. Synchronous, no job id/polling; upstream ~60s timeout means long recordings must be chunked by the caller. See `docs/requests/audio_transcription.md`.
 
 **`ActiveHarness::Pricing`** — Provided by the separate `active_harness_pricing` gem dependency. Pulls pricing from `models.dev` API (cached 72h in `tmp/active_harness/models_dev_pricing.json`); on fetch/cache failure returns an empty model list (no bundled fallback file exists).
 
 ### Hooks System
 
-All three abstractions share `Core::HookRunner`. Hooks are arrays — multiple registrations accumulate, all fire in order. Blocks run via `instance_exec` so they have access to agent/pipeline/tribunal instance variables.
+All three abstractions share `Core::HookRunner`. Hooks are arrays — multiple registrations accumulate, all fire in order. Blocks run via `instance_exec` so they have access to request/pipeline/tribunal instance variables.
 
-Agent hooks: `:setup`, `:before_call`, `:after_call`, `:before_system_prompt`, `:after_system_prompt`, `:before_parse`, `:after_parse`, `:parse_error`, `:retry`, `:failure`.
+Request hooks: `:setup`, `:before_call`, `:after_call`, `:before_system_prompt`, `:after_system_prompt`, `:before_parse`, `:after_parse`, `:parse_error`, `:retry`, `:failure`.
 Rails-style aliases: `before :call`, `after :call`, `callback :setup`, etc.
 
 Pipeline hooks: `:before_step`, `:after_step`, `:stopped`, `:complete`. Can be scoped to a specific step: `on :before_step, :translate do |payload| ... end`.
 
-Tribunal hooks: `:before_call`, `:after_call`, `:before_agent`, `:after_agent`, `:agent_error`, `:before_verdict`, `:after_verdict`.
+Tribunal hooks: `:before_call`, `:after_call`, `:before_request`, `:after_request`, `:request_error`, `:before_verdict`, `:after_verdict`.
 
-**Event streams** — two keyword params passed at call-site: `token: ->(chunk) {}` for raw token streaming (controls HTTP mode), and `stream: ->(source, event, *args) {}` for lifecycle events. Sources: `:agent`, `:tribunal`, `:pipeline`. The `stream:` flows through Pipeline → Tribunal → Agent automatically. Pipelines merge class-level `on_agent_event`/`on_tribunal_event`/`on_pipeline_event` blocks with the runtime-passed `stream:` lambda.
+**Event streams** — two keyword params passed at call-site: `token: ->(chunk) {}` for raw token streaming (controls HTTP mode), and `stream: ->(source, event, *args) {}` for lifecycle events. Sources: `:request`, `:tribunal`, `:pipeline`. The `stream:` flows through Pipeline → Tribunal → Request automatically. Pipelines merge class-level `on_request_event`/`on_tribunal_event`/`on_pipeline_event` blocks with the runtime-passed `stream:` lambda.
 
 ### Model Chain DSL
 
@@ -85,13 +85,13 @@ models [
 ]
 ```
 
-Each entry supports `retry_attempts:` and `retry_delay:` overrides. At runtime the model chain can be mutated via `agent.models.prepend(...)`, `.push(...)`, `.insert(pos, ...)`, or `.replace(...)`.
+Each entry supports `retry_attempts:` and `retry_delay:` overrides. At runtime the model chain can be mutated via `request.models.prepend(...)`, `.push(...)`, `.insert(pos, ...)`, or `.replace(...)`.
 
 **Retry policy** (`Http::RetryPolicy`): exponential backoff, defaults 3 attempts / 1s base delay. `RETRYABLE_ERRORS` (timeout, rate-limit, server, unavailable, invalid-request) advance to the next fallback model. `STOP_ERRORS` (invalid API key, safety-blocked) abort the chain immediately.
 
 ### Custom LLM Backend
 
-Agents can delegate HTTP calls to `ruby_llm` (or any external client) instead of the built-in Net::HTTP providers:
+Requests can delegate HTTP calls to `ruby_llm` (or any external client) instead of the built-in Net::HTTP providers:
 
 ```ruby
 custom_llm_backend do |params|
@@ -103,7 +103,7 @@ All ActiveHarness features (fallbacks, retry, hooks, streaming) still apply.
 
 ### Rails Integration
 
-`Railtie` auto-adds `app/ai/{agents,prompts,tribunals,pipelines,memory}` to `autoload_paths`. Configure in `config/initializers/active_harness.rb`:
+`Railtie` auto-adds `app/ai/{requests,prompts,tribunals,pipelines,memory}` to `autoload_paths`. Configure in `config/initializers/active_harness.rb`:
 
 ```ruby
 ActiveHarness.configure do |config|
@@ -112,11 +112,11 @@ ActiveHarness.configure do |config|
 end
 ```
 
-Generators: `rails g active_harness:install`, `rails g active_harness:agent NAME`, `rails g active_harness:prompt NAME`, `rails g active_harness:tribunal NAME`, `rails g active_harness:pipeline NAME`, `rails g active_harness:memory NAME`.
+Generators: `rails g active_harness:install`, `rails g active_harness:request NAME`, `rails g active_harness:prompt NAME`, `rails g active_harness:tribunal NAME`, `rails g active_harness:pipeline NAME`, `rails g active_harness:memory NAME`.
 
 ## Key Constraints
 
 - **`Memory` is abstract** — cannot be instantiated directly; use `Memory::JsonFile`, `Memory::Postgresql`, or `Memory::Sqlite`.
-- **Each subclass gets its own isolated config** via `inherited` hooks — never share config across agent/tribunal/pipeline classes at the class level.
+- **Each subclass gets its own isolated config** via `inherited` hooks — never share config across request/tribunal/pipeline classes at the class level.
 - **No Gemfile in this repo** — it is a gem, not an application.
 - **Runtime dependencies**: `concurrent-ruby` (for `Tribunal`) and `active_harness_pricing` (for `Pricing`). Keep new dependencies minimal and justified.

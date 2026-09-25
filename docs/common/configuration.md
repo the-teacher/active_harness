@@ -23,7 +23,7 @@ ActiveHarness.configure do |config|
 end
 ```
 
-Use a custom provider in an agent:
+Use a custom provider in a request:
 
 ```ruby
 model do

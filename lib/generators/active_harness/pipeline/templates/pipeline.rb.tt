@@ -1,5 +1,5 @@
 class <%= class_name %>Pipeline < ActiveHarness::Pipeline
-  step :respond, <%= class_name %>Agent
+  step :respond, <%= class_name %>Request
 
   before :step do |step_name, _payload|
     puts "[pipeline] → :#{step_name}"

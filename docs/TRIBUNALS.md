@@ -2,13 +2,13 @@
 
 ## How to Create Your First Tribunal in 5 Minutes
 
-A Tribunal runs multiple agents **in parallel** and reduces their results to a single **verdict**.
+A Tribunal runs multiple requests **in parallel** and reduces their results to a single **verdict**.
 
 <img width="100%" src="images/tribunals.png" alt="Tribunal Diagram"/>
 
 ### 1. Define a prompt
 
-The prompt must instruct the model to return JSON with a consistent field every agent in the tribunal will produce:
+The prompt must instruct the model to return JSON with a consistent field every request in the tribunal will produce:
 
 ```ruby
 class PolitenessPrompt
@@ -26,10 +26,10 @@ class PolitenessPrompt
 end
 ```
 
-### 2. Define an agent
+### 2. Define a request
 
 ```ruby
-class PolitenessAgent < ActiveHarness::Agent
+class PolitenessRequest < ActiveHarness::Request
   system_prompt PolitenessPrompt
   format :json
 
@@ -40,9 +40,9 @@ class PolitenessAgent < ActiveHarness::Agent
 end
 ```
 
-### 3. Define a tribunal — one agent, three models in parallel
+### 3. Define a tribunal — one request, three models in parallel
 
-Pass three pre-built instances of the same agent, each configured with a different model. The tribunal runs them simultaneously and computes a consensus verdict:
+Pass three pre-built instances of the same request, each configured with a different model. The tribunal runs them simultaneously and computes a consensus verdict:
 
 ```ruby
 class PolitenessTribunal < ActiveHarness::Tribunal
@@ -54,10 +54,10 @@ class PolitenessTribunal < ActiveHarness::Tribunal
   def initialize(input:)
     super(
       input:  input,
-      agents: [
-        PolitenessAgent.new(models: [{ provider: :openrouter, model: "mistralai/mistral-nemo" }]),
-        PolitenessAgent.new(models: [{ provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free" }]),
-        PolitenessAgent.new(models: [{ provider: :openrouter, model: "google/gemma-4-31b-it:free" }])
+      requests: [
+        PolitenessRequest.new(models: [{ provider: :openrouter, model: "mistralai/mistral-nemo" }]),
+        PolitenessRequest.new(models: [{ provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free" }]),
+        PolitenessRequest.new(models: [{ provider: :openrouter, model: "google/gemma-4-31b-it:free" }])
       ]
     )
   end
@@ -86,15 +86,15 @@ tribunal.results.each do |result|
 end
 
 tribunal.errors.each do |e|
-  puts "#{e[:agent]}: #{e[:error].message}"
+  puts "#{e[:request]}: #{e[:error].message}"
 end
 ```
 
 ---
 
-## Tribunal from Different Agents
+## Tribunal from Different Requests
 
-Each agent in a tribunal checks a different aspect of the input. Define a prompt and an agent per concern, then assemble them into a tribunal.
+Each request in a tribunal checks a different aspect of the input. Define a prompt and a request per concern, then assemble them into a tribunal.
 
 ### Prompts
 
@@ -130,10 +130,10 @@ class RelevancePrompt
 end
 ```
 
-### Agents
+### Requests
 
 ```ruby
-class PolitenessAgent < ActiveHarness::Agent
+class PolitenessRequest < ActiveHarness::Request
   system_prompt PolitenessPrompt
   format :json
 
@@ -143,7 +143,7 @@ class PolitenessAgent < ActiveHarness::Agent
   end
 end
 
-class ConstructivenessAgent < ActiveHarness::Agent
+class ConstructivenessRequest < ActiveHarness::Request
   system_prompt ConstructivenessPrompt
   format :json
 
@@ -153,7 +153,7 @@ class ConstructivenessAgent < ActiveHarness::Agent
   end
 end
 
-class RelevanceAgent < ActiveHarness::Agent
+class RelevanceRequest < ActiveHarness::Request
   system_prompt RelevancePrompt
   format :json
 
@@ -168,7 +168,7 @@ end
 
 ```ruby
 class ContentQualityTribunal < ActiveHarness::Tribunal
-  agents PolitenessAgent, ConstructivenessAgent, RelevanceAgent
+  requests PolitenessRequest, ConstructivenessRequest, RelevanceRequest
 
   process do |results|
     results.all? { |r| r.processed["result"] == true }
@@ -181,7 +181,7 @@ tribunal = ContentQualityTribunal.new
 tribunal.input = "I hate this product!"
 tribunal.call
 
-puts tribunal.verdict  # => true only when all three agents agree
+puts tribunal.verdict  # => true only when all three requests agree
 ```
 
 ---
@@ -192,14 +192,14 @@ Instead of a custom `process` block, use a built-in strategy with an evaluator b
 
 | Strategy     | Verdict is `true` when…                              |
 | ------------ | ---------------------------------------------------- |
-| `:unanimous` | **every** successful agent evaluates to `true`       |
-| `:majority`  | **more than half** of successful agents evaluate to `true` |
+| `:unanimous` | **every** successful request evaluates to `true`       |
+| `:majority`  | **more than half** of successful requests evaluate to `true` |
 
 ```ruby
 class SafetyTribunal < ActiveHarness::Tribunal
-  agents ToxicityAgent, AggressionAgent
+  requests ToxicityRequest, AggressionRequest
 
-  # true only when every agent evaluates to true
+  # true only when every request evaluates to true
   verdict :unanimous do |result|
     result.processed["result"] == true
   end
@@ -208,9 +208,9 @@ end
 
 ```ruby
 class ModerationTribunal < ActiveHarness::Tribunal
-  agents SentimentAgent, ToneAgent, RelevanceAgent
+  requests SentimentRequest, ToneRequest, RelevanceRequest
 
-  # true when more than half of agents evaluate to true
+  # true when more than half of requests evaluate to true
   verdict :majority do |result|
     result.processed["result"] == true
   end
@@ -223,11 +223,11 @@ end
 
 For anything beyond `:unanimous` and `:majority`, use a `process` block. It receives the full array of successful results and its return value becomes `#verdict`.
 
-**At least one agent says ok:**
+**At least one request says ok:**
 
 ```ruby
 class SafetyTribunal < ActiveHarness::Tribunal
-  agents ToxicityAgent, AggressionAgent, SpamAgent
+  requests ToxicityRequest, AggressionRequest, SpamRequest
 
   process do |results|
     results.any? { |r| r.processed["result"] == true }
@@ -270,32 +270,32 @@ instance process block  →  class process block  →  verdict strategy
 
 ## Tolerating Partial Failures
 
-By default a tribunal raises `AllAgentsFailed` only when **all** agents fail. Use `may_fail:` to set a stricter threshold:
+By default a tribunal raises `AllRequestsFailed` only when **all** requests fail. Use `may_fail:` to set a stricter threshold:
 
 ```ruby
 class SafetyTribunal < ActiveHarness::Tribunal
-  agents ToxicityAgent, AggressionAgent, SpamAgent
+  requests ToxicityRequest, AggressionRequest, SpamRequest
 
-  # Raise AllAgentsFailed if more than 1 agent fails
+  # Raise AllRequestsFailed if more than 1 request fails
   verdict :unanimous, may_fail: 1 do |result|
     result.processed["result"] == true
   end
 end
 ```
 
-Agents that fail or time out are collected in `tribunal.errors` and excluded from the verdict:
+Requests that fail or time out are collected in `tribunal.errors` and excluded from the verdict:
 
 ```ruby
 tribunal.errors.each do |e|
-  puts "#{e[:agent]}: #{e[:error].message}"
+  puts "#{e[:request]}: #{e[:error].message}"
 end
 ```
 
 ---
 
-## Same Agent, Different Models
+## Same Request, Different Models
 
-Pass pre-built agent instances to run the same prompt through multiple models and reach consensus:
+Pass pre-built request instances to run the same prompt through multiple models and reach consensus:
 
 ```ruby
 class PolitenessTribunal < ActiveHarness::Tribunal
@@ -306,9 +306,9 @@ class PolitenessTribunal < ActiveHarness::Tribunal
   def initialize(input:)
     super(
       input:  input,
-      agents: [
-        PolitenessAgent.new(models: [{ provider: :openrouter, model: "mistralai/mistral-nemo" }]),
-        PolitenessAgent.new(models: [{ provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free" }])
+      requests: [
+        PolitenessRequest.new(models: [{ provider: :openrouter, model: "mistralai/mistral-nemo" }]),
+        PolitenessRequest.new(models: [{ provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free" }])
       ]
     )
   end
@@ -317,9 +317,9 @@ end
 
 ---
 
-## Runtime Model Prepend per Agent
+## Runtime Model Prepend per Request
 
-Use `models.prepend` to inject a high-priority model into each agent's chain at runtime — without changing the class definition. Useful for A/B testing, routing by user tier, or temporarily promoting a model.
+Use `models.prepend` to inject a high-priority model into each request's chain at runtime — without changing the class definition. Useful for A/B testing, routing by user tier, or temporarily promoting a model.
 
 ```ruby
 class PolitenessTribunal < ActiveHarness::Tribunal
@@ -328,25 +328,25 @@ class PolitenessTribunal < ActiveHarness::Tribunal
   end
 
   def initialize(input:, fast_model: nil)
-    agents = [
-      PolitenessAgent.new,
-      PolitenessAgent.new,
-      PolitenessAgent.new
+    requests = [
+      PolitenessRequest.new,
+      PolitenessRequest.new,
+      PolitenessRequest.new
     ]
 
-    # Prepend a different first-choice model to each agent instance
-    agents[0].models.prepend([{ provider: :openrouter, model: "mistralai/mistral-nemo" }])
-    agents[1].models.prepend([{ provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free" }])
-    agents[2].models.prepend([{ provider: :openrouter, model: "google/gemma-4-31b-it:free" }])
+    # Prepend a different first-choice model to each request instance
+    requests[0].models.prepend([{ provider: :openrouter, model: "mistralai/mistral-nemo" }])
+    requests[1].models.prepend([{ provider: :openrouter, model: "meta-llama/llama-3.3-70b-instruct:free" }])
+    requests[2].models.prepend([{ provider: :openrouter, model: "google/gemma-4-31b-it:free" }])
 
-    # Optionally prepend a shared fast model to all agents at position 0
+    # Optionally prepend a shared fast model to all requests at position 0
     if fast_model
-      agents.each do |agent|
-        agent.models.prepend([{ provider: :openrouter, model: fast_model }])
+      requests.each do |request|
+        request.models.prepend([{ provider: :openrouter, model: fast_model }])
       end
     end
 
-    super(input: input, agents: agents)
+    super(input: input, requests: requests)
   end
 end
 ```
@@ -369,7 +369,7 @@ Create a tribunal inline without subclassing:
 ```ruby
 tribunal = ActiveHarness::Tribunal.new(
   input:   "Is this message toxic?",
-  agents:  [ToxicityAgent, AggressionAgent],
+  requests:  [ToxicityRequest, AggressionRequest],
   timeout: 7
 )
 
@@ -379,7 +379,7 @@ tribunal.call
 puts tribunal.verdict
 ```
 
-> `timeout:` sets the per-agent wait limit in seconds (default: 7). Agents that exceed it are recorded in `#errors` as `TimeoutError`.
+> `timeout:` sets the per-request wait limit in seconds (default: 7). Requests that exceed it are recorded in `#errors` as `TimeoutError`.
 
 ---
 
@@ -387,11 +387,11 @@ puts tribunal.verdict
 
 | Event                | Alias                   | Arguments          | When it fires                                   |
 | -------------------- | ----------------------- | ------------------ | ----------------------------------------------- |
-| `on :before_call`    | `before :call`          | —                  | Before any agent is dispatched                  |
-| `on :before_agent`   | `before :agent`         | `agent, index`     | Before each agent future is launched            |
-| `on :after_agent`    | `after :agent`          | `result, index`    | After each agent completes successfully         |
-| `on :agent_error`    | `callback :agent_error` | `name, error, index` | When an agent fails or times out              |
-| `on :after_call`     | `after :call`           | `results, errors`  | After all agents finish, before verdict         |
+| `on :before_call`    | `before :call`          | —                  | Before any request is dispatched                  |
+| `on :before_request`   | `before :request`         | `request, index`     | Before each request future is launched            |
+| `on :after_request`    | `after :request`          | `result, index`    | After each request completes successfully         |
+| `on :request_error`    | `callback :request_error` | `name, error, index` | When a request fails or times out              |
+| `on :after_call`     | `after :call`           | `results, errors`  | After all requests finish, before verdict         |
 | `on :before_verdict` | `before :verdict`       | `results`          | Before verdict — transform hook                 |
 | `on :after_verdict`  | `after :verdict`        | `verdict`          | After verdict is computed                       |
 
@@ -406,12 +406,12 @@ module TribunalLogging
       Rails.logger.info("[#{self.class.name}] starting")
     end
 
-    base.on(:after_agent) do |result|
-      Rails.logger.info("[#{self.class.name}] agent done — #{result.model.name}: #{result.processed.inspect}")
+    base.on(:after_request) do |result|
+      Rails.logger.info("[#{self.class.name}] request done — #{result.model.name}: #{result.processed.inspect}")
     end
 
-    base.on(:agent_error) do |name, error|
-      Rails.logger.warn("[#{self.class.name}] agent failed — #{name}: #{error.message}")
+    base.on(:request_error) do |name, error|
+      Rails.logger.warn("[#{self.class.name}] request failed — #{name}: #{error.message}")
     end
 
     base.on(:after_call) do |results, errors|
@@ -429,7 +429,7 @@ end
 class ContentQualityTribunal < ActiveHarness::Tribunal
   include TribunalLogging
 
-  agents PolitenessAgent, ConstructivenessAgent
+  requests PolitenessRequest, ConstructivenessRequest
 
   verdict :unanimous do |result|
     result.processed["result"] == true

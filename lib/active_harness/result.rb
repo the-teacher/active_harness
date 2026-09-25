@@ -33,16 +33,16 @@ module ActiveHarness
   # nil when pricing data is unavailable.
   CostBreakdown = Struct.new(:input, :output, :total, keyword_init: true)
 
-  # Combined token + cost stats for a single agent call.
+  # Combined token + cost stats for a single request call.
   # tokens is always present (raw provider data).
   # cost is nil when pricing is unavailable.
   UsageInfo = Struct.new(:tokens, :cost, keyword_init: true)
 
-  # Result returned by Agent#call (accessible via agent.result).
+  # Result returned by Request#call (accessible via request.result).
   #
   #   result.input            — original input string
   #   result.output           — raw string from the provider
-  #   result.processed        — parsed Hash/Array for :json agents, raw string for :text
+  #   result.processed        — parsed Hash/Array for :json requests, raw string for :text
   #   result.system_prompt    — resolved system prompt string
   #   result.model            — ModelInfo (name, provider, temperature, context_window, pricing)
   #   result.model_list       — full model chain proxy

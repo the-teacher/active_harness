@@ -19,12 +19,12 @@ bundle install
 
 ## How it Works
 
-Define a `custom_llm_backend` block in your agent class. The block receives a `BackendParams` struct
+Define a `custom_llm_backend` block in your request class. The block receives a `BackendParams` struct
 with the current model entry's values and must return a `RubyLLM::Chat` instance.
 ActiveHarness calls `chat.ask(@input)` and wraps the response in its standard `Result` object.
 
 ```
-[agent.call]
+[request.call]
   └─► for each entry in fallback chain:
         ├─► custom_llm_backend block called with BackendParams
         ├─► returns RubyLLM::Chat
@@ -49,7 +49,7 @@ RubyLLM.configure do |c|
   c.openrouter_api_key = ENV["OPENROUTER_API_KEY"]
 end
 
-class SupportAgent < ActiveHarness::Agent
+class SupportRequest < ActiveHarness::Request
   system_prompt SupportPrompt
 
   model do
@@ -67,7 +67,7 @@ class SupportAgent < ActiveHarness::Agent
   end
 end
 
-result = SupportAgent.call(input: "What is the capital of France?")
+result = SupportRequest.call(input: "What is the capital of France?")
 puts result.output          # => "The capital of France is Paris."
 puts result.model.name           # => "mistralai/mistral-nemo"
 puts result.execution_time  # => 1.117
@@ -93,7 +93,7 @@ end
 Streaming works without any changes — pass a `stream:` lambda as usual:
 
 ```ruby
-SupportAgent.call(
+SupportRequest.call(
   input:  "Tell me about Ruby",
   stream: ->(token) { print token }
 )
@@ -148,5 +148,5 @@ end
 
 ## Without custom_llm_backend
 
-If `custom_llm_backend` is not defined in the agent, ActiveHarness uses its built-in Net::HTTP
-providers as normal. The two approaches can coexist in different agent classes within the same app.
+If `custom_llm_backend` is not defined in the request, ActiveHarness uses its built-in Net::HTTP
+providers as normal. The two approaches can coexist in different request classes within the same app.

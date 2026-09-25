@@ -2,7 +2,7 @@
 
 ## How Memory Works
 
-**Memory management is entirely your responsibility.** ActiveHarness provides the storage primitives — it does not load history, inject it into prompts, or record turns on its own. This is intentional: automatic memory would hide what goes into the model and make agents harder to reason about.
+**Memory management is entirely your responsibility.** ActiveHarness provides the storage primitives — it does not load history, inject it into prompts, or record turns on its own. This is intentional: automatic memory would hide what goes into the model and make requests harder to reason about.
 
 You decide:
 
@@ -11,7 +11,7 @@ You decide:
 - **when** to record a new turn
 - **when** to clear or delete a session
 
-The recommended place for all of this is in **agent lifecycle hooks** (`before_call`, `after_system_prompt`, `after_call`) or in the prompt class itself. The sections below show each pattern in detail.
+The recommended place for all of this is in **request lifecycle hooks** (`before_call`, `after_system_prompt`, `after_call`) or in the prompt class itself. The sections below show each pattern in detail.
 
 There are three adapter-backed classes to choose from:
 
@@ -56,18 +56,18 @@ File layout without and with `namespace:`:
 storage/ai/memory/
 ├── user_42.json                      # no namespace
 └── user_42/
-    ├── SupportAgent.json             # namespace: "SupportAgent"
-    └── TranslationAgent.json         # namespace: "TranslationAgent"
+    ├── SupportRequest.json             # namespace: "SupportRequest"
+    └── TranslationRequest.json         # namespace: "TranslationRequest"
 ```
 
-Pass the memory object to an agent:
+Pass the memory object to a request:
 
 ```ruby
-agent = SupportAgent.new(input: "Hello!", memory: memory)
-agent.call
+request = SupportRequest.new(input: "Hello!", memory: memory)
+request.call
 ```
 
-`@memory` is then available inside all agent hooks and the prompt class.
+`@memory` is then available inside all request hooks and the prompt class.
 
 ---
 
@@ -91,20 +91,20 @@ end
 
 ```ruby
 memory = AppMemory.new(user_id: current_user.id)
-agent  = SupportAgent.call(input: params[:input], memory: memory)
+request  = SupportRequest.call(input: params[:input], memory: memory)
 ```
 
 ---
 
-## Managing Memory via Agent Callbacks
+## Managing Memory via Request Callbacks
 
-All memory management happens in lifecycle hooks. The standard practice is to extract those hooks into a **concern** and include it in any agent that needs memory. This keeps agent classes clean and makes the memory behaviour reusable.
+All memory management happens in lifecycle hooks. The standard practice is to extract those hooks into a **concern** and include it in any request that needs memory. This keeps request classes clean and makes the memory behaviour reusable.
 
 ### 1. Define a concern
 
 ```ruby
-# app/ai/concerns/agent_memory.rb
-module AgentMemory
+# app/ai/concerns/request_memory.rb
+module RequestMemory
   def self.included(base)
     # 1. Load history before the call
     base.on :before_call do
@@ -137,11 +137,11 @@ module AgentMemory
 end
 ```
 
-### 2. Include in any agent
+### 2. Include in any request
 
 ```ruby
-class SupportAgent < ActiveHarness::Agent
-  include AgentMemory
+class SupportRequest < ActiveHarness::Request
+  include RequestMemory
 
   system_prompt SupportPrompt
 
@@ -151,7 +151,7 @@ class SupportAgent < ActiveHarness::Agent
 end
 ```
 
-Nothing fires unless `memory:` is passed when creating the agent. The `@memory&.` guards make the agent safe to call without memory too.
+Nothing fires unless `memory:` is passed when creating the request. The `@memory&.` guards make the request safe to call without memory too.
 
 ---
 
@@ -188,7 +188,7 @@ end
 
 ### Option B — inject via system prompt hook
 
-History becomes part of the agent instructions:
+History becomes part of the request instructions:
 
 ```ruby
 on :before_call { @memory&.load }
@@ -217,7 +217,7 @@ end
 
 ### Option C — read `@memory` in the prompt class
 
-The prompt class has access to `@memory` when the agent is configured with one:
+The prompt class has access to `@memory` when the request is configured with one:
 
 ```ruby
 class SupportPrompt
@@ -241,7 +241,7 @@ class SupportPrompt
 end
 ```
 
-Load and record still happen in agent hooks — the prompt class only reads.
+Load and record still happen in request hooks — the prompt class only reads.
 
 ---
 
@@ -254,8 +254,8 @@ memory.to_messages
 # Only turns from the last hour
 memory.to_messages(since: Time.now - 3600)
 
-# Only turns from a specific agent
-memory.to_messages(filter: ->(turn) { turn[:agent] == "SupportAgent" })
+# Only turns from a specific request
+memory.to_messages(filter: ->(turn) { turn[:request] == "SupportRequest" })
 
 # Trim to a rough token budget (oldest turns dropped first)
 memory.to_messages(token_budget: 4000)
@@ -280,7 +280,7 @@ memory.to_messages(token_budget: 4000)
 
 ## Memory with `namespace:`
 
-Isolate history per-agent within a shared session:
+Isolate history per-request within a shared session:
 
 ```ruby
 support_memory     = AppMemory.new(user_id: 42, namespace: "support")
@@ -297,7 +297,7 @@ storage/ai/memory/users/42/
 
 ## Sharing Memory Across Pipeline Steps
 
-Pass the same memory object to a pipeline — it is available to every agent in the pipeline via `@memory`:
+Pass the same memory object to a pipeline — it is available to every request in the pipeline via `@memory`:
 
 ```ruby
 memory   = AppMemory.new(user_id: current_user.id)
@@ -305,9 +305,9 @@ pipeline = SupportPipeline.new(input: params[:input], memory: memory)
 pipeline.call
 ```
 
-Unlike a bare `Agent.call(memory:)`, the pipeline itself automatically calls `memory.load` before running its steps and `memory.record` after a successful run — this happens regardless of what hooks the individual agents define.
+Unlike a bare `Request.call(memory:)`, the pipeline itself automatically calls `memory.load` before running its steps and `memory.record` after a successful run — this happens regardless of what hooks the individual requests define.
 
-**Pitfall:** if an agent inside the pipeline also registers its own `load`/`record` hooks (as shown above for standalone agents), you will get a double-recorded turn — one from the agent's hook, one from the pipeline itself. When using Memory at the pipeline level, don't also wire manual load/record hooks into the agents that run inside it.
+**Pitfall:** if a request inside the pipeline also registers its own `load`/`record` hooks (as shown above for standalone requests), you will get a double-recorded turn — one from the request's hook, one from the pipeline itself. When using Memory at the pipeline level, don't also wire manual load/record hooks into the requests that run inside it.
 
 ---
 
@@ -344,7 +344,7 @@ memory = ActiveHarness::Memory::Postgresql.new(
   depth:      10
 )
 memory.load
-# ... agent calls ...
+# ... request calls ...
 memory.close
 ```
 
@@ -403,7 +403,7 @@ memory = ActiveHarness::Memory::Sqlite.new(
   depth:      10
 )
 memory.load
-# ... agent calls ...
+# ... request calls ...
 memory.close
 ```
 

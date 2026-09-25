@@ -1,6 +1,6 @@
 # Rails Streaming — SSE with Tokens and Lifecycle Events
 
-This guide shows how to stream AI agent output token-by-token to the browser
+This guide shows how to stream AI request output token-by-token to the browser
 and simultaneously push real-time lifecycle events (setup, retry, errors)
 over a single HTTP connection — without WebSockets or background jobs.
 
@@ -13,7 +13,7 @@ ActiveHarness exposes two streaming parameters:
 | Parameter | Lambda signature           | Fires when                       | Carries                           |
 | --------- | -------------------------- | -------------------------------- | --------------------------------- |
 | `token:`  | `->(chunk) {}`             | Each token arrives from the LLM  | `String` — the raw token          |
-| `stream:` | `->(source, event, *args)` | Each lifecycle hook fires        | source (`:agent`/`:tribunal`/`:pipeline`), event name, optional args |
+| `stream:` | `->(source, event, *args)` | Each lifecycle hook fires        | source (`:request`/`:tribunal`/`:pipeline`), event name, optional args |
 
 Both are optional and independent — pass only what you need.
 
@@ -28,9 +28,9 @@ can route them independently with `es.onmessage` and `es.addEventListener`.
 ## Step 1 — Include ActionController::Live
 
 ```ruby
-# app/controllers/ai/agents_controller.rb
+# app/controllers/ai/requests_controller.rb
 module Ai
-  class AgentsController < ApplicationController
+  class RequestsController < ApplicationController
     include ActionController::Live
     layout "ai"
 
@@ -49,9 +49,9 @@ endpoints are reached via `EventSource`, not a form POST.
 ```ruby
 # config/routes.rb
 namespace :ai do
-  scope :agents, as: :agents do
-    get "lifecycle",        to: "agents#lifecycle"
-    get "lifecycle/stream", to: "agents#lifecycle_stream", as: :lifecycle_stream
+  scope :requests, as: :requests do
+    get "lifecycle",        to: "requests#lifecycle"
+    get "lifecycle/stream", to: "requests#lifecycle_stream", as: :lifecycle_stream
   end
 end
 ```
@@ -84,13 +84,13 @@ load balancers) that this is a live stream, not a cacheable response.
 ## Step 4 — Build the token and event stream lambdas
 
 ```ruby
-# Wraps one SSE object — called per token by the agent.
+# Wraps one SSE object — called per token by the request.
 def build_token_stream(sse)
   ->(chunk) { sse.write({ token: chunk }.to_json) }
 end
 
-# Wraps another SSE object — called per lifecycle hook by the agent.
-# source is :agent for standalone agents; :tribunal or :pipeline when called from those.
+# Wraps another SSE object — called per lifecycle hook by the request.
+# source is :request for standalone requests; :tribunal or :pipeline when called from those.
 def build_event_stream(sse)
   ->(_source, event, *args) do
     payload = lifecycle_event_message(event, args)
@@ -101,7 +101,7 @@ def build_event_stream(sse)
 end
 ```
 
-Each lambda is a "sink": it receives data from the agent and pushes it
+Each lambda is a "sink": it receives data from the request and pushes it
 into the SSE pipe. The lambdas are created fresh per request.
 
 ---
@@ -109,7 +109,7 @@ into the SSE pipe. The lambdas are created fresh per request.
 ## Step 5 — The streaming action
 
 ```ruby
-# GET /ai/agents/lifecycle/stream?input=...
+# GET /ai/requests/lifecycle/stream?input=...
 def lifecycle_stream
   prepare_sse_response
 
@@ -120,7 +120,7 @@ def lifecycle_stream
   sse_tokens    = ActionController::Live::SSE.new(stream, event: "message")
   sse_lifecycle = ActionController::Live::SSE.new(stream, event: "lifecycle")
 
-  SupportAgent.call(
+  SupportRequest.call(
     input:  input,
     token:  build_token_stream(sse_tokens),
     stream: build_event_stream(sse_lifecycle)
@@ -157,7 +157,7 @@ Key points:
 def lifecycle_event_message(event, args)
   case event
   when :setup
-    { event: "setup",             text: "Agent initialized",     level: "info" }
+    { event: "setup",             text: "Request initialized",     level: "info" }
   when :before_system_prompt
     { event: "before_system_prompt", text: "Building system prompt…", level: "info" }
   when :after_system_prompt
@@ -192,10 +192,10 @@ into plain JSON hashes the browser can render directly.
 ## Step 7 — The view (HTML page)
 
 ```erb
-<%# app/views/ai/agents/lifecycle.html.erb %>
+<%# app/views/ai/requests/lifecycle.html.erb %>
 <div class="ah-container">
   <aside class="ah-sidebar">
-    <p class="ah-sidebar-title">Agent Events</p>
+    <p class="ah-sidebar-title">Request Events</p>
     <div id="ah-events" class="ah-events"></div>
   </aside>
 
@@ -213,7 +213,7 @@ into plain JSON hashes the browser can render directly.
 </div>
 
 <% content_for :scripts do %>
-  <%= javascript_include_tag "ai_agent_lifecycle" %>
+  <%= javascript_include_tag "ai_request_lifecycle" %>
 <% end %>
 ```
 
@@ -222,7 +222,7 @@ into plain JSON hashes the browser can render directly.
 ## Step 8 — The JavaScript (no framework)
 
 ```js
-// app/javascript/ai_agent_lifecycle.js
+// app/javascript/ai_request_lifecycle.js
 (function () {
   var frm = document.getElementById("ah-form");
   if (!frm) return; // guard: runs only when this page is loaded
@@ -233,7 +233,7 @@ into plain JSON hashes the browser can render directly.
     if (!val) return;
 
     var es = new EventSource(
-      "/ai/agents/lifecycle/stream?input=" + encodeURIComponent(val),
+      "/ai/requests/lifecycle/stream?input=" + encodeURIComponent(val),
     );
     var done = false;
 
@@ -250,7 +250,7 @@ into plain JSON hashes the browser can render directly.
       document.getElementById("ah-output").textContent += p.token;
     };
 
-    // "lifecycle" events carry agent hook data.
+    // "lifecycle" events carry request hook data.
     es.addEventListener("lifecycle", function (ev) {
       var p = JSON.parse(ev.data);
       appendLifecycleEvent(p);
@@ -271,11 +271,11 @@ into plain JSON hashes the browser can render directly.
 
 ## SSE wire format
 
-A single request to `/ai/agents/lifecycle/stream` produces a mixed stream:
+A single request to `/ai/requests/lifecycle/stream` produces a mixed stream:
 
 ```
 event: lifecycle
-data: {"event":"setup","text":"Agent initialized","level":"info"}
+data: {"event":"setup","text":"Request initialized","level":"info"}
 
 event: lifecycle
 data: {"event":"before_call","text":"Sending request…","level":"info"}

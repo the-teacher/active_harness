@@ -1,16 +1,16 @@
 # Pipeline
 
-A pipeline chains multiple agents and tribunals into a sequential workflow.
+A pipeline chains multiple requests and tribunals into a sequential workflow.
 Each step receives the current payload, can transform it, and can stop the pipeline early.
 
 ## Basic usage
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
-  step :translate, TranslationAgent
+  step :translate, TranslationRequest
 
   step :injection_guard do
-    use InjectionGuardAgent
+    use InjectionGuardRequest
     stop_if ->(result) { result.processed["detected"] == true }
   end
 
@@ -25,17 +25,17 @@ pipeline.call
 
 pipeline.output       # => final payload string (nil if stopped)
 pipeline.stopped?     # => false
-pipeline.steps.to_a   # => [[:translate, <TranslationAgent>, <Result>], [:injection_guard, <InjectionGuardAgent>, <Result>], ...]
+pipeline.steps.to_a   # => [[:translate, <TranslationRequest>, <Result>], [:injection_guard, <InjectionGuardRequest>, <Result>], ...]
 ```
 
 ## Step types
 
 There are two kinds of classes a step can use.
 
-**Agent step** — runs the agent, takes `result.output` as the new payload:
+**Request step** — runs the request, takes `result.output` as the new payload:
 
 ```ruby
-step :translate, TranslationAgent
+step :translate, TranslationRequest
 ```
 
 **Tribunal step** — runs the tribunal, returns a `Result` with `processed["verdict"]`.
@@ -54,8 +54,8 @@ The payload starts as the value passed to `input:` and flows through the steps:
 
 | Condition | Payload after step |
 |-----------|--------------------|
-| Agent step, no `stop_if` | Updated to `result.output` |
-| Agent step with `stop_if` | Unchanged (guard step) |
+| Request step, no `stop_if` | Updated to `result.output` |
+| Request step with `stop_if` | Unchanged (guard step) |
 | Tribunal step | Unchanged |
 
 After each step the result is also stored in `context[step_name]`,
@@ -67,7 +67,7 @@ Any step can stop the pipeline by defining `stop_if`:
 
 ```ruby
 step :injection_guard do
-  use InjectionGuardAgent
+  use InjectionGuardRequest
   stop_if ->(result) { result.processed["detected"] == true }
 end
 ```
@@ -82,7 +82,7 @@ When the condition is true:
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
-  on_agent_event    do |event, result|  ... end  # fires for every agent inside
+  on_request_event  do |event, result|  ... end  # fires for every request inside
   on_tribunal_event do |event, verdict| ... end  # fires for every tribunal inside
   on_pipeline_event do |event, *args|   ... end  # :before_step, :after_step, :stopped, :complete
 end
@@ -93,7 +93,7 @@ Runtime streams can be passed at construction time:
 ```ruby
 SupportPipeline.new(
   input:   "...",
-  streams: { token: token_lambda, agent: agent_lambda }
+  streams: { token: token_lambda, request: request_lambda }
 )
 ```
 
@@ -112,7 +112,7 @@ SupportPipeline.new(input: "...", memory: mem).call
 
 ## Proposal: universal step interface
 
-Currently `Pipeline::Step` special-cases two concrete classes: `Agent` and `Tribunal`.
+Currently `Pipeline::Step` special-cases two concrete classes: `Request` and `Tribunal`.
 This section explores making the pipeline open to any entity — a plain Ruby object,
 a lambda, a nested pipeline, an HTTP call, a cache lookup — with no inheritance required.
 
@@ -149,7 +149,7 @@ Pipeline::StepResult = Struct.new(:output, :stop, keyword_init: true) do
 end
 ```
 
-**Pros:** almost no change to existing code; agents and tribunals get thin adapters.  
+**Pros:** almost no change to existing code; requests and tribunals get thin adapters.  
 **Cons:** every custom step must construct `StepResult`; slightly more boilerplate.
 
 ---
@@ -208,7 +208,7 @@ step :length_guard, LengthGuard.new
 
 **Pros:** stateless, composable, easy to test (`call(env)` in one line); nested
 pipelines become trivial — a pipeline is just another object with `call(env)`.  
-**Cons:** largest departure from the current API; requires migrating Agent/Tribunal wrappers.
+**Cons:** largest departure from the current API; requires migrating Request/Tribunal wrappers.
 
 ---
 
@@ -229,7 +229,7 @@ class EnrichStep
 end
 ```
 
-Agents and Tribunals include `Callable` automatically, so they work as before.
+Requests and Tribunals include `Callable` automatically, so they work as before.
 Any plain class can opt in with one `include`.
 
 **Pros:** clear opt-in contract; helpers reduce boilerplate; IDE-friendly.  

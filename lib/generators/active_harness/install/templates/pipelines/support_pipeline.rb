@@ -1,5 +1,5 @@
 require_relative "../tribunals/support_guard_tribunal"
-require_relative "../agents/support_agent"
+require_relative "../requests/support_request"
 
 # Two-step pipeline: spam guard → answer.
 # Add more steps between them as needed.
@@ -11,7 +11,7 @@ class SupportPipeline < ActiveHarness::Pipeline
   end
 
   # Step 2 — RESPOND: generate the actual answer
-  step :respond, SupportAgent
+  step :respond, SupportRequest
 
   before :step do |step_name, _payload|
     puts "[pipeline] → :#{step_name}"

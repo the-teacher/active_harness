@@ -4,14 +4,14 @@
 
 A prompt class is a plain Ruby object. The only requirement is a `call` instance method that returns a string — the system prompt text sent to the model.
 
-The agent injects the following instance variables before calling `call`:
+The request injects the following instance variables before calling `call`:
 
 | Variable           | Description                                               |
 | ------------------ | --------------------------------------------------------- |
 | `@input`           | Current user input string                                 |
 | `@context`         | Domain data — user role, locale, flags, etc.              |
 | `@params`          | Tuning knobs — max length, fractions, technical settings  |
-| `@memory`          | Memory object, if passed to the agent                     |
+| `@memory`          | Memory object, if passed to the request                     |
 | `@context_window`  | Context window size of the primary model; `nil` if unknown |
 
 There is no base class to inherit from. Any class with `call` works.
@@ -29,7 +29,7 @@ end
 ```
 
 ```ruby
-class SupportAgent < ActiveHarness::Agent
+class SupportRequest < ActiveHarness::Request
   system_prompt SupportPrompt
 
   model do
@@ -89,7 +89,7 @@ end
 ```
 
 ```ruby
-agent = TeacherAgent.call(
+request = TeacherRequest.call(
   input:   "Explain recursion",
   context: { language: "Spanish", level: "beginner" }
 )
@@ -121,7 +121,7 @@ end
 ```
 
 ```ruby
-SummaryAgent.call(input: article, params: { max_words: 50 })
+SummaryRequest.call(input: article, params: { max_words: 50 })
 ```
 
 ---
@@ -149,7 +149,7 @@ end
 
 ## JSON Output Prompt
 
-When the agent uses `format :json`, the model must return valid JSON. State the exact schema in the prompt:
+When the request uses `format :json`, the model must return valid JSON. State the exact schema in the prompt:
 
 ```ruby
 class ToxicityPrompt
@@ -168,7 +168,7 @@ end
 ```
 
 ```ruby
-class ToxicityAgent < ActiveHarness::Agent
+class ToxicityRequest < ActiveHarness::Request
   system_prompt ToxicityPrompt
   format :json
 
@@ -177,7 +177,7 @@ class ToxicityAgent < ActiveHarness::Agent
   end
 end
 
-result = ToxicityAgent.call(input: "You are terrible!")
+result = ToxicityRequest.call(input: "You are terrible!")
 result.processed["toxic"]   # => true
 result.processed["reason"]  # => "..."
 ```
@@ -186,7 +186,7 @@ result.processed["reason"]  # => "..."
 
 ## Using `@memory` for Conversation History
 
-Read conversation history inside the prompt. Load and record still happen in agent hooks — the prompt only reads:
+Read conversation history inside the prompt. Load and record still happen in request hooks — the prompt only reads:
 
 ```ruby
 class MemoryPrompt

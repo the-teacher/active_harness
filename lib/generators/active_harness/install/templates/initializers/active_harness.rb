@@ -74,7 +74,7 @@ ActiveHarness.configure do |config|
 
   # ---------------------------------------------------------------------------
   # Azure OpenAI Service
-  # The `model:` in your agent config is the deployment name, not the model name.
+  # The `model:` in your request config is the deployment name, not the model name.
   # ---------------------------------------------------------------------------
   # config.azure_api_base      = ENV["AZURE_API_BASE"]    # "https://my-resource.openai.azure.com"
   # config.azure_api_key       = ENV["AZURE_API_KEY"]     # resource API key (preferred)
@@ -92,7 +92,7 @@ ActiveHarness.configure do |config|
   # config.custom["VLLMServer"]["url"]     = "http://gpu-server:8000/v1/chat/completions"
   # config.custom["VLLMServer"]["api_key"] = ENV["VLLM_API_KEY"]
   #
-  # Use in an agent:
+  # Use in a request:
   #   model do
   #     use      provider: :custom, name: "MyLocal",    model: "llama3.2"
   #     fallback provider: :custom, name: "VLLMServer", model: "mixtral"

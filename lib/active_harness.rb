@@ -27,14 +27,14 @@ require_relative "active_harness/providers/audio/openai"
 require_relative "active_harness/providers/audio/openrouter"
 require "active_harness_pricing"
 require_relative "active_harness/memory"
-require_relative "active_harness/agent"
+require_relative "active_harness/request"
 require_relative "active_harness/tribunal"
 require_relative "active_harness/pipeline"
 
 require_relative "active_harness/railtie" if defined?(Rails::Railtie)
 
 module ActiveHarness
-  VERSION = "0.2.43"
+  VERSION = "0.3.0"
 
   class << self
     # Configure ActiveHarness.

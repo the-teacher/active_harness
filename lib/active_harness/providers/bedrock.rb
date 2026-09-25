@@ -4,12 +4,12 @@ module ActiveHarness
     #
     # Bedrock requires AWS Signature V4 request signing, which is non-trivial
     # to implement and carries AWS SDK dependencies. This stub raises a clear
-    # error so that the agent falls through to the next model in its fallback chain.
+    # error so that the request falls through to the next model in its fallback chain.
     #
     # To use Bedrock in production, please look for a dedicated gem, for example:
     #   gem "active_harness-bedrock"  (not yet released — contributions welcome)
     #
-    # Example agent config (will fall through to the next fallback):
+    # Example request config (will fall through to the next fallback):
     #   model do
     #     use      provider: :bedrock, model: "anthropic.claude-3-5-sonnet-20241022-v2:0"
     #     fallback provider: :anthropic, model: "claude-3-5-sonnet-20241022"
