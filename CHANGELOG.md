@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Docs: added a Jev/TypeSafe AI evaluation section to `README.md` (feature highlight + link to `docs/JEV.md`), no code changes.
+- `questions:` (Vercel/Jev provider) now also accepts a `Proc`, resolved via `instance_exec` with no arguments — same convention as `system_prompt` — so the question set can be built per call (e.g. from `params:`) instead of only as a static Hash on the class. Plain Hash usage is unaffected. See `docs/JEV.md#passing-questions-dynamically-per-call`.
 
 ## v0.3.1 — 2026-09-25
 

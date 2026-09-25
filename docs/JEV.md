@@ -90,7 +90,25 @@ The common pattern: Jev's job stops at "classify/score/flag this text," never at
 
 Given the request/response mismatch described above, `Request` itself still has no typed-questions DSL — instead, `use provider: :vercel, model: "...", questions: {...}` (in the `model do ... end` block) accepts a `questions:` hash already in the API's own exact shape (added to `ModelConfig#use`/`#fallback` and threaded through in `attempt_model`, see `lib/active_harness/request/models.rb` and `request/providers.rb`). Omit `questions:` and the provider falls back to a single default `noul` question built from the system prompt (the simplest case, needs no `criteria`). Either way `@input` always becomes `state`, and the raw `answers` object goes into `content` — no interpretation of `choice`/`score`/probabilities happens inside the gem. With `format :json` on the `Request` subclass, `result.processed` is that `answers` object as a real parsed Hash.
 
-A demo combining all three question types in one call lives in the `rails7-startkit` playground: `app/ai/requests/jev_request.rb` + `/ai/requests/jev` — shows the full raw structure and a small client-side-only "final result" summary (`app/javascript/ai_request_jev.js`) derived from it for display purposes.
+A demo combining all three question types in one call lives in the `rails7-startkit` playground: `app/ai/requests/jev_request.rb` + `/ai/requests/jev` — shows the full raw structure and a small client-side-only "final result" summary (`app/javascript/ai_request_jev.js`) derived from it for display purposes. That demo keeps `questions:` as a static class-level constant on purpose (`JevRequest::QUESTIONS`) — it isn't wired to the dynamic form below, that's just documented as an available option.
+
+### Passing `questions:` dynamically, per call
+
+`questions:` doesn't have to be a static Hash baked into the class. It also accepts a `Proc`, resolved exactly the way `system_prompt` already is elsewhere in this gem: via `instance_exec` with **no arguments**, so the block reads request state off instance variables rather than taking them as a parameter:
+
+```ruby
+class ModerationRequest < ActiveHarness::Request
+  format :json
+
+  model do
+    use provider: :vercel, model: "typesafe-ai/jev", questions: -> { @params[:questions] }
+  end
+end
+
+ModerationRequest.new(input: text, params: { questions: dynamic_questions }).call
+```
+
+This means the question set can be built per request — e.g. driven by request params, tenant configuration, or a moderation policy loaded from a database — without touching the class definition. Implementation: `resolve_questions` in `lib/active_harness/request/providers.rb`, called from `attempt_model` before the `questions:` option reaches `Providers::Vercel#call`. Passing a plain Hash (the common case) still works unchanged — only `Proc` values get resolved.
 
 Structured (non-string) `state` (object/array instead of a plain string) still isn't supported — `state` is always built from the last user message's string content — but nothing has needed it yet.
 

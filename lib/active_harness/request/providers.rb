@@ -62,7 +62,7 @@ module ActiveHarness
       opts[:temperature] = entry[:temperature] if entry[:temperature]
       opts[:stream]      = @token               if @token
       opts[:name]        = entry[:name]        if entry[:name]
-      opts[:questions]   = entry[:questions]   if entry[:questions]
+      opts[:questions]   = resolve_questions(entry[:questions]) if entry[:questions]
       provider.call(**opts)
     end
 
@@ -109,6 +109,15 @@ module ActiveHarness
       raise ArgumentError, "Unknown provider: #{name.inspect}. Supported: #{PROVIDERS.keys.join(', ')}" unless factory
 
       factory.call
+    end
+
+    # `questions:` (currently used only by provider: :vercel) accepts either a
+    # static Hash or a Proc, resolved the same way system_prompt is: called via
+    # instance_exec with no arguments, so it can read @input/@context/@params.
+    #
+    #   use provider: :vercel, model: "typesafe-ai/jev", questions: -> { @params[:questions] }
+    def resolve_questions(value)
+      value.is_a?(Proc) ? instance_exec(&value) : value
     end
 
     def build_messages(system_prompt, input)
