@@ -23,6 +23,7 @@ require_relative "active_harness/providers/vertexai"
 require_relative "active_harness/providers/custom"
 require_relative "active_harness/providers/vercel"
 require_relative "active_harness/providers/typesafe"
+require_relative "active_harness/providers/cohere"
 require_relative "active_harness/providers/ollama_cloud"
 require_relative "active_harness/providers/hetzner"
 require_relative "active_harness/providers/images/openai"
@@ -40,7 +41,7 @@ require_relative "active_harness/pipeline"
 require_relative "active_harness/railtie" if defined?(Rails::Railtie)
 
 module ActiveHarness
-  VERSION = "0.3.6"
+  VERSION = "0.3.7"
 
   class << self
     # Configure ActiveHarness.

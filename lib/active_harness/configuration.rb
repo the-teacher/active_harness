@@ -106,6 +106,12 @@ module ActiveHarness
     attr_accessor :vercel_api_url
 
     # -------------------------------------------------------------------------
+    # Cohere (native v2 Chat API)
+    # -------------------------------------------------------------------------
+    attr_accessor :cohere_api_key
+    attr_accessor :cohere_api_url
+
+    # -------------------------------------------------------------------------
     # TypeSafe — direct Jev (System One) API; also any Jev-compatible server
     # -------------------------------------------------------------------------
     attr_accessor :typesafe_api_key
@@ -209,6 +215,9 @@ module ActiveHarness
 
       @vercel_api_key = ENV["VERCEL_API_KEY"]
       @vercel_api_url = "https://ai-gateway.vercel.sh/typesafe/v1/systemone"
+
+      @cohere_api_key = ENV["COHERE_API_KEY"]
+      @cohere_api_url = "https://api.cohere.com/v2/chat"
 
       @typesafe_api_key = ENV["TYPESAFE_API_KEY"]
       @typesafe_api_url = "https://api.typesafe.ai/v1/systemone"

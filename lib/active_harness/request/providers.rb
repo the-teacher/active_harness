@@ -37,6 +37,7 @@ module ActiveHarness
       vertexai:    -> { Providers::VertexAI.new },
       custom:      -> { Providers::Custom.new },
       vercel:      -> { Providers::Vercel.new },
+      cohere:      -> { Providers::Cohere.new },
       typesafe:    -> { Providers::TypeSafe.new },
       ollama_cloud: -> { Providers::OllamaCloud.new },
       hetzner:     -> { Providers::Hetzner.new }

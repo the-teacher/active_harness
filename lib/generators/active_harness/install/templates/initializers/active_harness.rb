@@ -82,6 +82,12 @@ ActiveHarness.configure do |config|
   # config.azure_api_version   = "2024-05-01-preview"
 
   # ---------------------------------------------------------------------------
+  # Cohere (native v2 Chat API)
+  # ---------------------------------------------------------------------------
+  # config.cohere_api_key = ENV["COHERE_API_KEY"]
+  # config.cohere_api_url = "https://api.cohere.com/v2/chat"
+
+  # ---------------------------------------------------------------------------
   # TypeSafe — Jev (System One) evaluation model, direct API
   # ---------------------------------------------------------------------------
   # config.typesafe_api_key = ENV["TYPESAFE_API_KEY"]

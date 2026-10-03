@@ -13,6 +13,7 @@
 - [Perplexity](#perplexity)
 - [Ollama](#ollama)
 - [GPUStack](#gpustack)
+- [Cohere](#cohere)
 - [Ollama Cloud](#ollama-cloud)
 - [Hetzner Inference](#hetzner-inference)
 - [Azure OpenAI](#azure-openai)
@@ -196,6 +197,23 @@ Self-hosted GPU inference server.
 
 ```ruby
 use provider: :gpustack, model: "Qwen/Qwen2.5-7B-Instruct-GGUF"
+```
+
+---
+
+### Cohere
+
+|                    |                                 |
+| ------------------ | ------------------------------- |
+| **Key** `:cohere`  |
+| **Env var**        | `COHERE_API_KEY`                |
+| **API**            | Native Cohere v2 Chat (not OpenAI-compatible) |
+| **Default URL**    | `https://api.cohere.com/v2/chat` |
+
+Text chat with streaming. Tools, citations, rerank and embeddings are not supported; thinking blocks are discarded.
+
+```ruby
+use provider: :cohere, model: "command-a-03-2025"
 ```
 
 ---

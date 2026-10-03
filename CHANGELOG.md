@@ -4,6 +4,7 @@
 
 ### New providers (parity with ruby_llm)
 
+- `provider: :cohere` — Cohere's native v2 Chat API (`https://api.cohere.com/v2/chat`), streaming supported, errors classified by HTTP status. Text chat only: `text` blocks are joined, `thinking` blocks discarded; no tools/citations/rerank/embeddings. Config: `cohere_api_key` (`ENV["COHERE_API_KEY"]`) / `cohere_api_url`. Mocked-only testing, like the rest of this section.
 - `provider: :ollama_cloud` — hosted Ollama models via `https://ollama.com/v1/chat/completions` (OpenAI-compatible, streaming supported). Config: `ollama_cloud_api_key` (`ENV["OLLAMA_CLOUD_API_KEY"]`) / `ollama_cloud_api_url`. For a local server keep using `:ollama`.
 - `provider: :hetzner` — Hetzner Inference (`https://inference.hetzner.com/api/v1/chat/completions`, OpenAI-compatible, streaming supported). Config: `hetzner_api_key` (`ENV["HETZNER_API_KEY"]`) / `hetzner_api_url`.
 - `provider: :typesafe` — direct access to Jev (System One) at `https://api.typesafe.ai/v1/systemone`, modelled on ruby_llm's TypeSafe provider. Subclasses `Providers::Vercel`, so `questions:`, `format :json` and usage work identically; model ids `jev-latest` / `jev-preview`. Also understands TypeSafe's own `{ "detail": ... }` error shape, and works with any Jev-compatible server via `typesafe_api_url`. Config: `typesafe_api_key` (`ENV["TYPESAFE_API_KEY"]`) / `typesafe_api_url`. See `docs/JEV.md`.

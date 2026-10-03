@@ -15,6 +15,7 @@ Each provider reads its key from an environment variable. Set only the keys for 
 | Ollama (local) | `OLLAMA_API_BASE` (optional, default: localhost)                              |
 | Perplexity     | `PERPLEXITY_API_KEY`                                                          |
 | GPUStack       | `GPUSTACK_API_BASE`, `GPUSTACK_API_KEY` (optional)                            |
+| Cohere         | `COHERE_API_KEY`                                                              |
 | TypeSafe (Jev) | `TYPESAFE_API_KEY`                                                            |
 | Ollama Cloud   | `OLLAMA_CLOUD_API_KEY`                                                        |
 | Hetzner        | `HETZNER_API_KEY`                                                             |
