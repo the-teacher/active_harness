@@ -13,11 +13,22 @@ module ActiveHarness
         # @param audio_data   [String]  raw binary audio bytes
         # @param audio_format [String]  "wav", "mp3", "flac", "m4a", "ogg", "webm", "aac"
         # @param language     [String]  ISO-639-1 code, e.g. "en" (optional — auto-detected if omitted)
+        # @param response_format [String] "json" (default, plain text) or "verbose_json"
+        #   — the latter returns per-segment start/end timestamps (and a "speaker"
+        #   index per segment when the provider supports diarization).
+        # @param timestamp_granularities [Array<String>] e.g. ["segment", "word"] —
+        #   only meaningful with response_format: "verbose_json".
+        # @param provider_options [Hash] passed through as-is to the request body's
+        #   `provider.options` — this is how provider-specific features (e.g. Azure
+        #   speaker diarization) are enabled: { azure: { diarization: { enabled: true } } }.
+        #   Only specific provider/model combos support this; most will just ignore
+        #   an option they don't recognize, but some may 400 on it.
         #
         # Synchronous call — OpenRouter's transcription endpoint has no job/polling
         # API. Upstream providers time out after ~60s per request, so long audio
         # should be split into shorter chunks by the caller before transcribing.
-        def call(model:, audio_data:, audio_format:, language: nil, **_)
+        def call(model:, audio_data:, audio_format:, language: nil, response_format: nil,
+                 timestamp_granularities: nil, provider_options: nil, **_)
           headers = {
             "Content-Type"  => "application/json",
             "Authorization" => "Bearer #{api_key}"
@@ -29,16 +40,27 @@ module ActiveHarness
             model: model,
             input_audio: { data: Base64.strict_encode64(audio_data), format: audio_format }
           }
-          body[:language] = language if language
+          body[:language]                 = language if language
+          body[:response_format]          = response_format if response_format
+          body[:timestamp_granularities]  = timestamp_granularities if timestamp_granularities
+          body[:provider]                 = { options: provider_options } if provider_options
 
           raw  = post_json(URI(ENDPOINT), headers: headers, body: body, timeout: 90)
           data = parse!(raw)
           handle_error!(data)
 
-          text = data["text"]
-          raise Errors::ProviderError, "No transcription text in response: #{data.keys}" if text.nil?
+          # verbose_json returns a richer structure (language/duration/segments with
+          # timestamps and, when supported, speaker) — hand the whole thing back as
+          # JSON text so `format :json` on the Request subclass parses it into a Hash.
+          # Plain "json"/unset keeps the existing behavior: just the flat text.
+          content =
+            if response_format == "verbose_json"
+              data.to_json
+            else
+              data["text"].tap { |t| raise Errors::ProviderError, "No transcription text in response: #{data.keys}" if t.nil? }
+            end
 
-          { content: text, provider: :openrouter, model: model, usage: extract_transcription_usage(data) }
+          { content: content, provider: :openrouter, model: model, usage: extract_transcription_usage(data) }
         end
 
         private

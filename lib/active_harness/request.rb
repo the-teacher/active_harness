@@ -140,6 +140,7 @@ module ActiveHarness
         model:          entry[:model],
         error:          error.message,
         error_code:     error.respond_to?(:error_code) ? error.error_code : nil,
+        error_metadata: error.respond_to?(:metadata) ? error.metadata : nil,
         execution_time: elapsed
       }
     end

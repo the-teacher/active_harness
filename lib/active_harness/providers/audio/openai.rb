@@ -27,7 +27,18 @@ module ActiveHarness
         # Synchronous — this endpoint has no job/polling API. Unlike OpenRouter's
         # transcription endpoint, OpenAI's is multipart/form-data only (no
         # base64/JSON request mode).
-        def call(model:, audio_data:, audio_format:, language: nil, **_)
+        # @param response_format [String] "json" (default, plain text) or,
+        #   for gpt-4o-transcribe-diarize, "diarized_json" — returns per-segment
+        #   speaker/text/start/end instead of just plain text.
+        # @param chunking_strategy [String, Hash] required by
+        #   gpt-4o-transcribe-diarize for any audio over 30 seconds; "auto" is
+        #   the simple/common value, or a voice-activity-detection config hash.
+        # @param known_speaker_names [Array<String>] up to 4 labels, paired
+        #   positionally with known_speaker_references, for gpt-4o-transcribe-diarize.
+        # @param known_speaker_references [Array<String>] up to 4 short (2-10s)
+        #   reference clips as base64 data URLs, e.g. "data:audio/wav;base64,...".
+        def call(model:, audio_data:, audio_format:, language: nil, response_format: nil,
+                 chunking_strategy: nil, known_speaker_names: nil, known_speaker_references: nil, **_)
           content_type = CONTENT_TYPES[audio_format]
           unless content_type
             raise Errors::InvalidRequestError,
@@ -36,9 +47,16 @@ module ActiveHarness
 
           boundary = SecureRandom.hex(16)
           fields   = { "model" => model }
-          fields["language"] = language if language
+          fields["language"]          = language if language
+          fields["response_format"]   = response_format if response_format
+          fields["chunking_strategy"] = chunking_strategy if chunking_strategy
 
-          body = build_multipart_body(boundary, fields, audio_data, "audio.#{audio_format}", content_type)
+          array_fields = {
+            "known_speaker_names[]"      => known_speaker_names,
+            "known_speaker_references[]" => known_speaker_references
+          }
+
+          body = build_multipart_body(boundary, fields, audio_data, "audio.#{audio_format}", content_type, array_fields: array_fields)
           headers = {
             "Content-Type"  => "multipart/form-data; boundary=#{boundary}",
             "Authorization" => "Bearer #{api_key}"
@@ -48,20 +66,37 @@ module ActiveHarness
           data = parse!(raw)
           handle_error!(data)
 
-          text = data["text"]
-          raise Errors::ProviderError, "No transcription text in response: #{data.keys}" if text.nil?
+          # diarized_json returns a structured { segments: [...] } shape (each
+          # with speaker/text/start/end) — hand the whole thing back as JSON
+          # text so `format :json` on the Request subclass parses it into a
+          # Hash. Plain "json"/unset keeps the existing behavior: just the
+          # flat text.
+          content =
+            if response_format == "diarized_json"
+              data.to_json
+            else
+              data["text"].tap { |t| raise Errors::ProviderError, "No transcription text in response: #{data.keys}" if t.nil? }
+            end
 
-          { content: text, provider: :openai, model: model, usage: extract_transcription_usage(data) }
+          { content: content, provider: :openai, model: model, usage: extract_transcription_usage(data) }
         end
 
         private
 
-        def build_multipart_body(boundary, fields, file_data, filename, content_type)
+        def build_multipart_body(boundary, fields, file_data, filename, content_type, array_fields: {})
           body = +""
           fields.each do |name, value|
             body << "--#{boundary}\r\n"
             body << "Content-Disposition: form-data; name=\"#{name}\"\r\n\r\n"
             body << "#{value}\r\n"
+          end
+
+          array_fields.each do |name, values|
+            Array(values).each do |value|
+              body << "--#{boundary}\r\n"
+              body << "Content-Disposition: form-data; name=\"#{name}\"\r\n\r\n"
+              body << "#{value}\r\n"
+            end
           end
 
           body << "--#{boundary}\r\n"

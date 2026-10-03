@@ -134,17 +134,25 @@ module ActiveHarness
       @models = []
     end
 
-    def use(provider:, model:, temperature: nil, name: nil, size: nil, quality: nil, retry_attempts: nil, retry_delay: nil, questions: nil)
+    def use(provider:, model:, temperature: nil, name: nil, size: nil, quality: nil, retry_attempts: nil, retry_delay: nil,
+            questions: nil, response_format: nil, timestamp_granularities: nil, provider_options: nil,
+            chunking_strategy: nil, known_speaker_names: nil, known_speaker_references: nil)
       @models << {
-        provider:       provider,
-        model:          model,
-        temperature:    temperature,
-        name:           name,
-        size:           size,
-        quality:        quality,
-        retry_attempts: retry_attempts,
-        retry_delay:    retry_delay,
-        questions:      questions
+        provider:                 provider,
+        model:                    model,
+        temperature:              temperature,
+        name:                     name,
+        size:                     size,
+        quality:                  quality,
+        retry_attempts:           retry_attempts,
+        retry_delay:              retry_delay,
+        questions:                questions,
+        response_format:          response_format,
+        timestamp_granularities:  timestamp_granularities,
+        provider_options:         provider_options,
+        chunking_strategy:        chunking_strategy,
+        known_speaker_names:      known_speaker_names,
+        known_speaker_references: known_speaker_references
       }.compact
     end
 

@@ -100,7 +100,13 @@ module ActiveHarness
 
       opts = { model: entry[:model], audio_data: File.binread(path), audio_format: format }
       language = entry[:language] || @config[:transcribe_language]
-      opts[:language] = language if language
+      opts[:language]                 = language if language
+      opts[:response_format]          = entry[:response_format] if entry[:response_format]
+      opts[:timestamp_granularities]  = entry[:timestamp_granularities] if entry[:timestamp_granularities]
+      opts[:provider_options]         = entry[:provider_options] if entry[:provider_options]
+      opts[:chunking_strategy]        = entry[:chunking_strategy] if entry[:chunking_strategy]
+      opts[:known_speaker_names]      = entry[:known_speaker_names] if entry[:known_speaker_names]
+      opts[:known_speaker_references] = entry[:known_speaker_references] if entry[:known_speaker_references]
       factory.call.call(**opts)
     end
 
