@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.4.0 — 2026-10-03
+## v0.3.6 — 2026-10-03
 
 ### New providers (parity with ruby_llm)
 
