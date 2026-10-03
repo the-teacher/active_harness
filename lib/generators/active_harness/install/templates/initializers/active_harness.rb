@@ -82,6 +82,30 @@ ActiveHarness.configure do |config|
   # config.azure_api_version   = "2024-05-01-preview"
 
   # ---------------------------------------------------------------------------
+  # TypeSafe — Jev (System One) evaluation model, direct API
+  # ---------------------------------------------------------------------------
+  # config.typesafe_api_key = ENV["TYPESAFE_API_KEY"]
+  # config.typesafe_api_url = "https://api.typesafe.ai/v1/systemone"
+
+  # ---------------------------------------------------------------------------
+  # Ollama Cloud (hosted — API key required)
+  # ---------------------------------------------------------------------------
+  # config.ollama_cloud_api_key = ENV["OLLAMA_CLOUD_API_KEY"]
+  # config.ollama_cloud_api_url = "https://ollama.com/v1/chat/completions"
+
+  # ---------------------------------------------------------------------------
+  # Hetzner Inference
+  # ---------------------------------------------------------------------------
+  # config.hetzner_api_key = ENV["HETZNER_API_KEY"]
+  # config.hetzner_api_url = "https://inference.hetzner.com/api/v1/chat/completions"
+
+  # ---------------------------------------------------------------------------
+  # Deepgram / ElevenLabs (audio transcription only)
+  # ---------------------------------------------------------------------------
+  # config.deepgram_api_key   = ENV["DEEPGRAM_API_KEY"]
+  # config.elevenlabs_api_key = ENV["ELEVENLABS_API_KEY"]
+
+  # ---------------------------------------------------------------------------
   # Custom providers — any OpenAI-compatible endpoint
   # Register as many as you need under arbitrary names.
   # `api_key` is optional — omit for local servers without auth.

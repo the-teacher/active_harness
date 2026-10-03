@@ -106,6 +106,36 @@ module ActiveHarness
     attr_accessor :vercel_api_url
 
     # -------------------------------------------------------------------------
+    # TypeSafe — direct Jev (System One) API; also any Jev-compatible server
+    # -------------------------------------------------------------------------
+    attr_accessor :typesafe_api_key
+    attr_accessor :typesafe_api_url
+
+    # -------------------------------------------------------------------------
+    # Ollama Cloud (hosted — key required)
+    # -------------------------------------------------------------------------
+    attr_accessor :ollama_cloud_api_key
+    attr_accessor :ollama_cloud_api_url
+
+    # -------------------------------------------------------------------------
+    # Hetzner Inference
+    # -------------------------------------------------------------------------
+    attr_accessor :hetzner_api_key
+    attr_accessor :hetzner_api_url
+
+    # -------------------------------------------------------------------------
+    # Deepgram (audio transcription only)
+    # -------------------------------------------------------------------------
+    attr_accessor :deepgram_api_key
+    attr_accessor :deepgram_api_url
+
+    # -------------------------------------------------------------------------
+    # ElevenLabs (audio transcription only)
+    # -------------------------------------------------------------------------
+    attr_accessor :elevenlabs_api_key
+    attr_accessor :elevenlabs_api_url
+
+    # -------------------------------------------------------------------------
     # Custom providers
     #
     # Register any OpenAI-compatible endpoint under an arbitrary name:
@@ -179,6 +209,21 @@ module ActiveHarness
 
       @vercel_api_key = ENV["VERCEL_API_KEY"]
       @vercel_api_url = "https://ai-gateway.vercel.sh/typesafe/v1/systemone"
+
+      @typesafe_api_key = ENV["TYPESAFE_API_KEY"]
+      @typesafe_api_url = "https://api.typesafe.ai/v1/systemone"
+
+      @ollama_cloud_api_key = ENV["OLLAMA_CLOUD_API_KEY"]
+      @ollama_cloud_api_url = "https://ollama.com/v1/chat/completions"
+
+      @hetzner_api_key = ENV["HETZNER_API_KEY"]
+      @hetzner_api_url = "https://inference.hetzner.com/api/v1/chat/completions"
+
+      @deepgram_api_key = ENV["DEEPGRAM_API_KEY"]
+      @deepgram_api_url = "https://api.deepgram.com/v1/listen"
+
+      @elevenlabs_api_key = ENV["ELEVENLABS_API_KEY"]
+      @elevenlabs_api_url = "https://api.elevenlabs.io/v1/speech-to-text"
     end
   end
 end

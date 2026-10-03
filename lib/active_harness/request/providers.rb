@@ -36,7 +36,10 @@ module ActiveHarness
       bedrock:     -> { Providers::Bedrock.new },
       vertexai:    -> { Providers::VertexAI.new },
       custom:      -> { Providers::Custom.new },
-      vercel:      -> { Providers::Vercel.new }
+      vercel:      -> { Providers::Vercel.new },
+      typesafe:    -> { Providers::TypeSafe.new },
+      ollama_cloud: -> { Providers::OllamaCloud.new },
+      hetzner:     -> { Providers::Hetzner.new }
     }.freeze
 
     IMAGE_PROVIDERS = {
@@ -46,7 +49,9 @@ module ActiveHarness
 
     TRANSCRIPTION_PROVIDERS = {
       openai:      -> { Providers::Audio::OpenAI.new },
-      openrouter:  -> { Providers::Audio::OpenRouter.new }
+      openrouter:  -> { Providers::Audio::OpenRouter.new },
+      deepgram:    -> { Providers::Audio::Deepgram.new },
+      elevenlabs:  -> { Providers::Audio::ElevenLabs.new }
     }.freeze
 
     private

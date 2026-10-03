@@ -13,6 +13,8 @@
 - [Perplexity](#perplexity)
 - [Ollama](#ollama)
 - [GPUStack](#gpustack)
+- [Ollama Cloud](#ollama-cloud)
+- [Hetzner Inference](#hetzner-inference)
 - [Azure OpenAI](#azure-openai)
 
 **Stubs (require external gem):**
@@ -194,6 +196,38 @@ Self-hosted GPU inference server.
 
 ```ruby
 use provider: :gpustack, model: "Qwen/Qwen2.5-7B-Instruct-GGUF"
+```
+
+---
+
+### Ollama Cloud
+
+|                         |                                          |
+| ----------------------- | ---------------------------------------- |
+| **Key** `:ollama_cloud` |
+| **Env var**             | `OLLAMA_CLOUD_API_KEY`                   |
+| **API**                 | OpenAI-compatible                        |
+| **Default URL**         | `https://ollama.com/v1/chat/completions` |
+
+Hosted Ollama models (key required). For a local server use `:ollama`.
+
+```ruby
+use provider: :ollama_cloud, model: "gpt-oss:120b"
+```
+
+---
+
+### Hetzner Inference
+
+|                      |                                                           |
+| -------------------- | --------------------------------------------------------- |
+| **Key** `:hetzner`   |
+| **Env var**          | `HETZNER_API_KEY`                                         |
+| **API**              | OpenAI-compatible                                         |
+| **Default URL**      | `https://inference.hetzner.com/api/v1/chat/completions`   |
+
+```ruby
+use provider: :hetzner, model: "meta-llama/Llama-3.3-70B-Instruct"
 ```
 
 ---

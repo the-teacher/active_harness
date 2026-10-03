@@ -44,7 +44,7 @@ module ActiveHarness
       DEFAULT_INSTRUCTIONS = "Evaluate the given state.".freeze
 
       def call(model:, messages:, temperature: nil, stream: nil, questions: nil)
-        raise Errors::InvalidRequestError, "provider: :vercel (Jev) does not support token streaming" if stream
+        raise Errors::InvalidRequestError, "provider: :#{provider_name} (Jev) does not support token streaming" if stream
 
         state = messages.reverse.find { |m| m[:role] == "user" }&.fetch(:content, nil).to_s
 
@@ -58,13 +58,13 @@ module ActiveHarness
           questions: questions || default_questions(messages)
         }
 
-        raw  = post_json(URI(config.vercel_api_url), headers: headers, body: body)
+        raw  = post_json(URI(endpoint_url), headers: headers, body: body)
         data = parse!(raw)
         handle_error!(data)
 
         {
           content:  JSON.pretty_generate(data["answers"]),
-          provider: :vercel,
+          provider: provider_name,
           model:    data["model"] || model,
           usage:    extract_usage(data)
         }
@@ -76,6 +76,15 @@ module ActiveHarness
         instructions = messages.find { |m| m[:role] == "system" }&.fetch(:content, nil).to_s
         instructions = DEFAULT_INSTRUCTIONS if instructions.empty?
         { answer: { type: "noul", instructions: instructions } }
+      end
+
+      # Subclasses (e.g. TypeSafe) reuse everything above and only swap these.
+      def provider_name
+        :vercel
+      end
+
+      def endpoint_url
+        config.vercel_api_url
       end
 
       def api_key
@@ -95,12 +104,26 @@ module ActiveHarness
         { input_tokens: input, output_tokens: output, total_tokens: input + output }
       end
 
-      # Two error shapes seen in practice:
+      # TypeSafe's own API reports { "detail": String | { "message": ... } |
+      # [ { "loc": [...], "msg": "..." } ] } (FastAPI-style).
+      def detail_message(detail)
+        case detail
+        when Hash  then detail["message"].to_s
+        when Array then detail.map { |e| e.is_a?(Hash) ? [Array(e["loc"]).join("."), e["msg"]].reject { |x| x.to_s.empty? }.join(": ") : e.to_s }.join("; ")
+        else            detail.to_s
+        end
+      end
+
+      # Error shapes seen in practice:
+      # - TypeSafe direct API: { "detail": ... } (see detail_message)
       # - TypeSafe request-validation errors: { "message": "...", "error_type": "..." }
       # - AI Gateway account/billing errors (OpenAI-style, nested): { "error": { "message": "...", "type": "..." } }
       def handle_error!(data)
         msg, type =
-          if data["message"] && data["error_type"]
+          if data.key?("detail")
+            msg = detail_message(data["detail"])
+            [msg, msg =~ /api key|unauthori|authenticat|invalid token|credentials/i ? "unauthorized" : "invalid_request"]
+          elsif data["message"] && data["error_type"]
             [data["message"].to_s, data["error_type"].to_s]
           elsif data["error"].is_a?(Hash)
             [data["error"]["message"].to_s, data["error"]["type"].to_s]

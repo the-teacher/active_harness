@@ -15,6 +15,11 @@ Each provider reads its key from an environment variable. Set only the keys for 
 | Ollama (local) | `OLLAMA_API_BASE` (optional, default: localhost)                              |
 | Perplexity     | `PERPLEXITY_API_KEY`                                                          |
 | GPUStack       | `GPUSTACK_API_BASE`, `GPUSTACK_API_KEY` (optional)                            |
+| TypeSafe (Jev) | `TYPESAFE_API_KEY`                                                            |
+| Ollama Cloud   | `OLLAMA_CLOUD_API_KEY`                                                        |
+| Hetzner        | `HETZNER_API_KEY`                                                             |
+| Deepgram (STT) | `DEEPGRAM_API_KEY`                                                            |
+| ElevenLabs (STT) | `ELEVENLABS_API_KEY`                                                        |
 | Azure OpenAI   | `AZURE_API_BASE`, `AZURE_API_KEY` (or `AZURE_AI_AUTH_TOKEN`)                  |
 | Custom         | `config.custom["Name"]["url"]`, `config.custom["Name"]["api_key"]` (optional) |
 

@@ -1,5 +1,9 @@
 # Jev (TypeSafe AI)
 
+## Direct TypeSafe API (`provider: :typesafe`)
+
+`ActiveHarness::Providers::TypeSafe` talks to `https://api.typesafe.ai/v1/systemone` directly (config: `typesafe_api_key` / `typesafe_api_url`, `ENV["TYPESAFE_API_KEY"]`), modelled on ruby_llm's TypeSafe provider. It subclasses `Providers::Vercel`, so `questions:`, error handling, and usage work identically; model ids there are `jev-latest` / `jev-preview`. It also understands TypeSafe's own `{ "detail": ... }` error shape. Pointing `typesafe_api_url` at any Jev-compatible server works too. **Not verified against the real API** (no access) — checked with mocked responses only.
+
 ## What it is
 
 **Jev** is a proprietary model from **TypeSafe AI** (San Francisco, founded 2024), released in limited early access on 2026-09-15. TypeSafe calls it the first of a new model class it dubs **"System One models"** — named after Kahneman's fast, intuitive "System 1" thinking.
