@@ -60,7 +60,7 @@ module ActiveHarness
 
         raw  = post_json(URI(endpoint_url), headers: headers, body: body)
         data = parse!(raw)
-        handle_error!(data)
+        handle_error!(data, status: raw.respond_to?(:http_status) ? raw.http_status : nil)
 
         {
           content:  JSON.pretty_generate(data["answers"]),
@@ -114,15 +114,27 @@ module ActiveHarness
         end
       end
 
+      # Prefer the HTTP status when we have it; fall back to sniffing the
+      # message only when we don't (e.g. a custom HTTP client without #http_status).
+      def detail_error_type(msg, status)
+        case status
+        when 401, 403 then "unauthorized"
+        when 429      then "rate_limit"
+        when 500..599 then "server_error"
+        when nil      then msg =~ /api key|unauthori|authenticat|invalid token|credentials/i ? "unauthorized" : "invalid_request"
+        else               "invalid_request"
+        end
+      end
+
       # Error shapes seen in practice:
       # - TypeSafe direct API: { "detail": ... } (see detail_message)
       # - TypeSafe request-validation errors: { "message": "...", "error_type": "..." }
       # - AI Gateway account/billing errors (OpenAI-style, nested): { "error": { "message": "...", "type": "..." } }
-      def handle_error!(data)
+      def handle_error!(data, status: nil)
         msg, type =
           if data.key?("detail")
             msg = detail_message(data["detail"])
-            [msg, msg =~ /api key|unauthori|authenticat|invalid token|credentials/i ? "unauthorized" : "invalid_request"]
+            [msg, detail_error_type(msg, status)]
           elsif data["message"] && data["error_type"]
             [data["message"].to_s, data["error_type"].to_s]
           elsif data["error"].is_a?(Hash)
@@ -134,6 +146,7 @@ module ActiveHarness
         when "invalid_request"                then raise Errors::InvalidRequestError.new(msg, error_code: type)
         when "unauthorized", "authentication_error" then raise Errors::InvalidApiKeyError.new(msg, error_code: type)
         when "rate_limit", "rate_limit_error" then raise Errors::RateLimitError.new(msg, error_code: type)
+        when "server_error"                   then raise Errors::ServerError.new(msg, error_code: type)
         when "customer_verification_required" then raise Errors::InvalidApiKeyError.new(msg, error_code: type)
         else                                        raise Errors::ProviderError.new(msg, error_code: type)
         end
