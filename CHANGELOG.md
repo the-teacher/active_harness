@@ -1,19 +1,26 @@
 # Changelog
 
+## v0.3.8 — 2026-10-03
+
+- `Http::Client` gains a generic `request(method, url, headers:, body:, timeout:)` plus `get`, `put`, `patch` and `delete` (`post` unchanged), and TLS now follows the URL scheme (`http://` works, e.g. local servers) instead of always forcing HTTPS — groundwork for polling/deferred-job APIs. Unsupported methods raise `ArgumentError`.
+- `Http::StreamingClient` now checks the HTTP status: a non-2xx response raises the usual provider error (401/403 → `InvalidApiKeyError`, 429 → `RateLimitError`, 503 → `ProviderUnavailableError`, other 5xx → `ServerError`, else `InvalidRequestError`) with the message taken from the error body, instead of silently returning an empty stream. Provider errors raised inside the stream are no longer re-wrapped as `ProviderUnavailableError`.
+- Internal: `Http::Client#request` split into private helpers (`build_http`, `build_request`, `with_http_status`); no behavior change.
+
+## v0.3.7 — 2026-10-03
+
+- `provider: :cohere` — Cohere's native v2 Chat API (`https://api.cohere.com/v2/chat`), streaming supported, errors classified by HTTP status. Text chat only: `text` blocks are joined, `thinking` blocks discarded; no tools/citations/rerank/embeddings. Config: `cohere_api_key` (`ENV["COHERE_API_KEY"]`) / `cohere_api_url`. Mocked-only testing, like the rest of this section.
+- `Http::Client#post` now returns the same body String as before, but extended with `#http_status` (Integer), so providers can classify errors by HTTP status. Backward compatible — nothing else changes. `Vercel`/`TypeSafe` use it for `{ "detail": ... }` errors (401/403 → `InvalidApiKeyError`, 429 → `RateLimitError`, 5xx → `ServerError`, other → `InvalidRequestError`), falling back to message sniffing only when no status is available. Other providers can adopt it the same way.
+
 ## v0.3.6 — 2026-10-03
 
 ### New providers (parity with ruby_llm)
 
-- `provider: :cohere` — Cohere's native v2 Chat API (`https://api.cohere.com/v2/chat`), streaming supported, errors classified by HTTP status. Text chat only: `text` blocks are joined, `thinking` blocks discarded; no tools/citations/rerank/embeddings. Config: `cohere_api_key` (`ENV["COHERE_API_KEY"]`) / `cohere_api_url`. Mocked-only testing, like the rest of this section.
 - `provider: :ollama_cloud` — hosted Ollama models via `https://ollama.com/v1/chat/completions` (OpenAI-compatible, streaming supported). Config: `ollama_cloud_api_key` (`ENV["OLLAMA_CLOUD_API_KEY"]`) / `ollama_cloud_api_url`. For a local server keep using `:ollama`.
 - `provider: :hetzner` — Hetzner Inference (`https://inference.hetzner.com/api/v1/chat/completions`, OpenAI-compatible, streaming supported). Config: `hetzner_api_key` (`ENV["HETZNER_API_KEY"]`) / `hetzner_api_url`.
 - `provider: :typesafe` — direct access to Jev (System One) at `https://api.typesafe.ai/v1/systemone`, modelled on ruby_llm's TypeSafe provider. Subclasses `Providers::Vercel`, so `questions:`, `format :json` and usage work identically; model ids `jev-latest` / `jev-preview`. Also understands TypeSafe's own `{ "detail": ... }` error shape, and works with any Jev-compatible server via `typesafe_api_url`. Config: `typesafe_api_key` (`ENV["TYPESAFE_API_KEY"]`) / `typesafe_api_url`. See `docs/JEV.md`.
 - Audio transcription: `:deepgram` (`Providers::Audio::Deepgram`, raw audio body + query-string options, e.g. `nova-3`) and `:elevenlabs` (`Providers::Audio::ElevenLabs`, multipart, e.g. `scribe_v1`) added to `Request::TRANSCRIPTION_PROVIDERS`. Both are duration-billed — `result.usage` is `nil`. Config: `deepgram_api_key`/`deepgram_api_url`, `elevenlabs_api_key`/`elevenlabs_api_url`.
 - **Testing status:** all of the above were checked against mocked HTTP responses only (success, error mapping, usage) — not yet verified end-to-end with real API keys.
-- `Providers::Vercel` internals refactored to expose overridable `provider_name`, `endpoint_url` and `api_key` (used by `TypeSafe`); `:vercel` behavior is unchanged, and its error handling gained the `detail` shape.
-- `Http::Client#post` now returns the same body String as before, but extended with `#http_status` (Integer), so providers can classify errors by HTTP status. Backward compatible — nothing else changes. `Vercel`/`TypeSafe` use it for `{ "detail": ... }` errors (401/403 → `InvalidApiKeyError`, 429 → `RateLimitError`, 5xx → `ServerError`, other → `InvalidRequestError`), falling back to message sniffing only when no status is available. Other providers can adopt it the same way.
-- `Http::Client` gains a generic `request(method, url, headers:, body:, timeout:)` plus `get`, `put`, `patch` and `delete` (`post` unchanged), and TLS now follows the URL scheme (`http://` works, e.g. local servers) instead of always forcing HTTPS — groundwork for polling/deferred-job APIs. Unsupported methods raise `ArgumentError`.
-- `Http::StreamingClient` now checks the HTTP status: a non-2xx response raises the usual provider error (401/403 → `InvalidApiKeyError`, 429 → `RateLimitError`, 503 → `ProviderUnavailableError`, other 5xx → `ServerError`, else `InvalidRequestError`) with the message taken from the error body, instead of silently returning an empty stream. Provider errors raised inside the stream are no longer re-wrapped as `ProviderUnavailableError`.
+- `Providers::Vercel` internals refactored to expose overridable `provider_name`, `endpoint_url` and `api_key` (used by `TypeSafe`); `:vercel` behavior is unchanged,
 - Docs: `docs/common/providers.md`, `docs/common/api_keys.md`, `docs/requests/audio_transcription.md`, `docs/JEV.md` and the install-generator initializer template updated.
 
 ## v0.3.5 — 2026-10-03
