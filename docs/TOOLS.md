@@ -82,9 +82,9 @@ module ActiveHarness
 
     class << self
       # --- what the model sees ---
-      def scope(v = nil);       v ? @scope = v.to_sym : @scope; end        # required: :os, :web, :ruby ...
-      def tool_name(v = nil);   v ? @tool_name = v : (@tool_name || default_name); end
-      def full_name;            "#{scope}::#{tool_name}"; end               # "os::ls", "web::fetch"
+      def tool_scope(v = nil);  v ? @tool_scope = v.to_sym : @tool_scope; end  # required: :os, :web, :ruby ...
+      def tool_name(v = nil);   v ? @tool_name = v.to_s : @tool_name; end      # required: "ls", "fetch" ...
+      def full_name;            "#{tool_scope}::#{tool_name}"; end             # "os::ls", "web::fetch"
       def description(v = nil); v ? @description = v : @description; end
       # Arguments for the model — a readable DSL; a tool without `param` takes no arguments.
       #   param :path, "Directory to list"                       # type: :string, required: true by default
@@ -230,7 +230,7 @@ end
 
 ### Scopes
 
-Every tool **must** declare a `scope` (`:os`, `:web`, `:ruby`, ...); the full name is `scope::name`: `os::ls`, `os::rm`, `web::fetch`, `ruby::fetch`. This gives namespacing (two `fetch` tools don't clash) and a coarse policy handle: allow/deny a whole scope (`tools_scope :web`) or log by scope. Validation (required scope, allowed scope list, name format) — to be designed later.
+Every tool **must** declare a `tool_scope` (`:os`, `:web`, `:ruby`, ...) and a `tool_name`; the full name is `tool_scope::tool_name`: `os::ls`, `os::rm`, `web::fetch`, `ruby::fetch`. This gives namespacing (two `fetch` tools don't clash) and a coarse policy handle: allow/deny a whole scope or log by scope. Validation (required scope, allowed scope list, name format) — to be designed later.
 
 Note: provider APIs usually allow only `[a-zA-Z0-9_-]` in function names, so `to_schema` should send `os__ls` and the loop maps it back to `os::ls`.
 
@@ -242,7 +242,8 @@ Note: provider APIs usually allow only `[a-zA-Z0-9_-]` in function names, so `to
 class LsTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy
 
-  scope       :os
+  tool_scope  :os
+  tool_name   "ls"
   description "List files in a directory"
 
   param :path, "Directory to list"
@@ -277,7 +278,7 @@ end
 
 ```ruby
 class FetchUrlTool < ActiveHarness::Tool
-  scope       :web
+  tool_scope  :web
   tool_name   "fetch"
   description "HTTP GET a public URL"
 
@@ -303,7 +304,8 @@ end
 class RmTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy
 
-  scope       :os
+  tool_scope  :os
+  tool_name   "rm"
   description "Delete a file"
 
   param :path, "File to delete"
@@ -362,7 +364,7 @@ The agent then, for each `tool_call`:
 - The loop is **not** in `Request` and not a RubyLLM adapter: it is `Agent` ([AGENT.md](AGENT.md)). `Request` gains `messages:` / `tools:` and returns `tool_calls`.
 - `Tool.call(input:, context:)` → `ToolResult`; the agent never gets an exception for expected failures. `ToolResult` is a separate type from `Result` (shared only: `status`, `execution_time`/`ms`, `input`).
 - **Arguments are declared with the `param` macro** (`type:` defaults to `:string`, `required:` to `true`, `enum:`); `self.schema` is the same list of hashes, `Tool.to_schema` is the provider JSON schema; wire name `scope__name`. Nested objects later.
-- **The default tool name is derived from the class** (`LsTool` → `ls`, `FetchUrlTool` → `fetch_url`); `tool_name` only overrides.
+- **`tool_scope` and `tool_name` are always explicit** — there is no default derived from the class name, so renaming a class never changes the name the model sees (and every tool reads the same).
 - Refusals: the model gets the safe `deny!("...")` message, details (`detail:`) stay in the trace.
 - **Unexpected `:error` does not stop the agent**: the model gets "tool failed, try another approach or finish" and decides; the agent caps consecutive errors.
 - **Unknown side-effect outcome is `unknown_outcome!("...")`**, a sibling of `deny!`: an `:error` result with `outcome_unknown: true`; the model is told to verify before retrying; no automatic retry.

@@ -43,7 +43,8 @@ module ActiveHarness
   # call passes through your checks first.
   #
   #   class LsTool < ActiveHarness::Tool
-  #     scope       :os
+  #     tool_scope  :os
+  #     tool_name   "ls"
   #     description "List files in a directory"
   #     param :path, "Directory to list"
   #
@@ -94,20 +95,22 @@ module ActiveHarness
     class << self
       # --- what the model sees ---
 
-      # Required namespace: :os, :web, :ruby ... Full name is "scope::name".
-      def scope(value = nil)
-        value ? @scope = value.to_sym : @scope
+      # Required namespace: :os, :web, :ruby ... Full name is "tool_scope::tool_name".
+      # Both are explicit on purpose: the name the model sees must not change when a class is renamed.
+      def tool_scope(value = nil)
+        value ? @tool_scope = value.to_sym : @tool_scope
       end
 
-      # Defaults to the class name without "Tool": LsTool => "ls", FetchUrlTool => "fetch_url".
+      # Required: "ls", "fetch_url" ...
       def tool_name(value = nil)
-        value ? @tool_name = value.to_s : (@tool_name || default_name)
+        value ? @tool_name = value.to_s : @tool_name
       end
 
       def full_name
-        raise ArgumentError, "#{name || 'Tool'} must declare a scope (e.g. `scope :os`)" unless scope
+        raise ArgumentError, "#{name || 'Tool'} must declare a tool_scope (e.g. `tool_scope :os`)" unless tool_scope
+        raise ArgumentError, "#{name || 'Tool'} must declare a tool_name (e.g. `tool_name \"ls\"`)" unless tool_name
 
-        "#{scope}::#{tool_name}"
+        "#{tool_scope}::#{tool_name}"
       end
 
       # Name on the wire: providers allow only [a-zA-Z0-9_-] in function names.
@@ -227,7 +230,7 @@ module ActiveHarness
 
       def inherited(subclass)
         super
-        subclass.instance_variable_set(:@scope, @scope)
+        subclass.instance_variable_set(:@tool_scope, @tool_scope)
         subclass.instance_variable_set(:@steps, steps.dup)
         subclass.instance_variable_set(:@params, params.map(&:dup))
         subclass.instance_variable_set(:@hooks, hooks.each_with_object({}) { |(k, v), h| h[k] = v.dup })
@@ -237,15 +240,6 @@ module ActiveHarness
       # Same style as Request.call.
       def call(input:, context: {})
         new(context: context).call(input)
-      end
-
-      private
-
-      def default_name
-        return nil unless name
-
-        base = name.split("::").last.sub(/Tool\z/, "")
-        base.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
       end
     end
 

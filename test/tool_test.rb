@@ -3,7 +3,8 @@ require "tmpdir"
 
 class ToolTest < Minitest::Test
   class FetchUrlTool < ActiveHarness::Tool
-    scope :web
+    tool_scope :web
+    tool_name "fetch_url"
     description "Fetch"
     param :url, "URL"
     param :kind, "Kind", enum: %w[a b], required: false
@@ -12,7 +13,8 @@ class ToolTest < Minitest::Test
   end
 
   class OrderedTool < ActiveHarness::Tool
-    scope :test
+    tool_scope :test
+    tool_name "ordered"
     param :n, "n"
     step(:first)  { |input| (@log ||= []) << :first }
     step(:double, transform: true) { |input| input.merge(n: input[:n] * 2) }
@@ -26,9 +28,13 @@ class ToolTest < Minitest::Test
     assert_equal "web__fetch_url", FetchUrlTool.wire_name
   end
 
-  def test_scope_is_required
+  def test_scope_and_name_are_required
     klass = Class.new(ActiveHarness::Tool)
     assert_raises(ArgumentError) { klass.full_name }
+    klass.tool_scope :os
+    assert_raises(ArgumentError) { klass.full_name } # the name is not derived from the class any more
+    klass.tool_name "ls"
+    assert_equal "os::ls", klass.full_name
   end
 
   def test_to_schema
@@ -65,7 +71,8 @@ class ToolTest < Minitest::Test
 
   def test_denied_has_safe_message_and_private_detail
     klass = Class.new(ActiveHarness::Tool) do
-      scope :test
+      tool_scope :test
+      tool_name "anon1"
       param :path, "p"
       step(:guard) { |input| deny!("hidden dirs are off limits", detail: "segment .git in #{input[:path]}") }
       def perform(_); flunk("must not run"); end
@@ -90,7 +97,8 @@ class ToolTest < Minitest::Test
 
   def test_unknown_outcome
     klass = Class.new(ActiveHarness::Tool) do
-      scope :test
+      tool_scope :test
+      tool_name "anon2"
       def perform(_); unknown_outcome!("write timed out", detail: "after send"); end
     end
     r = klass.call(input: {})
@@ -103,7 +111,8 @@ class ToolTest < Minitest::Test
   def test_hooks
     log = []
     klass = Class.new(ActiveHarness::Tool) do
-      scope :test
+      tool_scope :test
+      tool_name "anon3"
       step(:check) { |_| nil }
       on(:before_step)    { |name, _payload| log << [:before, name] }
       on(:after_step)     { |name, res| log << [:after, name, res.status] }
@@ -121,7 +130,8 @@ class ToolTest < Minitest::Test
 
   def test_hook_can_deny
     klass = Class.new(ActiveHarness::Tool) do
-      scope :test
+      tool_scope :test
+      tool_name "anon4"
       on(:before_perform) { |_| deny!("maintenance window") }
       def perform(_); flunk("must not run"); end
     end
@@ -132,7 +142,7 @@ class ToolTest < Minitest::Test
   end
 
   def test_subclass_inherits_steps_but_not_leaks_back
-    parent = Class.new(ActiveHarness::Tool) { scope :test; step(:a) { |_| nil }; def perform(_); 1; end }
+    parent = Class.new(ActiveHarness::Tool) { tool_scope :test; step(:a) { |_| nil }; def perform(_); 1; end }
     child  = Class.new(parent) { step(:b) { |_| nil } }
     assert_equal %i[a], parent.steps.map(&:name)
     assert_equal %i[a b], child.steps.map(&:name)
@@ -140,7 +150,8 @@ class ToolTest < Minitest::Test
 
   def test_context_reaches_the_tool
     klass = Class.new(ActiveHarness::Tool) do
-      scope :test
+      tool_scope :test
+      tool_name "anon5"
       step(:admin_only) { |_| deny!("admins only") unless context[:admin] }
       def perform(_); "ok"; end
     end
@@ -157,7 +168,8 @@ class ToolTest < Minitest::Test
 
       klass = Class.new(ActiveHarness::Tool) do
         include ActiveHarness::Tool::PathPolicy
-        scope :os
+        tool_scope :os
+        tool_name "anon6"
         param :path, "p"
         const_set(:ALLOWED_PATHS, [root].freeze)
         step(:resolve, transform: true) { |input| input.merge(path: safe_path!(input[:path])) }

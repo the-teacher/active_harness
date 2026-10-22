@@ -62,14 +62,16 @@ Minitest::Test.include(ScriptedLLM)
 
 # Tools used across tests.
 class EchoTool < ActiveHarness::Tool
-  scope       :test
+  tool_scope  :test
+  tool_name   "echo"
   description "Echo the text back"
   param :text, "Text to echo"
   def perform(input); "echo: #{input[:text]}"; end
 end
 
 class BoomTool < ActiveHarness::Tool
-  scope       :test
+  tool_scope  :test
+  tool_name   "boom"
   description "Always fails"
   param :why, "Reason", required: false
   def perform(_input); raise("kaboom: secret internals"); end

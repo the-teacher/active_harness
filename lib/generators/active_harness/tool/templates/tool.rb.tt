@@ -1,6 +1,8 @@
 class <%= class_name %>Tool < ActiveHarness::Tool
-  # Namespaces the tool: full name is app::<%= file_name %>. Use :os, :web, :ruby ... per area.
-  scope :app
+  # Namespace + name the model sees: <%= file_name %> becomes app::<%= file_name %> (wire name app__<%= file_name %>).
+  # Both are explicit, so renaming this class never changes what the model calls. Use :os, :web, :ruby ... per area.
+  tool_scope :app
+  tool_name  "<%= file_name %>"
 
   # Written for the model: when to call this tool.
   description "Describe what this tool does for the model"

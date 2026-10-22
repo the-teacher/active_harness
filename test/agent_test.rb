@@ -64,7 +64,8 @@ class AgentTest < Minitest::Test
   def test_invalid_arguments_are_refused_before_the_tool_runs
     ran = false
     spy = Class.new(ActiveHarness::Tool) do
-      scope :test
+      tool_scope :test
+      tool_name "spy"
       param :n, "n"
       define_method(:perform) { |_| ran = true }
       def self.name; "SpyTool"; end

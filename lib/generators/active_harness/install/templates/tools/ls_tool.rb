@@ -5,9 +5,10 @@ class LsTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy   # safe_path!: resolves symlinks and ".." and checks ALLOWED_PATHS
   include ToolTracing                        # logs every step; see app/ai/concerns/
 
-  # `scope` namespaces the tool (os::ls vs web::ls) and lets you allow or log a whole group.
-  # The tool name comes from the class (LsTool => "ls"); override with `tool_name "..."`.
-  scope :os
+  # `tool_scope` namespaces the tool (os::ls vs web::ls) and lets you allow or log a whole group;
+  # `tool_name` is the name the model sees. Both are explicit: renaming the class changes nothing for the model.
+  tool_scope :os
+  tool_name  "ls"
 
   # What the model reads when it decides whether to call this tool — write it for the model.
   description "List files in a directory inside the workspace"
