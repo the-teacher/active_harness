@@ -1,0 +1,22 @@
+class <%= class_name %>Tool < ActiveHarness::Tool
+  # Namespaces the tool: full name is app::<%= file_name %>. Use :os, :web, :ruby ... per area.
+  scope :app
+
+  # Written for the model: when to call this tool.
+  description "Describe what this tool does for the model"
+
+  # An argument the model provides. It only DESCRIBES the argument — real policing is in the steps.
+  param :input, "What the model must pass"
+
+  # Checks run in order before #perform; refuse with deny!("safe text for the model")
+  # (add `detail:` for anything that must stay in the logs). `transform: true` lets a step
+  # return a new input for the later steps and #perform.
+  # step :allowed do |input|
+  #   deny!("not allowed") unless context[:user]
+  # end
+
+  # The action itself; its return value goes back to the model. Cap the size of the result.
+  def perform(input)
+    "result for #{input[:input]}"
+  end
+end

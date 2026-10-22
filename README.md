@@ -8,7 +8,7 @@
 
 > **⚠️ Work in progress.** The API is under active development and may change between versions without notice.
 
-> **📛 Naming note.** As of `v0.3.0`, `ActiveHarness::Agent` was renamed to `ActiveHarness::Request` — it's a single resilient LLM call (model chain, fallback, retry, hooks), not an autonomous entity, and `Request` describes that more accurately. The `Agent` name is reserved for a future, separate abstraction — something that *uses* a model to decide and take actions — which doesn't exist in this gem yet.
+> **📛 Naming note.** As of `v0.3.0`, `ActiveHarness::Agent` was renamed to `ActiveHarness::Request` — it's a single resilient LLM call (model chain, fallback, retry, hooks), not an autonomous entity, and `Request` describes that more accurately. The `Agent` name now belongs to a separate abstraction — a loop that *uses* a model to decide and take actions through safe `Tool`s (see [docs/AGENT.md](docs/AGENT.md) and [docs/TOOLS.md](docs/TOOLS.md)); it is a first iteration.
 
 Running a single LLM call is easy. Running a _reliable, observable, cost-controlled AI system_ is not.
 

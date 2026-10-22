@@ -1,0 +1,14 @@
+class <%= class_name %>Agent < ActiveHarness::Agent
+  # The Request that talks to the model each turn (owns model chain, retries, fallback).
+  request <%= class_name %>Request
+
+  # The only tools the model may call (default deny: anything else is "unknown tool").
+  # tools ExampleTool
+
+  # Optional: judge the final answer; without it the first answer without tool calls ends the run.
+  # goal <%= class_name %>Goal
+
+  # Hard limits so a looping model cannot run or spend forever.
+  max_turns 10
+  max_cost  0.50
+end

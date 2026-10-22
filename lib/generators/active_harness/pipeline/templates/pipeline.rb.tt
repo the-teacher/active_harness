@@ -1,6 +1,11 @@
 class <%= class_name %>Pipeline < ActiveHarness::Pipeline
+  # A transform step: its output becomes the input of the next step.
+  # A guard step (`step :x do use SomeRequest; stop_if ->(r) { ... } end`) can stop the pipeline.
   step :respond, <%= class_name %>Request
 
+  # Hooks: `before :step` / `after :step` fire around every step, `callback :stopped`
+  # when a stop_if triggers, `callback :complete` after the last step.
+  # For reusable logging, move them into a concern (see app/ai/concerns/pipeline_tracing.rb).
   before :step do |step_name, _payload|
     puts "[pipeline] → :#{step_name}"
   end

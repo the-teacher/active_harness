@@ -1,31 +1,21 @@
 require_relative "../tribunals/support_guard_tribunal"
 require_relative "../requests/support_request"
+require_relative "../concerns/pipeline_tracing"
 
 # Two-step pipeline: spam guard → answer.
 # Add more steps between them as needed.
 class SupportPipeline < ActiveHarness::Pipeline
-  # Step 1 — GUARD: reject spam before spending tokens on an answer
+  include PipelineTracing
+
+  # A GUARD step: cheap checks first, so no tokens are spent on an answer that
+  # should never be generated. A tribunal step only judges — it does not change
+  # the text that flows to the next step.
   step :spam_guard do
     use SupportGuardTribunal
+    # Stops the pipeline when true: pipeline.stopped? is set and later steps are skipped.
     stop_if ->(result) { result.processed["verdict"] == false }
   end
 
-  # Step 2 — RESPOND: generate the actual answer
+  # A TRANSFORM step: `step :name, SomeRequest` — its output becomes the input of the next step.
   step :respond, SupportRequest
-
-  before :step do |step_name, _payload|
-    puts "[pipeline] → :#{step_name}"
-  end
-
-  after :step do |step_name, _result|
-    puts "[pipeline] ✓ :#{step_name}"
-  end
-
-  callback :stopped do |step_name, _result|
-    puts "[pipeline] ✗ STOPPED at :#{step_name}"
-  end
-
-  callback :complete do |_last_result|
-    puts "[pipeline] ✓ complete"
-  end
 end

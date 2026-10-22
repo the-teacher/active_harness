@@ -65,6 +65,12 @@ module ActiveHarness
       provider = resolve_provider(entry[:provider])
       messages = build_messages(system_prompt, @input)
       opts = { model: entry[:model], messages: messages }
+      if @tools && !@tools.empty?
+        unless provider.respond_to?(:supports_tools?) && provider.supports_tools?
+          raise Errors::InvalidRequestError, "Provider #{entry[:provider].inspect} does not support tool calling"
+        end
+        opts[:tools] = @tools
+      end
       opts[:temperature] = entry[:temperature] if entry[:temperature]
       opts[:stream]      = @token               if @token
       opts[:name]        = entry[:name]        if entry[:name]
@@ -138,6 +144,15 @@ module ActiveHarness
       # See ActiveHarness::Memory for examples.
       messages = []
       messages << { role: "system", content: system_prompt } if system_prompt
+
+      if @messages
+        # Conversation mode (used by Agent): the system prompt of the Request goes first,
+        # unless the conversation already carries its own system message.
+        convo = @messages.map { |m| m.dup }
+        messages.shift if messages.any? && convo.any? { |m| (m[:role] || m["role"]).to_s == "system" }
+        return messages + convo
+      end
+
       messages << { role: "user",   content: input }
       messages
     end

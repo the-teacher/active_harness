@@ -1,0 +1,14 @@
+# A goal check judges the agent's final answer: override #call(candidate:, goal:, state:)
+# to return a GoalCheckResult. Plug it in with `goal <%= class_name %>Goal`.
+# Prefer deterministic checks (tests, schemas, counts) to asking an LLM.
+class <%= class_name %>Goal < ActiveHarness::GoalCheck
+  def call(candidate:, goal:, state:)
+    if candidate.to_s.strip.empty?
+      # :continue sends the feedback to the model for another turn (up to max_goal_retries).
+      # Other statuses: :achieved, :replan, :needs_input, :failed.
+      ActiveHarness::GoalCheckResult.new(status: :continue, feedback: "The answer is empty. Answer the question.")
+    else
+      ActiveHarness::GoalCheckResult.new(status: :achieved)
+    end
+  end
+end

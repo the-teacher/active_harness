@@ -12,7 +12,7 @@ class AiSupportController < ApplicationController
   # request.env / CSRF / anything else that relies on the real HTTP request.
   # ---------------------------------------------------------------------------
   def agent
-    result = SupportRequest.call(input: params.require(:input))
+    result = SupportRequest.call(input: params.require(:input)).result
 
     render json: {
       output: result.output,
@@ -30,7 +30,7 @@ class AiSupportController < ApplicationController
   # ---------------------------------------------------------------------------
   def request_memory
     memory = AppMemory.new(session_id: params.require(:session_id))
-    result = SupportRequest.call(input: params.require(:input), memory: memory)
+    result = SupportRequest.call(input: params.require(:input), memory: memory).result
 
     render json: {
       output: result.output,
@@ -72,6 +72,27 @@ class AiSupportController < ApplicationController
     else
       render json: { stopped: false, output: pipe.output }
     end
+  end
+
+  # ---------------------------------------------------------------------------
+  # POST /ai/files_agent
+  # body: { input: "What files are in storage and what is in the first one?" }
+  #
+  # Runs FilesAgent: the model calls os::ls / os::read_file (inside storage/ only)
+  # until it answers or a limit stops it. `trace` shows every turn and tool call.
+  # ---------------------------------------------------------------------------
+  def files_agent
+    agent = FilesAgent.call(input: params.require(:input))
+
+    render json: {
+      status:      agent.status,
+      stop_reason: agent.stop_reason,
+      output:      agent.output,
+      turns:       agent.turns.size,
+      tool_calls:  agent.tool_calls.size,
+      cost:        agent.usage&.cost&.total,
+      trace:       agent.trace
+    }
   end
 
   # ---------------------------------------------------------------------------

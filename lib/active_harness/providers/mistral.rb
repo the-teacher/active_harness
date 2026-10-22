@@ -5,11 +5,14 @@ module ActiveHarness
     # Mistral AI — OpenAI-compatible API.
     # https://docs.mistral.ai/api
     class Mistral < Base
-      def call(model:, messages:, temperature: 0.7, stream: nil)
-        headers = { "Content-Type" => "application/json", "Authorization" => "Bearer #{api_key}" }
-        body    = { model: model, messages: messages, temperature: temperature }
+      include ToolCalling
 
-        return call_streaming(url: config.mistral_api_url, headers: headers, body: body, stream: stream, provider: :mistral, model: model) if stream
+      def call(model:, messages:, temperature: 0.7, stream: nil, tools: nil)
+        headers = { "Content-Type" => "application/json", "Authorization" => "Bearer #{api_key}" }
+        body    = { model: model, messages: openai_messages(messages), temperature: temperature }
+        body[:tools] = openai_tools(tools) if tools?(tools)
+
+        return call_streaming(url: config.mistral_api_url, headers: headers, body: body, stream: stream, provider: :mistral, model: model) if stream && !tools?(tools)
 
         raw  = post_json(URI(config.mistral_api_url), headers: headers, body: body)
         data = parse!(raw)
@@ -19,7 +22,7 @@ module ActiveHarness
           content:  data.dig("choices", 0, "message", "content").to_s.strip,
           provider: :mistral,
           model:    data["model"] || model,
-          usage:    extract_usage_openai(data)
+          usage:    extract_usage_openai(data), **openai_tool_calls_entry(data)
         }
       end
 
