@@ -35,23 +35,34 @@ This creates:
 
 ```
 app/ai/
-├── requests/       ← SupportRequest example
-├── prompts/      ← SupportPrompt example
-├── tribunals/    ← SupportGuardTribunal example
-├── pipelines/    ← SupportPipeline example
-└── memory/       ← AppMemory example
+├── concerns/     ← TracingLog + RequestTracing, TribunalTracing, PipelineTracing, AgentTracing, ToolTracing
+├── requests/     ← SupportRequest, SupportGuardRequest, FilesRequest
+├── prompts/      ← SupportPrompt, SupportGuardPrompt, FilesPrompt
+├── tribunals/    ← SupportGuardTribunal
+├── pipelines/    ← SupportPipeline
+├── memory/       ← AppMemory
+├── agents/       ← FilesAgent  (tool-calling loop)
+├── tools/        ← LsTool, ReadFileTool  (safe, path-restricted actions)
+└── goals/        ← AnswerPresentGoal  (goal check for the agent)
 
 config/initializers/active_harness.rb
 app/controllers/ai_support_controller.rb
 ```
 
+**Safe to re-run and to use in an existing app.** The generator works per file and never overwrites: a file that already exists is skipped (`skip … (exists)`), only missing example files are added — including ones the other examples depend on (e.g. `FilesAgent` needs `FilesRequest`, the tools and `AgentTracing`). The initializer and controller are skipped if present, and only routes that are not in `config/routes.rb` yet are added. Delete an example you do not want *after* installing; it will come back on the next run.
+
+Every directory holds a small, working example. Basic tracing is **not** written into the examples: it lives in `app/ai/concerns/` and the examples just `include RequestTracing` / `TribunalTracing` / `PipelineTracing` / `AgentTracing` / `ToolTracing`. All of them log through `TracingLog#trace_log` (Rails.logger) — change that one method to emit OpenTelemetry spans or metrics, and every example follows. To add request-specific details, override `tracing_details(result)` in the class (see `SupportGuardRequest`).
+
+`FilesAgent` needs a model with tool calling (the template uses `openai/gpt-4.1-mini` through OpenRouter). Its tools can only see `storage/` inside the app.
+
 Routes are also injected into `config/routes.rb`:
 
 ```ruby
-post "ai/request",        to: "ai_support#request"
+post "ai/agent",          to: "ai_support#agent"
 post "ai/request_memory", to: "ai_support#request_memory"
-post "ai/tribunal",     to: "ai_support#tribunal"
-post "ai/pipeline",     to: "ai_support#pipeline"
+post "ai/tribunal",       to: "ai_support#tribunal"
+post "ai/pipeline",       to: "ai_support#pipeline"
+post "ai/files_agent",    to: "ai_support#files_agent"
 get  "ai/request_stream", to: "ai_support#request_stream"
 ```
 
@@ -209,5 +220,8 @@ Set `retry_default_attempts` to `1` to disable retries entirely.
 | `rails g active_harness:tribunal NAME`    | `app/ai/tribunals/name_tribunal.rb`                       |
 | `rails g active_harness:pipeline NAME`    | `app/ai/pipelines/name_pipeline.rb`                       |
 | `rails g active_harness:memory NAME`      | `app/ai/memory/name_memory.rb`                            |
+| `rails g active_harness:agent NAME`       | `app/ai/agents/name_agent.rb`                             |
+| `rails g active_harness:tool NAME`        | `app/ai/tools/name_tool.rb`                               |
+| `rails g active_harness:goal NAME`        | `app/ai/goals/name_goal.rb`                               |
 | `rails g active_harness:memory_sqlite`    | SQLite migration for conversation memory                  |
 | `rails g active_harness:memory_postgresql`| PostgreSQL migration for conversation memory              |

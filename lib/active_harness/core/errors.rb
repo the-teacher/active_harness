@@ -1,4 +1,15 @@
 module ActiveHarness
+  # Matches a client that went away mid-stream: IOError anywhere, plus
+  # ActionController::Live::ClientDisconnected when Rails is loaded.
+  # Usable in `rescue ActiveHarness::ClientGone`; never raises NameError outside Rails.
+  module ClientGone
+    def self.===(error)
+      return true if IOError === error
+      defined?(::ActionController::Live::ClientDisconnected) &&
+        ::ActionController::Live::ClientDisconnected === error
+    end
+  end
+
   module Errors
     Error = Class.new(StandardError)
 

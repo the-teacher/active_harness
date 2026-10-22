@@ -6,6 +6,12 @@ module ActiveHarness
       HTTP            = ActiveHarness::Http::Client.new
       STREAMING_HTTP  = ActiveHarness::Http::StreamingClient.new
 
+      # Providers that can send `tools:` and return `tool_calls:` override this
+      # (see Providers::ToolCalling). Everything else is rejected by Request.
+      def supports_tools?
+        false
+      end
+
       private
 
       def config

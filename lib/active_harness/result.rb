@@ -49,6 +49,8 @@ module ActiveHarness
   #   result.attempts         — Array of failed attempt entries before success
   #   result.execution_time   — wall-clock seconds for the successful call
   #   result.usage            — UsageInfo (tokens + cost), nil for streaming without usage
+  #   result.tool_calls       — Array of { id:, name:, arguments: } the model asked for (nil when none)
+  #   result.message          — the assistant message in neutral shape, ready to append to a messages list
   Result = Struct.new(
     :input,
     :output,
@@ -59,6 +61,8 @@ module ActiveHarness
     :attempts,
     :execution_time,
     :usage,           # UsageInfo or nil
+    :tool_calls,      # Array<Hash> or nil
+    :message,         # { role: :assistant, content:, tool_calls: } or nil
     keyword_init: true
   )
 end

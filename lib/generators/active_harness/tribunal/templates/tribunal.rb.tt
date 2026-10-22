@@ -1,6 +1,9 @@
 class <%= class_name %>Tribunal < ActiveHarness::Tribunal
+  # Requests that run in parallel on the same input.
   requests <%= class_name %>Request
 
+  # Reduces the successful results to the verdict (true/false).
+  # Shortcuts: `verdict :unanimous { ... }` / `verdict :majority { ... }`.
   process do |results|
     results.all? { |r| r.processed["result"] == true }
   end

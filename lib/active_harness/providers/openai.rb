@@ -3,21 +3,24 @@ require "uri"
 module ActiveHarness
   module Providers
     class OpenAI < Base
+      include ToolCalling
+
       # @param model    [String]
       # @param messages [Array<Hash>]  [{role:, content:}, ...]
       # @param temperature [Float]
       # @return [Hash]  { content:, provider:, model: }
-      def call(model:, messages:, temperature: 0.7, stream: nil)
+      def call(model:, messages:, temperature: 0.7, stream: nil, tools: nil)
         headers = { "Content-Type" => "application/json", "Authorization" => "Bearer #{api_key}" }
-        body    = { model: model, messages: messages, temperature: temperature }
+        body    = { model: model, messages: openai_messages(messages), temperature: temperature }
+        body[:tools] = openai_tools(tools) if tools?(tools)
 
-        return call_streaming(url: config.openai_api_url, headers: headers, body: body, stream: stream, provider: :openai, model: model) if stream
+        return call_streaming(url: config.openai_api_url, headers: headers, body: body, stream: stream, provider: :openai, model: model) if stream && !tools?(tools)
 
         raw  = post_json(URI(config.openai_api_url), headers: headers, body: body)
         data = parse!(raw)
         handle_error!(data)
 
-        { content: data.dig("choices", 0, "message", "content").to_s.strip, provider: :openai, model: data["model"] || model, usage: extract_usage_openai(data) }
+        { content: data.dig("choices", 0, "message", "content").to_s.strip, provider: :openai, model: data["model"] || model, usage: extract_usage_openai(data), **openai_tool_calls_entry(data) }
       end
 
       private

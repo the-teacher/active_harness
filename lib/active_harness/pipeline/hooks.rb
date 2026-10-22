@@ -63,7 +63,7 @@ module ActiveHarness
     def fire(event, step_name, data, config)
       run_hooks(config[:hooks], event, step_name, data)
       @stream&.call(:pipeline, event, step_name, data)
-    rescue IOError, ActionController::Live::ClientDisconnected
+    rescue ClientGone
       nil
     end
 

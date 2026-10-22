@@ -25,11 +25,17 @@ make up/minor
 make up/major
 ```
 
-There is no automated test suite in this repo yet (no `test/` directory, no `Rakefile`) and no linter. Ruby 2.6+ compatibility is required — no endless `def`, no numbered block params.
+Tests (minitest, currently covering `Tool`, `Agent` and provider tool-calling; scripted LLM in `test/test_helper.rb`) run with:
+
+```bash
+ruby -Ilib -Itest -e 'Dir["test/**/*_test.rb"].each { |f| require "./#{f}" }'
+```
+
+They need the `concurrent-ruby` and `active_harness_pricing` gems (or a sibling `../ActiveHarnessPricing` checkout). No `Rakefile`, no linter. Ruby 2.6+ compatibility is required — no endless `def`, no numbered block params.
 
 ## Architecture
 
-### Three Primary Abstractions
+### Primary Abstractions
 
 **`ActiveHarness::Request`** (`lib/active_harness/request.rb` + `lib/active_harness/request/`)
 Single LLM call with a model chain, system prompt, hooks, retry policy, and optional streaming. Call pattern: `MyRequest.call(input: "...", context: {}, params: {}, memory: nil, models: nil, token: nil, stream: nil)`. Returns `self`; result is on `request.result` (a `Result` struct). Can also be instantiated and called inline: `request.call("new input")`.
@@ -39,6 +45,12 @@ Runs multiple requests in parallel via `concurrent-ruby`'s `Concurrent::Future`.
 
 **`ActiveHarness::Pipeline`** (`lib/active_harness/pipeline.rb` + subdirs)
 Sequential chain of requests, tribunals, and lambdas as named steps. Each step can have a `stop_if` lambda; when it fires, `pipeline.stopped?` becomes true and subsequent steps are skipped. Step results are readable via the `pipeline.steps` enumerator (yields `step_name, executor, result`) and are also forwarded as `context[step_name]` to downstream steps. Each step's output replaces the payload only when `step.transform?` is true (i.e., a `use` request rather than a tribunal that only produces a verdict).
+
+**`ActiveHarness::Tool`** (`lib/active_harness/tool.rb`, `tool/path_policy.rb`)
+A controlled action: class-level `scope`/`description`/`param`, ordered named `step`s (checks via `deny!`, `transform: true` replaces the payload), then `perform`. `Tool.call(input:, context:)` returns a `ToolResult` and never raises for expected failures. The model only sees the safe message; `detail` is for traces. See `docs/TOOLS.md`.
+
+**`ActiveHarness::Agent`** (`lib/active_harness/agent.rb`, `agent/state.rb`)
+The loop `context → llm → tools → goal → limits` per turn over `Request` (with `messages:`/`tools:`) and `Tool`s. Optional `setup`/`finalize` Pipelines, `goal` check, limits, hooks. A tool failure never stops the run by itself. See `docs/AGENT.md`.
 
 ### Supporting Components
 

@@ -1,6 +1,8 @@
 class <%= class_name %>Request < ActiveHarness::Request
+  # The system prompt: a class with #call, a String or a lambda.
   system_prompt <%= class_name %>Prompt
 
+  # `use` is tried first; on failure the next `fallback` is tried.
   model do
     use      provider: :openrouter, model: "mistralai/mistral-nemo"
     fallback provider: :openrouter, model: "meta-llama/llama-3.1-8b-instruct"

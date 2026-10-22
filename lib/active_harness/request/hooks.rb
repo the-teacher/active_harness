@@ -70,7 +70,7 @@ module ActiveHarness
     def fire(event, *args)
       run_hook(event, *args)
       @stream&.call(:request, event, *args)
-    rescue IOError, ActionController::Live::ClientDisconnected
+    rescue ClientGone
     end
   end
 end

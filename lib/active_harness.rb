@@ -6,6 +6,7 @@ require_relative "active_harness/http/client"
 require_relative "active_harness/http/streaming_client"
 require_relative "active_harness/http/retry_policy"
 require_relative "active_harness/providers/base"
+require_relative "active_harness/providers/tool_calling"
 require_relative "active_harness/providers/openai"
 require_relative "active_harness/providers/openrouter"
 require_relative "active_harness/providers/groq"
@@ -37,6 +38,8 @@ require_relative "active_harness/memory"
 require_relative "active_harness/request"
 require_relative "active_harness/tribunal"
 require_relative "active_harness/pipeline"
+require_relative "active_harness/tool"
+require_relative "active_harness/agent"
 
 require_relative "active_harness/railtie" if defined?(Rails::Railtie)
 
