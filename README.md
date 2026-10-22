@@ -34,7 +34,14 @@ Group related steps into reusable sub-pipelines, and compose complex workflows f
 
 ## Compose Hybrid Pipelines!
 
-Orchestrate deterministic and AI steps together.
+Orchestrate deterministic and AI steps together: plain Ruby does what code does best, a model does what only a model can, and the pipeline passes the result from one to the other.
+
+The picture below is the OpenAI Pricing pipeline from the playground. It has two steps:
+
+1. **Fetch the page — deterministic.** A Playwright scraper downloads the live OpenAI API pricing page and returns its text. No model, no tokens, the same result every time.
+2. **Extract the prices — LLM.** A request reads that text and turns it into structured JSON: model names and token prices.
+
+The picture shows both steps as they run, and the final result: the table of prices extracted from the page.
 
 <img  alt="Image" src="https://github.com/user-attachments/assets/9df61547-e2b5-48c0-8cf2-3ae3aae60c4a" />
 
@@ -48,11 +55,9 @@ With ActiveHarness you can track time, tokens, and dollars for every request cal
 | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | <img alt="Image" src="https://github.com/user-attachments/assets/6890af98-34cb-45e7-8162-030292d016a5" /> | <img  alt="Image" src="https://github.com/user-attachments/assets/c5a3cc01-5adc-4b84-b7c1-5a08a9e79b50" /> |
 
-## Build Agents That Use Tools Safely!
+## Give Models Safe Tools!
 
-Give a model a goal and a set of `Tool`s, and let `Agent` run the loop: ask the model, run the tools it calls, check the goal, stop at the limits. Every tool is a controlled action — typed parameters, ordered `step`s that validate and transform the input, **default deny** — and a tool failure goes back to the model as a safe message instead of crashing the run.
-
-A tool — a controlled action with typed parameters and ordered steps:
+A `Tool` is a controlled action a model may ask for: typed parameters, ordered `step`s that validate and transform the input, **default deny**. A refusal or a failure goes back to the model as a safe message instead of crashing anything. Tools are plain classes — an `Agent` is only one of the ways to use them.
 
 ```ruby
 # app/ai/tools/read_file_tool.rb
@@ -74,6 +79,12 @@ class ReadFileTool < ActiveHarness::Tool
   end
 end
 ```
+
+See [docs/TOOLS.md](docs/TOOLS.md).
+
+## Build Agents!
+
+An `Agent` runs the loop: ask the model, run the tools it calls, check the goal, stop at the limits. It owns the loop and the limits; the tools it may use are listed explicitly (anything else is refused).
 
 A goal check — decides whether the final answer is good enough:
 
@@ -108,7 +119,7 @@ agent.stop_reason  # :goal_reached, :max_turns, ...
 puts agent.trace
 ```
 
-`rails g active_harness:install` creates a working `FilesAgent` with its tools, goal check and tracing concerns; `rails g active_harness:agent`, `:tool` and `:goal` add more. Tool calling works with OpenAI-compatible providers and Anthropic. First iteration — see [docs/AGENT.md](docs/AGENT.md), [docs/TOOLS.md](docs/TOOLS.md) and the [overview](docs/OVERVIEW.md).
+`rails g active_harness:install` creates a working `FilesAgent` with its tools, goal check and tracing concerns; `rails g active_harness:agent`, `:tool` and `:goal` add more. Tool calling works with OpenAI-compatible providers and Anthropic. First iteration — see [docs/AGENT.md](docs/AGENT.md) and the [overview](docs/OVERVIEW.md).
 
 ## Use Consensus-Based Decisions!
 
@@ -156,7 +167,8 @@ See [`docs/JEV.md`](docs/JEV.md) for the full request/response schema and use-ca
 
 | Capability                              | What it means                                                                                               |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Agents&nbsp;&amp;&nbsp;Tools**         | A tool-calling loop with typed, default-deny tools, goal checks, turn/cost/error limits and safe failures      |
+| **Tools**                               | Typed, default-deny actions a model may call: validated steps, safe refusals and failures                     |
+| **Agents**                              | A tool-calling loop with goal checks, turn/cost/error limits and safe stops                                   |
 | **Multi-step&nbsp;Pipelines**           | Chain requests sequentially, with per-step stop conditions and context forwarding                             |
 | **Tribunal&nbsp;Consensus**             | Run multiple requests in parallel and accept the result only if they agree (unanimous, majority, or custom)   |
 | **Automatic&nbsp;Fallbacks**            | If a model fails, the next one in the chain takes over — zero extra code                                    |
@@ -221,17 +233,20 @@ app/
 - [Audio Transcription](docs/requests/audio_transcription.md)
 - [Jev / TypeSafe AI Evaluation (Vercel AI Gateway)](docs/JEV.md)
 
-## Agent and Tool Documentation
+## Agent Documentation
 
 - [Overview of all concepts](docs/OVERVIEW.md)
-- [Agent: idea and DSL](docs/AGENT.md#1-idea)
-- [Agent: data contracts (Goal, GoalCheck, AgentState)](docs/AGENT.md#4-data-contracts)
-- [Agent: the standard loop](docs/AGENT.md#5-the-standard-loop)
-- [Agent: hooks, events, tracing](docs/AGENT.md#7-hooks-events-tracing)
-- [Agent: completion and failure](docs/AGENT.md#9-completion-and-failure)
-- [Tool: design (steps, deny, hooks, schema)](docs/TOOLS.md#2-proposed-design)
-- [Tool: examples](docs/TOOLS.md#3-examples)
-- [Tool: security checklist](docs/TOOLS.md#4-security-rules-to-keep-checklist)
+- [Idea and DSL](docs/AGENT.md#1-idea)
+- [Data contracts (Goal, GoalCheck, AgentState)](docs/AGENT.md#4-data-contracts)
+- [The standard loop](docs/AGENT.md#5-the-standard-loop)
+- [Hooks, events, tracing](docs/AGENT.md#7-hooks-events-tracing)
+- [Completion and failure](docs/AGENT.md#9-completion-and-failure)
+
+## Tool Documentation
+
+- [Design (steps, deny, hooks, schema)](docs/TOOLS.md#2-proposed-design)
+- [Examples](docs/TOOLS.md#3-examples)
+- [Security checklist](docs/TOOLS.md#4-security-rules-to-keep-checklist)
 
 ## Pipeline Documentation
 

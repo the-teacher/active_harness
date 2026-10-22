@@ -29,7 +29,7 @@ module AgentTracing
 
     base.on(:complete) do |result|
       usage = result.usage
-      trace_log "#{status}/#{stop_reason} — #{turns.size} turns, #{tool_calls.size} tool calls (#{denied_calls.size} refused), " \
+      trace_log "#{status}/#{stop_reason} — #{turns.size} turns, #{tool_calls.size} tool calls (#{denied_calls.size} refused or failed), " \
                 "#{usage&.tokens&.total.to_i} tokens#{format(", $%.6f", usage.cost.total) if usage&.cost}, #{result.execution_time}s"
     end
   end

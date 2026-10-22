@@ -263,7 +263,7 @@ module ActiveHarness
         body << "        answer: #{res.output.to_s[0, 80].inspect}" if turn.tool_calls.empty? && res
         ([head] + body).join("\n")
       end
-      lines << format("stop    %s   %d turns, %d tool calls (%d denied), $%.4f",
+      lines << format("stop    %s   %d turns, %d tool calls (%d refused or failed), $%.4f",
                       @state.stop_reason, @turns.size, tool_calls.size, denied_calls.size,
                       @state.usage&.cost&.total.to_f)
       lines.join("\n")
