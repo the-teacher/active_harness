@@ -1,12 +1,16 @@
 # ActiveHarness — Overview
 
-> A design-discussion document. It describes what the `active_harness` gem (~v0.3.x + the unreleased Tools/Agents work) does today, with small but sufficient examples of every element, and lists what is deliberately **not** there yet. Details live in the linked docs; this file is the map.
+> A design-discussion document. It describes what the `active_harness` gem (v0.3.10; Tools and Agents arrived in v0.3.9 as a first iteration) does today, with small but sufficient examples of every element, and lists what is deliberately **not** there yet. Details live in the linked docs; this file is the map.
 
 ## 1. What it is and why
 
 **ActiveHarness** is a Ruby framework (a gem, Rails-native, works in plain Ruby too) for building **reliable, observable, cost-controlled** LLM systems.
 
 The "harness" idea: an LLM call is a non-deterministic component. Around it you build scaffolding that **directs its input, observes its output, limits its behavior, retries on failure and counts the money**. The developer writes the business logic; the framework takes the infrastructure.
+
+**Practical facts.** Ruby >= 2.6 (the code avoids newer syntax on purpose); runtime dependencies are only `concurrent-ruby` (Tribunal) and `active_harness_pricing` (model prices); Rails is optional (Railtie, generators, SSE helpers). MIT licensed. Repository: `github.com/the-teacher/active_harness`. Docs live in `docs/`; a Rails playground app (`rails7-startkit`, run in containers) holds runnable examples.
+
+**Naming history.** Until v0.3.0 the single-LLM-call class was called `Agent`; it was renamed to `Request` because it is one resilient call, not an autonomous entity. The name `Agent` now belongs to the tool-calling loop (3.10). Old text that says "agent" about a single call is from before the rename.
 
 Design principles:
 
@@ -210,8 +214,9 @@ class LsTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy      # safe_path!: symlinks, "..", prefix check
   include ToolTracing                          # logging lives in a concern
 
-  tool_scope  :os                              # full name os::ls; wire name os__ls
-  tool_name   "ls"
+  tool_scope :os          # full name os::ls; wire name os__ls
+  tool_name  "ls"
+
   description "List files in a directory inside the workspace"
   param :path, "Directory to list"             # type :string, required by default; also enum:, type:
 
@@ -349,23 +354,41 @@ Per-element generators: `request`, `prompt`, `tribunal`, `pipeline`, `memory`, `
 
 ---
 
-## 4. One system, end to end
+## 4. One system, end to end: the GitHub profile assistant
+
+A real example from the playground (`/ai/agents/github`, files under `app/ai/`). It uses every element: a guard pipeline, two agents, five tools, a goal check and tracing concerns.
 
 ```
-SupportPipeline
-  :injection_guard   Request (cheap classifier, format :json)        → stop_if detected
-  :translate         Request
-  :safety            Tribunal (3 models, majority)                   → stop_if verdict == false
-  :respond           Request (+ Memory via a concern)
-  :act               Agent  ── tools: os::ls, web::fetch ──          → its output becomes the payload
-                      └ goal check: tests pass / schema valid
+Collect button ──► (24h freshness gate, plain code)
+                    └─ stale ─► GithubCollectorAgent
+                                 request GithubCollectorRequest   (tool-capable model, via OpenRouter)
+                                 tools   github::fetch, github::save_note
+                                 goal    GithubCollectedGoal      (profile.txt and repos.txt really exist on disk)
+                                 ──► text notes in storage/github_profile/  (dir 0700, files 0600, not under public/)
+
+Chat message ──► GithubQueryPipeline (fails closed: a guard that errors = request refused)
+                  :owner_check       plain Ruby: links / @mentions of any other account stop the run
+                  :injection_guard   Request  (cheap classifier, format :json)
+                  :jev_guard         Request  (Jev typed probabilities: injection / other_account / off_topic; only if VERCEL_API_KEY is set)
+                  :scope_guard       Request  ("is this about the owner's own profile and projects?")
+                  :refine            Request  (rewrites the message into one compact question + topics, so later models read little)
+                 ──► GithubChatAgent
+                      tools  github::list_notes, github::read_note   (read-only, no network)
+                      goal   AnswerPresentGoal
 ```
 
-Everything is observable through the concerns (or one `stream:` callback / OpenTelemetry hooks); cost and time are summed per level.
+**Why it is shaped this way**
+
+- **The model controls as little as possible.** `github::fetch` builds host, owner and path from constants; the model chooses only an enum (`profile | repos | repo | readme`) and a repository name that must match a strict pattern. `github::save_note` takes a file name that must match `\A[a-z0-9][a-z0-9_-]{0,60}\.txt\z` and a text; the directory is fixed. Tested: `../../users/other`, `a/b`, `..`, `../x.txt`, `../../../etc/passwd` are all refused, however the model asks.
+- **Fetched text is data, not instructions.** READMEs of repositories are untrusted; the prompts say so, and the tool limits above mean that an injected instruction still cannot reach another account or another path.
+- **Deterministic where possible.** The 24-hour rule and the owner check are plain code (no tokens spent); a goal check looks at files on disk instead of trusting "I saved it".
+- **Expected absence is not an error.** The first real run showed this: three repositories had no README (HTTP 404), the tool reported errors, three consecutive errors hit `max_tool_errors`, and the agent stopped before saving anything. The tool now answers "(this repository has no README)" as a normal result.
+
+A second playground pipeline (OpenAI pricing) shows the hybrid shape in its smallest form: a deterministic Playwright fetch step, then an LLM extraction step.
 
 ## 5. Status, limits and honest caveats
 
-- **Tools and Agents are a first iteration.** They are covered by a minitest suite with a scripted LLM (`test/`: tools, agent loop, provider mapping, install generator). Provider tool-calling was verified with **mocked HTTP only — not against real APIs yet**.
+- **Tools and Agents are a first iteration.** They are covered by a minitest suite with a scripted LLM (`test/`: tools, agent loop, provider mapping, install generator). Provider tool-calling is verified with **mocked HTTP in the tests**; against a real API it has so far been exercised through OpenRouter (`openai/gpt-4.1-mini`) in the playground's GitHub collector. Anthropic and the other providers are not yet checked against real endpoints. Nothing has run on Ruby 2.6 yet (the code only avoids newer syntax).
 - **Not in v1:** a public `loop do` DSL, `checkpoint` / `resume`, long pauses and human approval, sub-agents, parallel tool calls, automatic history compaction, a `replan` DSL (a `:replan` verdict goes through a hook and then behaves like `:continue`), streaming for calls that carry tools, tool calling on providers not listed above.
 - **Known rough edges:** the install controller template is skipped when `ai_support_controller.rb` already exists, so an existing controller does not get the `files_agent` action.
 
@@ -387,9 +410,14 @@ Everything is observable through the concerns (or one `stream:` callback / OpenT
 9. How to model untrusted tool output (prompt injection): mark it "tainted" and forbid it from authorizing write tools?
 10. How rich should `param` get — nested objects, arrays, or a raw JSON-schema escape hatch?
 
+**From real use**
+11. Should "expected absence" be a first-class tool outcome (not-found, empty) so it never spends the error budget, or is a normal text result enough?
+12. Is a reusable *input gate* worth a name — a guard pipeline (deterministic check, injection guard, Jev, scope check, refine) placed in front of an Agent — or is it just a Pipeline by convention?
+13. Freshness rules ("not more often than once a day") currently live in application code outside the agent. Should an Agent/Tool be able to declare them?
+
 **Product**
-11. Positioning: a reliability/observability layer over LLMs, or an agent framework? How does it differ from RubyLLM, LangChain or the OpenAI Agents SDK? (ActiveHarness is not trying to be an LLM client and can run on top of RubyLLM.)
-12. Testing non-deterministic chains: the scripted-provider approach used in `test/` could become a public test helper — worth exposing?
+14. Positioning: a reliability/observability layer over LLMs, or an agent framework? How does it differ from RubyLLM, LangChain or the OpenAI Agents SDK? (ActiveHarness is not trying to be an LLM client and can run on top of RubyLLM.)
+15. Testing non-deterministic chains: the scripted-provider approach used in `test/` could become a public test helper — worth exposing?
 
 ## 7. Where things are
 
@@ -406,4 +434,5 @@ Everything is observable through the concerns (or one `stream:` callback / OpenT
 | Providers, configuration | `docs/common/*`, `lib/active_harness/providers/` |
 | Install / generators | `docs/INSTALLATION.md`, `lib/generators/active_harness/` |
 | Tests | `test/` (`ruby -Ilib -Itest -e 'Dir["test/**/*_test.rb"].each { |f| require "./#{f}" }'`) |
-| Runnable demo | `rails7-startkit/__RailsApp__/script/agent_demo.rb` (`offline` needs no API key) |
+| Runnable demos | `rails7-startkit/__RailsApp__/script/agent_demo.rb` (`offline` needs no API key); the GitHub assistant: `app/controllers/ai/agents_controller.rb`, `app/ai/{agents,tools,goals,pipelines}/github_*`, page `/ai/agents/github` |
+| Change history | `CHANGELOG.md` |

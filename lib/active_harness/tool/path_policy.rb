@@ -8,7 +8,9 @@ module ActiveHarness
     #     include ActiveHarness::Tool::PathPolicy
     #     ALLOWED_PATHS = %w[/srv/app/workspace].freeze
     #
-    #     step(:resolve_path, transform: true) { |input| input.merge(path: safe_path!(input[:path])) }
+    #     step :resolve_path, transform: true do |input|
+    #       input.merge(path: safe_path!(input[:path]))
+    #     end
     #   end
     module PathPolicy
       # Returns a canonical absolute path inside ALLOWED_PATHS, or raises Denied.

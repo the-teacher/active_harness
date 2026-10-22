@@ -64,8 +64,9 @@ A `Tool` is a controlled action a model may ask for: typed parameters, ordered `
 class ReadFileTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy
 
-  tool_scope    :os                                  # full name: os::read_file
-  tool_name     "read_file"
+  tool_scope :os          # full name: os::read_file
+  tool_name  "read_file"
+
   description   "Read the first lines of a text file inside the workspace"
   param :path,  "Absolute path of the file"
   param :lines, "How many lines to read", type: :integer, required: false
@@ -73,7 +74,9 @@ class ReadFileTool < ActiveHarness::Tool
   ALLOWED_PATHS = [Rails.root.join("storage").to_s].freeze
 
   # Steps run in order; `deny!` refuses the call, `transform: true` rewrites the input.
-  step(:resolve_path, transform: true) { |input| input.merge(path: safe_path!(input[:path])) }
+  step :resolve_path, transform: true do |input|
+    input.merge(path: safe_path!(input[:path]))
+  end
 
   def perform(input)
     File.foreach(input[:path]).first((input[:lines] || 50).to_i).join

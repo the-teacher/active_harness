@@ -242,8 +242,9 @@ Note: provider APIs usually allow only `[a-zA-Z0-9_-]` in function names, so `to
 class LsTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy
 
-  tool_scope  :os
-  tool_name   "ls"
+  tool_scope :os
+  tool_name  "ls"
+
   description "List files in a directory"
 
   param :path, "Directory to list"
@@ -278,8 +279,9 @@ end
 
 ```ruby
 class FetchUrlTool < ActiveHarness::Tool
-  tool_scope  :web
-  tool_name   "fetch"
+  tool_scope :web
+  tool_name  "fetch"
+
   description "HTTP GET a public URL"
 
   param :url, "Public http(s) URL"
@@ -304,8 +306,9 @@ end
 class RmTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy
 
-  tool_scope  :os
-  tool_name   "rm"
+  tool_scope :os
+  tool_name  "rm"
+
   description "Delete a file"
 
   param :path, "File to delete"

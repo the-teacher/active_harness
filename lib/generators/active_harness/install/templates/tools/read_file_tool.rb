@@ -6,8 +6,9 @@ class ReadFileTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy
   include ToolTracing
 
-  tool_scope  :os                          # full name: os::read_file
-  tool_name   "read_file"
+  tool_scope :os          # full name: os::read_file
+  tool_name  "read_file"
+
   description "Read the first lines of a text file inside the workspace"
 
   param :path,  "Absolute path of the file"

@@ -48,7 +48,9 @@ module ActiveHarness
   #     description "List files in a directory"
   #     param :path, "Directory to list"
   #
-  #     step(:no_hidden) { |input| deny!("hidden dirs are off limits") if input[:path].include?("/.") }
+  #     step :no_hidden do |input|
+  #       deny!("hidden dirs are off limits") if input[:path].include?("/.")
+  #     end
   #
   #     def perform(input)
   #       Dir.children(input[:path]).first(200)
