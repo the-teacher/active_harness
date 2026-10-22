@@ -44,7 +44,7 @@ require_relative "active_harness/agent"
 require_relative "active_harness/railtie" if defined?(Rails::Railtie)
 
 module ActiveHarness
-  VERSION = "0.3.8"
+  VERSION = "0.3.9"
 
   class << self
     # Configure ActiveHarness.
