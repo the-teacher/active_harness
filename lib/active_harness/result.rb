@@ -40,7 +40,7 @@ module ActiveHarness
 
   # Result returned by Request#call (accessible via request.result).
   #
-  #   result.input            — original input string
+  #   result.input            — what was passed: a String, or an Array of messages
   #   result.output           — raw string from the provider
   #   result.processed        — parsed Hash/Array for :json requests, raw string for :text
   #   result.system_prompt    — resolved system prompt string
@@ -51,6 +51,8 @@ module ActiveHarness
   #   result.usage            — UsageInfo (tokens + cost), nil for streaming without usage
   #   result.tool_calls       — Array of { id:, name:, arguments: } the model asked for (nil when none)
   #   result.message          — the assistant message in neutral shape, ready to append to a messages list
+  #   result.warnings         — Array of non-fatal remarks, e.g. a multi-message input read as plain text
+  #   result.meta             — extra facts (Agent: status, stop_reason, run_id)
   Result = Struct.new(
     :input,
     :output,
@@ -63,6 +65,8 @@ module ActiveHarness
     :usage,           # UsageInfo or nil
     :tool_calls,      # Array<Hash> or nil
     :message,         # { role: :assistant, content:, tool_calls: } or nil
+    :warnings,        # Array<String> of non-fatal remarks (nil for results not built by a Request)
+    :meta,            # Hash of extra facts (an Agent puts status / stop_reason / run_id here) or nil
     keyword_init: true
   )
 end

@@ -29,8 +29,9 @@ module ActiveHarness
       prompt = case sp
       when String   then sp
       when NilClass then nil
-      when Proc     then instance_exec(&sp)
+      when Proc     then warn_multi_message_input; instance_exec(&sp)
       when Class
+        warn_multi_message_input
         instance = sp.new
         inject_request_state(instance)
         if    instance.respond_to?(:call) then instance.call
@@ -38,6 +39,7 @@ module ActiveHarness
         else  instance.to_s
         end
       else
+        warn_multi_message_input
         inject_request_state(sp)
         if    sp.respond_to?(:call) then sp.call
         elsif sp.respond_to?(:text) then sp.text
@@ -50,9 +52,11 @@ module ActiveHarness
     end
 
     # Injects request state into a prompt class instance before #call.
-    # Available in prompt classes: @input, @context, @params, @memory, @context_window, @config
+    # Available in prompt classes: @input (text; for a message Array — the last user message),
+    # @transcript (role-labelled history), @context, @params, @memory, @context_window, @config
     def inject_request_state(obj)
       obj.instance_variable_set(:@input,          @input)
+      obj.instance_variable_set(:@transcript,     transcript)
       obj.instance_variable_set(:@context,        @context)
       obj.instance_variable_set(:@params,         @params)
       obj.instance_variable_set(:@config,         @config)

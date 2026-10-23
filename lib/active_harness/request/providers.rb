@@ -79,6 +79,7 @@ module ActiveHarness
     end
 
     def attempt_image_model(entry, system_prompt)
+      raise ArgumentError, "#{self.class.name}: image generation takes a text prompt, not a message Array" if @messages
       factory = IMAGE_PROVIDERS[entry[:provider].to_sym]
       raise ArgumentError, "Provider #{entry[:provider].inspect} does not support image generation. " \
                            "Supported image providers: #{IMAGE_PROVIDERS.keys.join(', ')}" unless factory
@@ -99,6 +100,7 @@ module ActiveHarness
     end
 
     def attempt_transcription_model(entry)
+      raise ArgumentError, "#{self.class.name}: audio transcription takes a file path, not a message Array" if @messages
       factory = TRANSCRIPTION_PROVIDERS[entry[:provider].to_sym]
       raise ArgumentError, "Provider #{entry[:provider].inspect} does not support audio transcription. " \
                            "Supported transcription providers: #{TRANSCRIPTION_PROVIDERS.keys.join(', ')}" unless factory

@@ -1,4 +1,8 @@
 class <%= class_name %>Agent < ActiveHarness::Agent
+  # Hard limits so a looping model cannot run or spend forever.
+  max_turns 10
+  max_cost  0.50
+
   # The Request that talks to the model each turn (owns model chain, retries, fallback).
   request <%= class_name %>Request
 
@@ -7,8 +11,4 @@ class <%= class_name %>Agent < ActiveHarness::Agent
 
   # Optional: judge the final answer; without it the first answer without tool calls ends the run.
   # goal <%= class_name %>Goal
-
-  # Hard limits so a looping model cannot run or spend forever.
-  max_turns 10
-  max_cost  0.50
 end

@@ -39,7 +39,7 @@ Design principles:
 
 | Element | Status | One-line role |
 | --- | --- | --- |
-| `Request` | ✅ | one resilient LLM call (model chain, retry, fallback, hooks); also takes `messages:` / `tools:` for agents |
+| `Request` | ✅ | one resilient LLM call (model chain, retry, fallback, hooks); `input` may be a message Array and it takes `tools:` for agents |
 | `Prompt` | ✅ | plain Ruby object with `#call` → system prompt string |
 | `Result` | ✅ | the common result struct (now with `tool_calls` and `message`) |
 | `Tribunal` | ✅ | N requests in parallel → one verdict (consensus) |
@@ -272,15 +272,15 @@ An Agent owns almost no logic: it declares which Requests it may call, which Too
 
 ```ruby
 class FilesAgent < ActiveHarness::Agent
+  max_turns 8                           # hard limits
+  max_cost  0.50
+  loop_guard                            # same tool calls repeating → :repeating
+
   include AgentTracing
 
   request FilesRequest                  # the model chain lives in the Request; `request :cheap, X` adds named ones
   tools   LsTool, ReadFileTool          # default deny: any other name is "unknown tool"
   goal    AnswerPresentGoal             # optional; without it the first answer without tool calls ends the run
-
-  max_turns 8                           # hard limits
-  max_cost  0.50
-  loop_guard                            # same tool calls repeating → :repeating
 end
 
 agent = FilesAgent.call(input: "What is in the workspace?")
@@ -312,12 +312,15 @@ stop    goal_reached   3 turns, 2 tool calls (1 denied), $0.0010
 
 ```ruby
 class ResearchAgent < ActiveHarness::Agent
-  setup    ResearchSetup        # a Pipeline: validate / plan; its last step returns the Goal ({ task:, success_criteria:, plan: } or a String)
+  max_turns 20
+
   request  ResearchRequest
   request  :cheap, CheapResearchRequest      # named Request, picked per turn by request_for
   tools    WebSearchTool, FetchPageTool
+  setup    ResearchSetup        # a Pipeline: validate / plan; its last step returns the Goal ({ task:, success_criteria:, plan: } or a String)
   goal     ResearchGoalCheck
   finalize ResearchReportPipeline   # shapes the output; gets state / status / stop_reason via context; runs on every exit
+
   request_for { |turn| turn.number > 4 ? :cheap : :default }
   stop_if(:enough) { |turn| … }
 end

@@ -12,10 +12,11 @@ module ActiveHarness
   # everything model-related stays inside Requests.
   #
   #   class SearchAgent < ActiveHarness::Agent
-  #     request SearchRequest
-  #     tools   WebSearchTool, FetchPageTool
   #     max_turns 10
   #     max_cost  0.50
+  #
+  #     request SearchRequest
+  #     tools   WebSearchTool, FetchPageTool
   #   end
   #
   #   agent = SearchAgent.call(input: "Find 5 Ruby frameworks")
@@ -34,7 +35,7 @@ module ActiveHarness
       before_llm after_llm
       before_tool after_tool tool_denied
       replan stopped
-      before_finalize complete
+      before_finalize finalize_error complete
     ].freeze
     STEP_HOOKS = %i[before_step after_step].freeze
     TOOL_HOOKS = %i[before_tool after_tool tool_denied].freeze
@@ -171,7 +172,7 @@ module ActiveHarness
     # Instance API
     # -------------------------------------------------------------------------
     attr_accessor :input, :context, :params, :memory
-    attr_reader   :state, :turns, :error, :execution_time
+    attr_reader   :state, :turns, :error, :finalize_error, :execution_time
 
     def initialize(input: nil, context: {}, params: {}, memory: nil, token: nil, stream: nil)
       @input   = input
@@ -239,7 +240,9 @@ module ActiveHarness
         model:          last&.model,
         attempts:       [],
         execution_time: @execution_time,
-        usage:          @state&.usage
+        usage:          @state&.usage,
+        warnings:       [],
+        meta:           { status: status, stop_reason: stop_reason, run_id: run_id }
       )
     end
 
@@ -278,6 +281,7 @@ module ActiveHarness
     def reset_run
       @turns          = []
       @error          = nil
+      @finalize_error = nil
       @output         = nil
       @last_text      = nil
       @final_response = nil
@@ -299,13 +303,14 @@ module ActiveHarness
     end
 
     def run_setup
-      pipeline_class = @config[:setup]
+      pipeline_class = @config[:setup] && as_pipeline(@config[:setup])
       fire(:before_setup, @state)
 
       goal = nil
       if pipeline_class
         pipeline = pipeline_class.new(input: @input, context: @context.dup, params: @params, memory: @memory, stream: @stream)
         pipeline.call
+        charge(:setup, pipeline)
         journal(:setup, stopped: pipeline.stopped?, stopped_at: pipeline.stopped_at)
 
         if pipeline.stopped?
@@ -372,19 +377,22 @@ module ActiveHarness
     end
 
     def run_finalize
-      pipeline_class = @config[:finalize]
-      return unless pipeline_class
+      return unless @config[:finalize]
 
+      pipeline_class = as_pipeline(@config[:finalize])
       fire(:before_finalize, @state)
-      ctx = @context.merge(state: @state, status: @state.status, stop_reason: @state.stop_reason)
+      ctx = @context.merge(state: @state, status: @state.status, stop_reason: @state.stop_reason,
+                           processed: @final_response&.processed)
       pipeline = pipeline_class.new(input: @output.to_s, context: ctx, params: @params, memory: @memory, stream: @stream)
       pipeline.call
+      charge(:finalize, pipeline)
       @output = pipeline.output unless pipeline.stopped? || pipeline.output.nil?
       journal(:finalize, stopped: pipeline.stopped?)
     rescue StandardError => e
       # A failure in finalization never erases the primary stop reason.
       @finalize_error = e
       journal(:finalize_error, error: "#{e.class}: #{e.message}")
+      fire(:finalize_error, e)
     end
 
     def stop!(reason)
@@ -442,7 +450,7 @@ module ActiveHarness
         memory:   @memory,
         token:    @token,
         stream:   @stream,
-        messages: messages,
+        input:    messages,
         tools:    schemas.empty? ? nil : schemas
       )
       turn.request_name = name
@@ -604,9 +612,60 @@ module ActiveHarness
       goal = @state.goal
       case spec
       when Proc  then spec.call(candidate, goal, @state)
-      when Class then spec.new.call(candidate: candidate, goal: goal, state: @state)
-      else            spec.call(candidate: candidate, goal: goal, state: @state)
+      when Class
+        if    spec <= Tribunal then judge_with_tribunal(spec, candidate)
+        elsif spec <= Request  then judge_with_request(spec, candidate)
+        else                        spec.new.call(candidate: candidate, goal: goal, state: @state)
+        end
+      else spec.call(candidate: candidate, goal: goal, state: @state)
       end
+    end
+
+    # A Tribunal as the judge: its verdict becomes a GoalCheckResult.
+    #   true               → :achieved
+    #   false / nil        → :continue, feedback = the reasons of the answers that did not approve
+    #   GoalCheckResult / Hash with :status → used as is
+    def judge_with_tribunal(klass, candidate)
+      tribunal = klass.new(input: candidate, context: judge_context, params: @params, stream: @stream)
+      tribunal.call
+      charge(:goal, tribunal)
+
+      verdict = tribunal.verdict
+      return verdict if verdict.is_a?(GoalCheckResult) || verdict.is_a?(Hash)
+      return GoalCheckResult.new(status: :achieved, evidence: tribunal.results.map(&:output)) if verdict
+
+      GoalCheckResult.new(status: :continue, feedback: dissent_feedback(tribunal.results), evidence: tribunal.results.map(&:output))
+    end
+
+    # A Request as the judge: it answers with a Hash ({"status" => "achieved", "feedback" => ...}),
+    # or with text starting with yes / true / achieved / done.
+    def judge_with_request(klass, candidate)
+      request = klass.new(input: candidate, context: judge_context, params: @params, stream: @stream)
+      request.call
+      charge(:goal, request)
+
+      processed = request.result.processed
+      return GoalCheckResult.from(processed) if processed.is_a?(Hash)
+
+      text = request.result.output.to_s
+      if text.strip.downcase.start_with?("yes", "true", "achieved", "done")
+        GoalCheckResult.new(status: :achieved, evidence: text)
+      else
+        GoalCheckResult.new(status: :continue, feedback: text[0, 500], evidence: text)
+      end
+    end
+
+    def judge_context
+      @context.merge(goal: @state.goal, agent_state: @state)
+    end
+
+    def dissent_feedback(results)
+      reasons = results.map do |r|
+        processed = r.processed
+        reason = processed.is_a?(Hash) ? (processed["reason"] || processed[:reason] || processed["feedback"] || processed[:feedback]) : nil
+        (reason || r.output).to_s[0, 200]
+      end.reject(&:empty?)
+      reasons.empty? ? "The independent review did not approve the answer." : reasons.uniq.join("; ")
     end
 
     # -------------------------------------------------------------------------
@@ -650,6 +709,40 @@ module ActiveHarness
 
       reason = limit_reason
       stop!(reason) if reason
+    end
+
+    # Wraps a bare Request / Tribunal in an implicit one-step Pipeline, so `setup` and
+    # `finalize` accept any executor. A Pipeline class is used as is.
+    def as_pipeline(executor)
+      return executor if executor <= Pipeline
+
+      @wrapped_pipelines ||= {}
+      @wrapped_pipelines[executor] ||= Class.new(Pipeline) { step :run, executor }
+    end
+
+    # Adds the usage of a nested executor (Pipeline, Tribunal, Request, Agent) to the run total,
+    # so that max_cost and agent.usage count every model call made on behalf of this run.
+    def charge(source, executor)
+      usages = usages_of(executor)
+      usages.each { |u| add_usage(u) }
+      return if usages.empty?
+
+      journal(:nested_usage, source: source, tokens: usages.sum { |u| u.tokens.total.to_i },
+                             cost: usages.sum { |u| u.cost&.total.to_f }.round(8))
+    end
+
+    def usages_of(executor, result = nil)
+      list =
+        if executor.nil?
+          [result&.usage]
+        elsif executor.respond_to?(:stopped?) && executor.respond_to?(:steps) # Pipeline (also nested)
+          executor.steps.to_a.flat_map { |_name, ex, res| usages_of(ex, res) }
+        elsif executor.respond_to?(:results)                                  # Tribunal: every member request
+          executor.results.map(&:usage)
+        else                                                                  # Request / Agent
+          [executor.result&.usage]
+        end
+      list.compact
     end
 
     def add_usage(usage)

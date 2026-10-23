@@ -90,6 +90,11 @@ module ActiveHarness
       def on_pipeline_event(&block)
         (pipeline_config[:streams][:pipeline] ||= []) << block
       end
+
+      # Events of an Agent used as a step (turns, tool calls, stop reason).
+      def on_agent_event(&block)
+        (pipeline_config[:streams][:agent] ||= []) << block
+      end
     end
 
     # -------------------------------------------------------------------------
@@ -255,8 +260,9 @@ module ActiveHarness
       request_handlers  = Array(class_handlers[:request]).compact
       tribunal_handlers = Array(class_handlers[:tribunal]).compact
       pipeline_handlers = Array(class_handlers[:pipeline]).compact
+      agent_handlers    = Array(class_handlers[:agent]).compact
 
-      has_class_handlers = request_handlers.any? || tribunal_handlers.any? || pipeline_handlers.any?
+      has_class_handlers = request_handlers.any? || tribunal_handlers.any? || pipeline_handlers.any? || agent_handlers.any?
       return passed_in unless has_class_handlers
 
       pipeline_instance = self
@@ -265,6 +271,7 @@ module ActiveHarness
                    when :request  then request_handlers
                    when :tribunal then tribunal_handlers
                    when :pipeline then pipeline_handlers
+                   when :agent    then agent_handlers
                    else                []
                    end
         handlers.each { |h| pipeline_instance.instance_exec(event, *args, &h) }

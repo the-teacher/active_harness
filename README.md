@@ -107,10 +107,11 @@ An agent — the loop that ties a request, tools and a goal together:
 ```ruby
 # app/ai/agents/files_agent.rb
 class FilesAgent < ActiveHarness::Agent
+  max_turns 8
+
   request FilesRequest          # owns the model chain, retries and fallback
   tools   LsTool, ReadFileTool  # the only tools the model may call
   goal    AnswerPresentGoal
-  max_turns 8
 end
 ```
 

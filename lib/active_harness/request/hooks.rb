@@ -11,6 +11,7 @@ module ActiveHarness
       parse_error
       retry
       failure
+      warning
     ].freeze
 
     class << self
@@ -26,6 +27,7 @@ module ActiveHarness
       #   on :parse_error          do |raw, error| ... end
       #   on :retry                do |entry, error| ... end
       #   on :failure              do |attempts| ... end
+      #   on :warning              do |message| ... end
       def on(event, &block)
         unless VALID_HOOKS.include?(event)
           raise ArgumentError, "Unknown hook :#{event}. Valid hooks: #{VALID_HOOKS.map { |h| ":#{h}" }.join(", ")}"

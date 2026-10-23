@@ -331,7 +331,7 @@ end
 
 ```ruby
 request = SomeRequest.call(
-  messages: [{ role: :user, content: "What is in the workspace?" }],
+  input: [{ role: :user, content: "What is in the workspace?" }],
   tools:    [LsTool.to_schema, FetchUrlTool.to_schema]      # schemas only — nothing is executed here
 )
 request.result.tool_calls   # => [{ id: "call_1", name: "os__ls", arguments: { "path" => "/srv/app/workspace" } }]
@@ -344,7 +344,7 @@ The agent then, for each `tool_call`:
 3. appends `result.model_message` as a `tool` message bound to the original call `id` (success → `output`; denied → `failed_step.message`; error → generic "tool failed, try another approach or finish"; unknown outcome → "result unknown, verify before retrying");
 4. keeps the whole `ToolResult` (with `detail`) in the agent's trace.
 
-`Request.call(input: "...")` keeps working unchanged; `messages:` / `tools:` are additive.
+`Request.call(input: "...")` keeps working unchanged; an Array `input:` and `tools:` are additive.
 
 ## 4. Security rules to keep (checklist)
 
@@ -364,7 +364,7 @@ The agent then, for each `tool_call`:
 
 > First iteration: decisions taken as the most likely ones and consistent with the rest of the system; to be revisited after practice.
 
-- The loop is **not** in `Request` and not a RubyLLM adapter: it is `Agent` ([AGENT.md](AGENT.md)). `Request` gains `messages:` / `tools:` and returns `tool_calls`.
+- The loop is **not** in `Request` and not a RubyLLM adapter: it is `Agent` ([AGENT.md](AGENT.md)). `Request` accepts a message Array as `input:` and `tools:`, and returns `tool_calls`.
 - `Tool.call(input:, context:)` → `ToolResult`; the agent never gets an exception for expected failures. `ToolResult` is a separate type from `Result` (shared only: `status`, `execution_time`/`ms`, `input`).
 - **Arguments are declared with the `param` macro** (`type:` defaults to `:string`, `required:` to `true`, `enum:`); `self.schema` is the same list of hashes, `Tool.to_schema` is the provider JSON schema; wire name `scope__name`. Nested objects later.
 - **`tool_scope` and `tool_name` are always explicit** — there is no default derived from the class name, so renaming a class never changes the name the model sees (and every tool reads the same).

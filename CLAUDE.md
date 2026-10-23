@@ -38,7 +38,7 @@ They need the `concurrent-ruby` and `active_harness_pricing` gems (or a sibling 
 ### Primary Abstractions
 
 **`ActiveHarness::Request`** (`lib/active_harness/request.rb` + `lib/active_harness/request/`)
-Single LLM call with a model chain, system prompt, hooks, retry policy, and optional streaming. Call pattern: `MyRequest.call(input: "...", context: {}, params: {}, memory: nil, models: nil, token: nil, stream: nil)`. Returns `self`; result is on `request.result` (a `Result` struct). Can also be instantiated and called inline: `request.call("new input")`.
+Single LLM call with a model chain, system prompt, hooks, retry policy, and optional streaming. Call pattern: `MyRequest.call(input: "...", context: {}, params: {}, memory: nil, models: nil, token: nil, stream: nil)`. Returns `self`; result is on `request.result` (a `Result` struct). Can also be instantiated and called inline: `request.call("new input")`. `input` is a String or an Array of messages (a conversation; there is no separate `messages:` keyword); helpers `input_text` / `transcript`, and `result.warnings` / `on :warning` for soft remarks (e.g. only the last user message was taken from a multi-message input).
 
 **`ActiveHarness::Tribunal`** (`lib/active_harness/tribunal.rb` + subdirs)
 Runs multiple requests in parallel via `concurrent-ruby`'s `Concurrent::Future`. Computes a verdict from all successful results using either a `:unanimous`/`:majority` built-in strategy or a custom `process { |results| ... }` block. Tolerates partial failure via `may_fail: N`. Returns `self`; verdict is on `tribunal.verdict`.
@@ -50,7 +50,7 @@ Sequential chain of requests, tribunals, and lambdas as named steps. Each step c
 A controlled action: class-level `tool_scope`/`tool_name` (both required, explicit)/`description`/`param`, ordered named `step`s (checks via `deny!`, `transform: true` replaces the payload), then `perform`. `Tool.call(input:, context:)` returns a `ToolResult` and never raises for expected failures. The model only sees the safe message; `detail` is for traces. See `docs/TOOLS.md`.
 
 **`ActiveHarness::Agent`** (`lib/active_harness/agent.rb`, `agent/state.rb`)
-The loop `context → llm → tools → goal → limits` per turn over `Request` (with `messages:`/`tools:`) and `Tool`s. Optional `setup`/`finalize` Pipelines, `goal` check, limits, hooks. A tool failure never stops the run by itself. See `docs/AGENT.md`.
+The loop `context → llm → tools → goal → limits` per turn over `Request` (message-Array `input`, `tools:`) and `Tool`s. Optional `setup`/`finalize` (a Pipeline, or a bare Request/Tribunal wrapped into one), `goal` (a block, a `GoalCheck`, a Request or a Tribunal), limits, hooks; nested executors' cost counts toward `usage`/`max_cost`. A tool failure never stops the run by itself. See `docs/AGENT.md`.
 
 ### Supporting Components
 

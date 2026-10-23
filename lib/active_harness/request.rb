@@ -18,8 +18,7 @@ module ActiveHarness
         models:  nil,
         token:   nil,
         stream:  nil,
-        messages: nil,
-        tools:    nil
+        tools:   nil
       )
         new(
           input:   input,
@@ -29,8 +28,7 @@ module ActiveHarness
           models:  models,
           token:   token,
           stream:  stream,
-          messages: messages,
-          tools:    tools
+          tools:   tools
         ).call
       end
 
@@ -55,11 +53,9 @@ module ActiveHarness
     # -------------------------------------------------------------------------
     # Instance API
     # -------------------------------------------------------------------------
-    attr_accessor :input,
-                  :context,
+    attr_accessor :context,
                   :params,
                   :memory,
-                  :messages,
                   :tools
     attr_reader   :result,
                   :token,
@@ -78,14 +74,12 @@ module ActiveHarness
       models:  nil,
       token:   nil,
       stream:  nil,
-      messages: nil,
-      tools:    nil
+      tools:   nil
     )
-      @input           = input
-      @messages        = messages
       @tools           = tools
       @config          = self.class.request_config
-      normalize_input!
+      @warnings        = []
+      assign_input(input)
       @context         = context
       @params          = params
       @memory          = memory
@@ -102,17 +96,13 @@ module ActiveHarness
     #   request.call("What is the capital of Japan?")
     #   request.call("...", stream: ->(token) { print token })
     #
-    # Agent extension: pass +messages:+ (a conversation instead of a single input)
-    # and +tools:+ (neutral tool schemas). The model may then answer with
+    # Agent extension: +input+ may be an Array of messages (a conversation) and
+    # +tools:+ takes neutral tool schemas. The model may then answer with
     # +result.tool_calls+; nothing is executed here — running tools is the Agent's job.
-    def call(input = nil, token: nil, stream: nil, messages: nil, tools: nil)
-      if input
-        @input = input
-        normalize_input!
-      end
-      @messages = messages if messages
-      @tools    = tools    if tools
-      @input    = last_user_content(@messages) if @input.nil? && @messages
+    def call(input = nil, token: nil, stream: nil, tools: nil)
+      @warnings = []
+      assign_input(input) if input
+      @tools = tools      if tools
       @token  = token  if token
       @stream = stream if stream
       fire(:before_call)
@@ -171,7 +161,7 @@ module ActiveHarness
       model_cost = lookup_model_cost(entry)
 
       Result.new(
-        input:          @input,
+        input:          input,
         output:         raw,
         processed:      processed,
         system_prompt:  @system_prompt,
@@ -181,7 +171,8 @@ module ActiveHarness
         execution_time: elapsed,
         usage:          build_usage(raw_usage, model_cost),
         tool_calls:     tool_calls,
-        message:        tool_calls || @messages ? assistant_message(raw, tool_calls) : nil
+        message:        tool_calls || @messages ? assistant_message(raw, tool_calls) : nil,
+        warnings:       warnings.dup
       )
     end
 
@@ -189,11 +180,6 @@ module ActiveHarness
       msg = { role: :assistant, content: content.to_s }
       msg[:tool_calls] = tool_calls if tool_calls
       msg
-    end
-
-    def last_user_content(messages)
-      last = Array(messages).reverse.find { |m| (m[:role] || m["role"]).to_s == "user" }
-      last && (last[:content] || last["content"])
     end
 
     def build_model_info(entry, model_cost)
@@ -238,6 +224,7 @@ module ActiveHarness
   end
 end
 
+require_relative "request/conversation"
 require_relative "request/prompt"
 require_relative "request/hooks"
 require_relative "request/models"

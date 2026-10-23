@@ -29,7 +29,7 @@ Setup (optional Pipeline) ───► Goal + initial State
 
 | Piece | Does | Exists |
 | --- | --- | --- |
-| `Request` | one logical LLM call: model chain, retry, fallback, hooks, usage. **No agent loop inside** | yes (needs `messages:` / `tools:`) |
+| `Request` | one logical LLM call: model chain, retry, fallback, hooks, usage. **No agent loop inside** | yes (`input` may be a message Array; takes `tools:`) |
 | `Tool` | one controlled action behind named steps and checks, default deny | [TOOLS.md](TOOLS.md) |
 | `Pipeline` | prepares the goal (`setup`) and/or shapes the output (`finalize`) | yes |
 | `Tribunal` | several requests → consensus verdict (can be a goal check) | yes |
@@ -48,10 +48,11 @@ An agent owns almost no logic. It declares **which requests it may call**, **whi
 
 ```ruby
 class SearchAgent < ActiveHarness::Agent
-  request SearchRequest
-  tools WebSearchTool, FetchPageTool
   max_turns 10
-  max_cost 0.50
+  max_cost  0.50
+
+  request SearchRequest
+  tools   WebSearchTool, FetchPageTool
 end
 
 result = SearchAgent.call(input: "Find 5 Ruby frameworks")
@@ -68,12 +69,13 @@ class ResearchSetup < ActiveHarness::Pipeline
 end
 
 class ResearchAgent < ActiveHarness::Agent
-  setup   ResearchSetup
-  request ResearchRequest
-  tools   WebSearchTool, FetchPageTool
-  goal    ResearchGoalCheck
   max_turns 20
   max_cost  1.00
+
+  request ResearchRequest
+  tools   WebSearchTool, FetchPageTool
+  setup   ResearchSetup
+  goal    ResearchGoalCheck
 end
 ```
 
@@ -83,14 +85,15 @@ end
 
 ```ruby
 class CodeAuditAgent < ActiveHarness::Agent
-  setup    AuditSetupPipeline
-  request  AuditRequest
-  tools    ReadFileTool, SearchCodeTool, RunTestsTool
-  goal     AuditGoalCheck
-  finalize AuditReportPipeline
   max_turns 30
   max_cost  2.00
   max_tool_calls 50
+
+  request  AuditRequest
+  tools    ReadFileTool, SearchCodeTool, RunTestsTool
+  setup    AuditSetupPipeline
+  goal     AuditGoalCheck
+  finalize AuditReportPipeline
 end
 ```
 
@@ -100,13 +103,14 @@ end
 
 ```ruby
 class DevelopmentAgent < ActiveHarness::Agent
-  setup   PlanningPipeline
-  request DevelopmentRequest
-  tools   ReadFileTool, EditFileTool, RunTestsTool
-  goal    TestsPassedCheck
-  replan  ReplanningPipeline
   max_turns 50
   max_cost  5.00
+
+  request DevelopmentRequest
+  tools   ReadFileTool, EditFileTool, RunTestsTool
+  setup   PlanningPipeline
+  goal    TestsPassedCheck
+  replan  ReplanningPipeline
 end
 ```
 
@@ -116,14 +120,15 @@ A goal check returns `ActiveHarness::GoalCheckResult.new(status: :replan, feedba
 
 ```ruby
 class BudgetAgent < ActiveHarness::Agent
+  max_turns 12
+  max_cost  0.75
+
   request DefaultRequest
   request :cheap,   CheapRequest
   request :compact, CompactHistoryRequest
+  tools   SearchTool
 
   request_for { |turn| turn.number > 4 ? :cheap : :default }
-  tools SearchTool
-  max_turns 12
-  max_cost  0.75
 end
 ```
 
@@ -133,13 +138,15 @@ A bare `request X` is the `:default` one; `request :name, X` registers a named o
 
 ```ruby
 class LongRunningAgent < ActiveHarness::Agent
-  setup TaskSetupPipeline
-  request MainRequest
-  tools SearchTool, ReadFileTool
-  context_builder AgentContextBuilder
-  checkpoint SqliteCheckpointStore       # later
   max_turns 100
   max_cost  10.00
+
+  request MainRequest
+  tools   SearchTool, ReadFileTool
+  setup   TaskSetupPipeline
+
+  context_builder AgentContextBuilder
+  checkpoint SqliteCheckpointStore       # later
 end
 
 result = LongRunningAgent.call(input: "Analyze repository")
@@ -299,10 +306,11 @@ end
 
 ```ruby
 class DevelopmentAgent < ActiveHarness::Agent
+  max_turns 30
+
   request DevelopmentRequest
   tools   ReadFileTool, EditFileTool, RunTestsTool
   goal    TestsPassedGoal
-  max_turns 30
 end
 ```
 
@@ -448,7 +456,7 @@ stop    final_answer   2 turns, 2 tool calls (1 denied), $0.0010
 7. **No automatic repeats of side effects.** Write-tools are idempotent or verify the outcome; unknown outcome → no unconditional retry.
 8. **GoalCheck ≠ the LLM's self-assessment.** Prefer tests, schemas and deterministic checks.
 9. **Finalize** receives `status`, `stop_reason` and state, runs on every kind of exit, and never hides the original error.
-10. **No breaking changes:** `Request.call(input: "...")` stays valid; `messages:` / `tools:` are additive.
+10. **No breaking changes:** `Request.call(input: "...")` stays valid; an Array `input:` and `tools:` are additive.
 
 ## 9. Completion and failure
 
@@ -471,21 +479,33 @@ The model never sees internal policy details of a denial.
 
 ## 10. Changes to existing components
 
-**Request** — add `messages:` (roles `system`, `user`, `assistant`, `tool`) and `tools:` with no regression for string `input:`; normalize tool-call payloads across providers; return `Result#tool_calls` and an assistant message usable in the next request; keep retry/fallback, usage/cost, streaming and hooks.
+**Request** — status: a message Array as `input:` and `tools:` are **already implemented** (`request.rb`, `request/providers.rb`): conversation mode, `Result#tool_calls`, `Result#message`, retry/fallback, usage/cost, streaming and hooks work as before; string `input:` is unchanged.
+
+**Implemented: `input` is a String *or* an Array of messages** (one input everywhere; there is **no** separate `messages:` keyword — the interface stays small). A string is shorthand for `[{ role: :user, content: "..." }]`:
 
 ```ruby
-Request.call(
-  messages: [{ role: :user, content: "Find Ruby frameworks" }],
-  tools:    [WebSearchTool.to_schema, FetchPageTool.to_schema]
-)
+Request.call(input: "Find Ruby frameworks")
+Request.call(input: [{ role: :user, content: "Find Ruby frameworks" }, ...],
+             tools: [WebSearchTool.to_schema, FetchPageTool.to_schema])
 ```
 
-**Result** — standardize `tool_calls` and aggregated metadata for the agent. **Tool** — the agreed interface `Tool.call(input:, context:)`, policies, `ToolResult`. **Pipeline** — unchanged contract for `setup` / `finalize`. **Core hooks / tracing** — reuse `Core::HookRunner`, add Agent and the named steps. Quick alternative for a prototype: `custom_llm_backend` (RubyLLM).
+- `result.input` echoes what was passed; `result.output` is still a String.
+- `normalize_input!` must skip an Array (or normalize only the `content` of user messages). Transcription and image modes reject an Array with a clear error.
+- The Request's own `system_prompt` goes first unless the conversation has its own `system` message.
+- **Prompt classes** get text helpers, so they never depend on the shape of `@input`:
+
+| Helper | Returns |
+| --- | --- |
+| `input_text` | text of the **last user message** (for a String input: the string itself) |
+| `input_text(roles: [:user])` | all user messages joined with a blank line |
+| `transcript` | role-labelled history: `user: ...` / `assistant: ...` / `tool(os::ls): ...` |
+
+**Soft warning, nothing breaks.** If a prompt reads `@input` / `input_text` while the input is an Array with more than one message, the Request takes the last user message and reports it once per call: *"only the last user message was taken from a multi-message input — make sure that is what this prompt needs (use `transcript` for the full history)"*. It is delivered as a stream event `[:request, :warning, message]`, as the hook `on :warning do |message|`, and appended to `result.warnings` (an Array, empty by default); the call proceeds normally. Detection point: the warning is raised where a *dynamic* prompt (Class / lambda / object) or a custom LLM backend consumes the text of the input — a static String `system_prompt` never reads it. Prompt classes also get `@transcript`; lambdas can call `input_text` / `transcript`.
 
 ## 11. Implementation plan
 
 **Stage A — minimal agent**
-- [x] `messages`, `tools`, `tool_calls` in Request / Result.
+- [x] Array `input`, `tools`, `tool_calls` in Request / Result.
 - [x] Tool registry, name/argument validation, execution with default deny.
 - [x] `AgentState` and a normalized event journal.
 - [x] Standard tool-calling loop: Request → Tools → State → stop/continue.
@@ -556,3 +576,63 @@ Request.call(
 **Behaviour notes (as implemented):** `Agent.call` returns the agent (like `Request.call`); run-time failures never raise — see `status`, `stop_reason`, `error`. A `goal` may be a block `{ |candidate, goal, state| }` or an object/class with `call(candidate:, goal:, state:)`; returning `true` / `false` / a Hash is accepted too. `result` (Result-compatible) is what makes an agent usable as a `Pipeline` step. Tool arguments are validated by the agent (`Tool.validate_input`: required, unknown, enum) before a tool runs; the same registry maps wire names (`os__ls`) back to tool classes. Providers with tool calling today: OpenAI-compatible ones (OpenAI, OpenRouter, Groq, xAI, DeepSeek, Mistral, Ollama, Ollama Cloud, GPUStack, Hetzner) and Anthropic; others are skipped by the model chain with an `InvalidRequestError`.
 
 **Not in v1:** `loop do`, `checkpoint` / `resume`, human approval, sub-agents, parallel tool calls, Tribunal as a gate (section 13).
+
+## 15. Planned improvements
+
+The agent should reuse the existing composition (`Request`, `Tribunal`, `Pipeline`), not grow a parallel execution system. `setup`, `goal` and `finalize` stay **optional**, so both of these stay valid:
+
+```ruby
+class SimpleAgent < ActiveHarness::Agent
+  request MainRequest
+  tools   SearchTool
+end
+
+class AdvancedAgent < ActiveHarness::Agent
+  request  MainRequest
+  tools    SearchTool, ReadFileTool
+  setup    PreparationPipeline
+  goal     VerificationTribunal
+  finalize ReportPipeline
+end
+```
+
+Shape of a full agent: `Setup (Pipeline) → Loop (Request → Tool → State → Goal) → Finalize (Pipeline)`.
+
+| Planned | Why | Example |
+| --- | --- | --- |
+| `setup` takes a Pipeline **or a compatible executor** (Request, Tribunal) | task preparation without a one-step Pipeline | `setup InjectionGuardRequest` |
+| `goal` takes a Request, a **Tribunal** or a lambda directly | independent check instead of trusting the main LLM | `goal AuditValidationTribunal` |
+| Tribunal → `GoalCheckResult` adapter | a plain verdict does not drive the loop; it must map to `:achieved` / `:continue` (+ feedback) | `unanimous → :achieved`, otherwise `:continue` with the dissenting reasons as `feedback` |
+| `finalize` takes a Pipeline or a compatible executor | shape the result | `finalize ReviewReportPipeline` |
+| One `AgentState` / hooks / `Result` across nested executors | end-to-end trace and cost | see "Discrepancies" below |
+| Agent usable as a `Pipeline` step | composition | `step :audit do use AuditAgent end` |
+| `input` as String **or** message Array; `input_text` / `transcript` helpers + soft warning | one input shape across all entities; conversations without a separate `messages:` keyword | section 10 |
+| Contracts to verify next | before building more on top | `AgentState`, `GoalCheckResult`, propagation of events, errors and cost between nested executors |
+
+Goal check with a Tribunal (target form):
+
+```ruby
+class AuditAgent < ActiveHarness::Agent
+  max_turns 30
+
+  request AuditRequest
+  tools   ReadFileTool, RunTestsTool
+  setup   AuditSetupPipeline
+  goal    AuditValidationTribunal      # adapter turns the verdict into :achieved / :continue
+end
+```
+
+### Discrepancies found (code vs. these ideas) — resolved
+
+All five were implemented and are covered by `test/agent_composition_test.rb` and `test/input_test.rb`.
+
+1. **Tribunal / Request as `goal`** — fixed. `goal SomeTribunal` and `goal SomeRequest` work directly. Tribunal verdict `true` → `:achieved`; `false`/`nil` → `:continue` with the reasons of the answers that did not approve as `feedback` (`reason` / `feedback` key of `processed`, else the output); a `GoalCheckResult` or a Hash with `status` is used as is. A Request judge answers with a Hash (`{"status": "achieved", "feedback": "..."}`) or text starting with `yes` / `true` / `achieved` / `done`. Other classes (`GoalCheck` subclasses) keep the `call(candidate:, goal:, state:)` contract.
+2. **Nested cost** — fixed. `setup`, `finalize` and goal checks (Pipeline steps, every member Request of a Tribunal, nested pipelines) are added to `agent.usage` and journaled as `:nested_usage` events, so `max_cost` counts them.
+3. **`setup` / `finalize` with a bare Request or Tribunal** — fixed: wrapped into an implicit one-step Pipeline (`step :run`).
+4. **Failures visible from outside** — fixed.
+   - `agent.finalize_error` and the hook `on :finalize_error do |error|`.
+   - `agent.result.meta` → `{ status:, stop_reason:, run_id: }`, so a Pipeline step can tell a stopped agent from a successful one (`stop_if ->(r) { r.meta[:status] != :done }`).
+   - `finalize` gets the last Request's `processed` in `context[:processed]` (plus `state`, `status`, `stop_reason`).
+5. **`on_agent_event`** — added to `Pipeline` next to `on_request_event` / `on_tribunal_event` / `on_pipeline_event`.
+
+Verification: the suite (`ruby -Ilib -Itest -e 'Dir["test/**/*_test.rb"].each { |f| require "./#{f}" }'`) passes — 77 runs, 0 failures. It was run here with a throw-away synchronous stand-in for `concurrent-ruby` outside the repo (the gem is not installed in this environment); run it once with the real gem too.

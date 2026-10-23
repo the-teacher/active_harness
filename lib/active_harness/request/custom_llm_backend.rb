@@ -51,6 +51,7 @@ module ActiveHarness
         temperature: entry[:temperature]
       )
 
+      warn_multi_message_input
       chat = backend.call(params)
       chat.with_instructions(system_prompt) if system_prompt
 

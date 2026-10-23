@@ -12,6 +12,15 @@ require_relative "../concerns/agent_tracing"
 #   agent.stop_reason  # :goal_reached | :max_turns | ...
 #   puts agent.trace
 class FilesAgent < ActiveHarness::Agent
+  # Hard limits: a model that loops or wanders must not run (or spend) forever.
+  # Whichever trips first ends the run with a matching stop_reason.
+  max_turns 8        # at most 8 Request calls
+  max_cost  0.50     # USD summed over all turns; stops NEW steps, a running call may overshoot
+
+  # Stop early when the model repeats the same tool call with the same input
+  # several turns in a row (stop_reason: :repeating).
+  loop_guard
+
   include AgentTracing
 
   # Which Request talks to the model each turn. It owns the model chain, retries and
@@ -27,13 +36,4 @@ class FilesAgent < ActiveHarness::Agent
   # judges the final answer and can send the agent back for another turn.
   # Without `goal`, the first answer without tool calls ends the run.
   goal AnswerPresentGoal
-
-  # Hard limits: a model that loops or wanders must not run (or spend) forever.
-  # Whichever trips first ends the run with a matching stop_reason.
-  max_turns 8        # at most 8 Request calls
-  max_cost  0.50     # USD summed over all turns; stops NEW steps, a running call may overshoot
-
-  # Stop early when the model repeats the same tool call with the same input
-  # several turns in a row (stop_reason: :repeating).
-  loop_guard
 end

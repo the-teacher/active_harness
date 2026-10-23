@@ -110,7 +110,7 @@ class ProviderToolsTest < Minitest::Test
       private :resolve_provider, :lookup_model_cost
     end
 
-    req = klass.call(messages: [{ role: :user, content: "hi" }], tools: [SCHEMA])
+    req = klass.call(input: [{ role: :user, content: "hi" }], tools: [SCHEMA])
     assert_equal "from fallback", req.result.output
     assert_equal 1, req.result.attempts.size
     assert_match(/does not support tool calling/, req.result.attempts.first[:error])
@@ -121,12 +121,12 @@ class ProviderToolsTest < Minitest::Test
       system_prompt "You are a file assistant."
     end
     messages = [{ role: :user, content: "list" }]
-    r = req.call(messages: messages, tools: [SCHEMA]).result
+    r = req.call(input: messages, tools: [SCHEMA]).result
 
     sent = provider.calls.first[:messages]
     assert_equal ["system", "user"], sent.map { |m| m[:role].to_s }
     assert_equal "You are a file assistant.", sent.first[:content]
-    assert_equal "list", r.input
+    assert_equal messages, r.input
     assert_equal [{ id: "c1", name: "os__ls", arguments: { "path" => "/" }, raw_arguments: "{}" }], r.tool_calls
     assert_equal :assistant, r.message[:role]
     assert_equal r.tool_calls, r.message[:tool_calls]
