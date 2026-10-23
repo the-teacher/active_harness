@@ -208,6 +208,27 @@ app/
     └── concerns/     # shared tracing (request/tribunal/pipeline/agent/tool)
 ```
 
+## Core Terms
+
+The few words ActiveHarness is built from — each one is a plain Ruby class (details and one short example: [`docs/TERMS.md`](docs/TERMS.md)):
+
+- **Structure:** [`app/ai` tree](docs/TERMS.md#0-structure)
+- **Building blocks:** [Prompt](docs/TERMS.md#1-prompt) · [Request](docs/TERMS.md#2-request) (with [model chain, result, context](docs/TERMS.md#2-request))
+- **Composition:** [Pipeline](docs/TERMS.md#3-pipeline) · [Tribunal](docs/TERMS.md#4-tribunal) · [Memory](docs/TERMS.md#5-memory)
+- **Acting:** [Tool](docs/TERMS.md#6-tool) · [Agent](docs/TERMS.md#7-agent) (goal, limits, setup and finalize)
+- **Observability:** [Hooks, streaming, tracing](docs/TERMS.md#8-hooks-streaming-tracing)
+
+```ruby
+class FilesAgent < ActiveHarness::Agent
+  max_turns 8
+
+  request FilesRequest   # one LLM call, with a model chain and fallbacks
+  tools   LsTool         # the only action the model may ask for
+end
+
+FilesAgent.call(input: "What is in /srv/app/storage?").output
+```
+
 ## Prompt Documentation
 
 - [How Prompts Work](docs/PROMPTS.md#how-prompts-work)
