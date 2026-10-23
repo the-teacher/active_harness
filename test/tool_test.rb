@@ -22,6 +22,15 @@ class ToolTest < Minitest::Test
     def perform(input); [@log, input[:n]]; end
   end
 
+  def test_tool_name_accepts_a_symbol_or_a_string
+    symbol = Class.new(ActiveHarness::Tool) { tool_scope :os; tool_name :ls }
+    string = Class.new(ActiveHarness::Tool) { tool_scope :os; tool_name "ls" }
+
+    assert_equal "os::ls", symbol.full_name
+    assert_equal symbol.full_name, string.full_name
+    assert_equal "os__ls", symbol.wire_name
+  end
+
   def test_names
     assert_equal "fetch_url", FetchUrlTool.tool_name
     assert_equal "web::fetch_url", FetchUrlTool.full_name

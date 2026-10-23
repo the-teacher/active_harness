@@ -7,7 +7,7 @@ class ReadFileTool < ActiveHarness::Tool
   include ToolTracing
 
   tool_scope :os          # full name: os::read_file
-  tool_name  "read_file"
+  tool_name  :read_file
 
   description "Read the first lines of a text file inside the workspace"
 

@@ -9,27 +9,27 @@ Model chain ─┘       ├─► Tribunal   several at once → one verdict
                      └─► Agent      a loop ──uses──► Tool   a safe action
 ```
 
-## 0. Structure
+## 1. Structure
 
 All AI code lives in `app/ai` (in Rails it is autoloaded; in plain Ruby put the files wherever you like). One directory per kind of class:
 
 ```
 app/
 └── ai/
-    ├── prompts/      # 1. what the model is told           support_prompt.rb
-    ├── requests/     # 2. one LLM call                      support_request.rb
-    ├── pipelines/    # 3. steps in a row                    support_pipeline.rb
-    ├── tribunals/    # 4. parallel requests, one verdict    politeness_tribunal.rb
-    ├── memory/       # 5. custom conversation storage
-    ├── tools/        # 6. safe actions for a model          ls_tool.rb
-    ├── agents/       # 7. loops over requests and tools     files_agent.rb
+    ├── prompts/      # 2. what the model is told           support_prompt.rb
+    ├── requests/     # 3. one LLM call                      support_request.rb
+    ├── pipelines/    # 4. steps in a row                    support_pipeline.rb
+    ├── tribunals/    # 5. parallel requests, one verdict    politeness_tribunal.rb
+    ├── memory/       # 6. custom conversation storage
+    ├── tools/        # 7. safe actions for a model          ls_tool.rb
+    ├── agents/       # 8. loops over requests and tools     files_agent.rb
     ├── goals/        #    goal checks for agents            answer_present_goal.rb
     └── concerns/     #    shared tracing / logging
 ```
 
 Generators: `rails g active_harness:install` creates the tree, `rails g active_harness:request NAME` (also `prompt`, `tribunal`, `pipeline`, `memory`, `tool`, `agent`, `goal`) adds a single class.
 
-## 1. Prompt
+## 2. Prompt
 
 **Definition.** The system prompt of a Request: a plain Ruby class with `#call` that returns a string (or just a string / lambda). It can read `@input`, `@context`, `@params` and `@memory`, so it can be dynamic. → [How prompts work](PROMPTS.md#how-prompts-work)
 
@@ -41,7 +41,7 @@ class SupportPrompt
 end
 ```
 
-## 2. Request
+## 3. Request
 
 **Definition.** One logical LLM call: a prompt, a **model chain**, retries and hooks. `MyRequest.call(input: "...")` runs it; the answer is in `request.result`. → [Your first Request](REQUESTS.md#how-to-create-your-first-request-in-5-minutes)
 
@@ -66,7 +66,7 @@ Good to know:
 - **Result.** `input`, `output`, `processed` (parsed JSON for `format :json`), `model`, `usage`, `execution_time`, `attempts`. → [Token usage](requests/token_usage.md)
 - **Context and params.** `context:` is what your app passes in (a user, a tenant), `params:` tunes a prompt; both reach prompts, hooks and tools. → [@context](PROMPTS.md#dynamic-content-with-context), [@params](PROMPTS.md#tuning-with-params)
 
-## 3. Pipeline
+## 4. Pipeline
 
 **Definition.** Requests, tribunals, lambdas and agents run as **named steps** in a row; the output of one step is the input of the next, and a step can stop the whole pipeline. → [Your first Pipeline](PIPELINES.md#how-to-create-your-first-pipeline-in-5-minutes), [Step types](PIPELINES.md#step-types), [Stop conditions](PIPELINES.md#stop-conditions)
 
@@ -80,7 +80,7 @@ pipeline = SupportPipeline.new(input: "Wie geht es dir?").call
 pipeline.output                            # the last step's output
 ```
 
-## 4. Tribunal
+## 5. Tribunal
 
 **Definition.** Several requests run **in parallel** and one **verdict** is computed from their answers (`unanimous`, `majority` or your own rule). Use it when one model's opinion is not enough. → [Your first Tribunal](TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes), [Verdict strategies](TRIBUNALS.md#verdict-strategies)
 
@@ -96,7 +96,7 @@ end
 PolitenessTribunal.new(input: "Thanks a lot!").call.verdict   # => true only if all three agree
 ```
 
-## 5. Memory
+## 6. Memory
 
 **Definition.** Stored conversation history (JSON file, PostgreSQL, SQLite). It is never added to messages automatically — you decide where it goes (a prompt, a hook). A Pipeline records its turns by itself; a bare Request does not. → [How memory works](MEMORY.md#how-memory-works)
 
@@ -114,14 +114,15 @@ request = ChatRequest.call(input: "Hi!", memory: memory)
 memory.record(request: "Hi!", response: request.result.output)           # ...or record; a Pipeline does both
 ```
 
-## 6. Tool
+## 7. Tool
 
 **Definition.** A controlled action a model may ask for: a `tool_scope` + `tool_name` (`os::ls`), a `schema` of parameters, ordered named **steps** (checks, `deny!`, `transform: true`) and a `perform`. Default deny: a refusal or a failure goes back to the model as a safe message, nothing crashes. → [Tool design](TOOLS.md#2-proposed-design), [Examples](TOOLS.md#3-examples), [Security checklist](TOOLS.md#4-security-rules-to-keep-checklist)
 
 ```ruby
 class LsTool < ActiveHarness::Tool
-  tool_scope  :os                                   # full name: os::ls
-  tool_name   "ls"
+  tool_scope :os                                    # full name: os::ls
+  tool_name  :ls
+
   description "List a directory"
   param :path, "Directory to list"
 
@@ -137,7 +138,7 @@ end
 LsTool.call(input: { path: "/etc" }).status   # => :denied, never executed
 ```
 
-## 7. Agent
+## 8. Agent
 
 **Definition.** A loop over Requests and Tools: ask the model → run the tools it asked for → feed the results back → repeat. Every **turn** runs the same named steps (context → llm → tools → goal → limits) and the run ends with a **stop reason**. → [Idea and DSL](AGENT.md#1-idea), [The standard loop](AGENT.md#5-the-standard-loop)
 
@@ -160,7 +161,43 @@ Parts of an agent:
 - **Limits.** Hard stops: `max_turns`, `max_cost`, `max_tool_calls`, `loop_guard`, `stop_if`. → [Completion and failure](AGENT.md#9-completion-and-failure)
 - **Setup and finalize.** Optional Pipelines around the run: `setup` turns the input into a goal, `finalize` shapes the outcome. → [Full lifecycle](AGENT.md#23-full-lifecycle)
 
-## 8. Hooks, streaming, tracing
+## 9. Agent loop
+
+**Definition.** The repeating part of an agent run: ask the model → run the tools it asked for → feed the results back → decide whether to go on. One pass is a **turn**. The model decides *what* to do; the loop owns safety and stopping. → [The standard loop](AGENT.md#5-the-standard-loop)
+
+```
+Agent.call(input)
+  ├─ setup      (optional)   turns the input into a goal
+  ├─ LOOP       turns, until a stop reason fires
+  └─ finalize   (optional)   shapes the outcome
+```
+
+```ruby
+while running?
+  stop!(:max_turns) and break if limit reached           # checked before every model call
+
+  messages = step :context { build the history for the model }
+  response = step :llm     { request.call(input: messages, tools: tool_schemas) }
+
+  if response.tool_calls.any?
+    step :tools { for each call: look the tool up (unknown → refused),
+                  Tool.call(...),                          # steps, deny!, perform
+                  put the result (or the refusal) into the history as a `tool` message }
+  else
+    step :goal  { no goal → finish!(:final_answer)
+                  goal    → :achieved → finish!(:goal_reached)
+                            :continue → add the feedback to the history, next turn }
+  end
+
+  step :limits { stop_if, loop_guard, max_turns, max_cost }
+end
+```
+
+- A tool refusal or failure never stops the run by itself: the model reads it as text and may adjust (capped by `max_denials`, `max_tool_errors`).
+- Every step is named, so traces and hooks say exactly where something happened (`turn.steps`, `on :after_step, :goal`).
+- Every run ends with a **stop reason**: `:final_answer`, `:goal_reached`, `:max_turns`, `:max_cost`, `:repeating`, ... → `agent.stop_reason`
+
+## 10. Hooks, streaming, tracing
 
 **Definition.** *Hooks* are blocks that run at fixed moments (`before_call`, `after_step`, `before_tool`, ...) on Request, Pipeline, Tribunal, Tool and Agent. *Streaming* sends tokens (`token:`) and lifecycle events (`stream:`, with sources `:request`, `:tribunal`, `:pipeline`, `:agent`). *Tracing* turns them into logs or OpenTelemetry spans. → [Request hooks](requests/request_hooks.md), [Pipeline hooks](pipelines/pipeline_hooks.md), [Agent hooks](AGENT.md#7-hooks-events-tracing), [Streaming in a Rails app](REQUESTS.md#streaming-in-a-rails-app), [How tracing works](TRACING.md#how-it-works)
 

@@ -8,7 +8,7 @@ class LsTool < ActiveHarness::Tool
   # `tool_scope` namespaces the tool (os::ls vs web::ls) and lets you allow or log a whole group;
   # `tool_name` is the name the model sees. Both are explicit: renaming the class changes nothing for the model.
   tool_scope :os
-  tool_name  "ls"
+  tool_name  :ls
 
   # What the model reads when it decides whether to call this tool — write it for the model.
   description "List files in a directory inside the workspace"

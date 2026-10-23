@@ -43,8 +43,9 @@ module ActiveHarness
   # call passes through your checks first.
   #
   #   class LsTool < ActiveHarness::Tool
-  #     tool_scope  :os
-  #     tool_name   "ls"
+  #     tool_scope :os
+  #     tool_name  :ls
+  #
   #     description "List files in a directory"
   #     param :path, "Directory to list"
   #
@@ -103,14 +104,14 @@ module ActiveHarness
         value ? @tool_scope = value.to_sym : @tool_scope
       end
 
-      # Required: "ls", "fetch_url" ...
+      # Required: :ls, :fetch_url ... (a String works too)
       def tool_name(value = nil)
         value ? @tool_name = value.to_s : @tool_name
       end
 
       def full_name
         raise ArgumentError, "#{name || 'Tool'} must declare a tool_scope (e.g. `tool_scope :os`)" unless tool_scope
-        raise ArgumentError, "#{name || 'Tool'} must declare a tool_name (e.g. `tool_name \"ls\"`)" unless tool_name
+        raise ArgumentError, "#{name || 'Tool'} must declare a tool_name (e.g. `tool_name :ls`)" unless tool_name
 
         "#{tool_scope}::#{tool_name}"
       end

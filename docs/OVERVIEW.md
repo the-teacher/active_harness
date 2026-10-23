@@ -215,7 +215,7 @@ class LsTool < ActiveHarness::Tool
   include ToolTracing                          # logging lives in a concern
 
   tool_scope :os          # full name os::ls; wire name os__ls
-  tool_name  "ls"
+  tool_name  :ls
 
   description "List files in a directory inside the workspace"
   param :path, "Directory to list"             # type :string, required by default; also enum:, type:

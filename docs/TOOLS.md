@@ -243,7 +243,7 @@ class LsTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy
 
   tool_scope :os
-  tool_name  "ls"
+  tool_name  :ls
 
   description "List files in a directory"
 
@@ -280,7 +280,7 @@ end
 ```ruby
 class FetchUrlTool < ActiveHarness::Tool
   tool_scope :web
-  tool_name  "fetch"
+  tool_name  :fetch
 
   description "HTTP GET a public URL"
 
@@ -307,7 +307,7 @@ class RmTool < ActiveHarness::Tool
   include ActiveHarness::Tool::PathPolicy
 
   tool_scope :os
-  tool_name  "rm"
+  tool_name  :rm
 
   description "Delete a file"
 
