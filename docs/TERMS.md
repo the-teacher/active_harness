@@ -31,7 +31,7 @@ Generators: `rails g active_harness:install` creates the tree, `rails g active_h
 
 ## 2. Prompt
 
-**Definition.** The system prompt of a Request: a plain Ruby class with `#call` that returns a string (or just a string / lambda). It can read `@input`, `@context`, `@params` and `@memory`, so it can be dynamic. → [How prompts work](PROMPTS.md#how-prompts-work)
+**Prompt** is the instruction that tells the model who it is and how to answer: a string, or a small class whose `#call` builds it from `@input`, `@context`, `@params` and `@memory`. → [How prompts work](PROMPTS.md#how-prompts-work)
 
 ```ruby
 class SupportPrompt
@@ -43,7 +43,7 @@ end
 
 ## 3. Request
 
-**Definition.** One logical LLM call: a prompt, a **model chain**, retries and hooks. `MyRequest.call(input: "...")` runs it; the answer is in `request.result`. → [Your first Request](REQUESTS.md#how-to-create-your-first-request-in-5-minutes)
+**Request** is one call to an LLM: a prompt plus a chain of models (with retries and fallback) that returns a Result with the answer, the tokens and the cost. → [Your first Request](REQUESTS.md#how-to-create-your-first-request-in-5-minutes)
 
 ```ruby
 class SupportRequest < ActiveHarness::Request
@@ -68,7 +68,7 @@ Good to know:
 
 ## 4. Pipeline
 
-**Definition.** Requests, tribunals, lambdas and agents run as **named steps** in a row; the output of one step is the input of the next, and a step can stop the whole pipeline. → [Your first Pipeline](PIPELINES.md#how-to-create-your-first-pipeline-in-5-minutes), [Step types](PIPELINES.md#step-types), [Stop conditions](PIPELINES.md#stop-conditions)
+**Pipeline** is a sequence of named steps — requests, tribunals, agents, lambdas — where each step's output is the next step's input and any step can stop the run. → [Your first Pipeline](PIPELINES.md#how-to-create-your-first-pipeline-in-5-minutes), [Step types](PIPELINES.md#step-types), [Stop conditions](PIPELINES.md#stop-conditions)
 
 ```ruby
 class SupportPipeline < ActiveHarness::Pipeline
@@ -82,7 +82,7 @@ pipeline.output                            # the last step's output
 
 ## 5. Tribunal
 
-**Definition.** Several requests run **in parallel** and one **verdict** is computed from their answers (`unanimous`, `majority` or your own rule). Use it when one model's opinion is not enough. → [Your first Tribunal](TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes), [Verdict strategies](TRIBUNALS.md#verdict-strategies)
+**Tribunal** is a panel of requests run in parallel whose answers are reduced to one verdict (unanimous, majority or your own rule) — for decisions one model should not make alone. → [Your first Tribunal](TRIBUNALS.md#how-to-create-your-first-tribunal-in-5-minutes), [Verdict strategies](TRIBUNALS.md#verdict-strategies)
 
 ```ruby
 class PolitenessTribunal < ActiveHarness::Tribunal
@@ -98,7 +98,7 @@ PolitenessTribunal.new(input: "Thanks a lot!").call.verdict   # => true only if 
 
 ## 6. Memory
 
-**Definition.** Stored conversation history (JSON file, PostgreSQL, SQLite). It is never added to messages automatically — you decide where it goes (a prompt, a hook). A Pipeline records its turns by itself; a bare Request does not. → [How memory works](MEMORY.md#how-memory-works)
+**Memory** is stored conversation history that never enters the messages by itself: you decide where it goes (a prompt, a hook). → [How memory works](MEMORY.md#how-memory-works)
 
 ```ruby
 class ChatPrompt
@@ -116,7 +116,7 @@ memory.record(request: "Hi!", response: request.result.output)           # ...or
 
 ## 7. Tool
 
-**Definition.** A controlled action a model may ask for: a `tool_scope` + `tool_name` (`os::ls`), a `schema` of parameters, ordered named **steps** (checks, `deny!`, `transform: true`) and a `perform`. Default deny: a refusal or a failure goes back to the model as a safe message, nothing crashes. → [Tool design](TOOLS.md#2-proposed-design), [Examples](TOOLS.md#3-examples), [Security checklist](TOOLS.md#4-security-rules-to-keep-checklist)
+**Tool** is a safe, declared action a model may ask for: validated input, ordered named steps that can refuse, then the real work. Default deny — a refusal or a failure goes back to the model as a message, nothing crashes. → [Tool design](TOOLS.md#2-proposed-design), [Examples](TOOLS.md#3-examples), [Security checklist](TOOLS.md#4-security-rules-to-keep-checklist)
 
 ```ruby
 class LsTool < ActiveHarness::Tool
@@ -140,7 +140,7 @@ LsTool.call(input: { path: "/etc" }).status   # => :denied, never executed
 
 ## 8. Agent
 
-**Definition.** A loop over Requests and Tools: ask the model → run the tools it asked for → feed the results back → repeat. Every **turn** runs the same named steps (context → llm → tools → goal → limits) and the run ends with a **stop reason**. → [Idea and DSL](AGENT.md#1-idea), [The standard loop](AGENT.md#5-the-standard-loop)
+**Agent** is a model that reaches an answer by using Tools in a loop, kept in bounds by limits and, optionally, a goal check. Every **turn** runs the same named steps (context → llm → tools → goal → limits) and the run ends with a **stop reason**. → [Idea and DSL](AGENT.md#1-idea), [The standard loop](AGENT.md#5-the-standard-loop)
 
 ```ruby
 class FilesAgent < ActiveHarness::Agent
@@ -163,7 +163,7 @@ Parts of an agent:
 
 ## 9. Agent loop
 
-**Definition.** The repeating part of an agent run: ask the model → run the tools it asked for → feed the results back → decide whether to go on. One pass is a **turn**. The model decides *what* to do; the loop owns safety and stopping. → [The standard loop](AGENT.md#5-the-standard-loop)
+**Agent loop** is the repeating cycle inside an agent: ask the model → run the tools it asked for → feed the results back → decide whether to go on. One pass is a turn; the model decides *what* to do, the loop owns safety and stopping. → [The standard loop](AGENT.md#5-the-standard-loop)
 
 ```
 Agent.call(input)
@@ -199,7 +199,7 @@ end
 
 ## 10. Hooks, streaming, tracing
 
-**Definition.** *Hooks* are blocks that run at fixed moments (`before_call`, `after_step`, `before_tool`, ...) on Request, Pipeline, Tribunal, Tool and Agent. *Streaming* sends tokens (`token:`) and lifecycle events (`stream:`, with sources `:request`, `:tribunal`, `:pipeline`, `:agent`). *Tracing* turns them into logs or OpenTelemetry spans. → [Request hooks](requests/request_hooks.md), [Pipeline hooks](pipelines/pipeline_hooks.md), [Agent hooks](AGENT.md#7-hooks-events-tracing), [Streaming in a Rails app](REQUESTS.md#streaming-in-a-rails-app), [How tracing works](TRACING.md#how-it-works)
+**Hooks** are blocks that run at fixed moments (`before_call`, `after_step`, `before_tool`, ...); **streaming** delivers tokens (`token:`) and lifecycle events (`stream:`) as they happen; **tracing** turns both into logs or OpenTelemetry spans. → [Request hooks](requests/request_hooks.md), [Pipeline hooks](pipelines/pipeline_hooks.md), [Agent hooks](AGENT.md#7-hooks-events-tracing), [Streaming in a Rails app](REQUESTS.md#streaming-in-a-rails-app), [How tracing works](TRACING.md#how-it-works)
 
 ```ruby
 class SupportRequest < ActiveHarness::Request
